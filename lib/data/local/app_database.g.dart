@@ -15480,6 +15480,34 @@ class $PlantObservationsTable extends PlantObservations
       'CHECK ("current_faw_evidence" IN (0, 1))',
     ),
   );
+  static const VerificationMeta _possibleNonFawEvidenceMeta =
+      const VerificationMeta('possibleNonFawEvidence');
+  @override
+  late final GeneratedColumn<bool> possibleNonFawEvidence =
+      GeneratedColumn<bool>(
+        'possible_non_faw_evidence',
+        aliasedName,
+        true,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("possible_non_faw_evidence" IN (0, 1))',
+        ),
+      );
+  static const VerificationMeta _uncertainEvidenceMeta = const VerificationMeta(
+    'uncertainEvidence',
+  );
+  @override
+  late final GeneratedColumn<bool> uncertainEvidence = GeneratedColumn<bool>(
+    'uncertain_evidence',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("uncertain_evidence" IN (0, 1))',
+    ),
+  );
   static const VerificationMeta _oldDamagePresentMeta = const VerificationMeta(
     'oldDamagePresent',
   );
@@ -15588,6 +15616,8 @@ class $PlantObservationsTable extends PlantObservations
     notAssessableReason,
     plantStatus,
     currentFawEvidence,
+    possibleNonFawEvidence,
+    uncertainEvidence,
     oldDamagePresent,
     naturalEnemyQuickStatus,
     wholePlantContextNote,
@@ -15713,6 +15743,24 @@ class $PlantObservationsTable extends PlantObservations
         currentFawEvidence.isAcceptableOrUnknown(
           data['current_faw_evidence']!,
           _currentFawEvidenceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('possible_non_faw_evidence')) {
+      context.handle(
+        _possibleNonFawEvidenceMeta,
+        possibleNonFawEvidence.isAcceptableOrUnknown(
+          data['possible_non_faw_evidence']!,
+          _possibleNonFawEvidenceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('uncertain_evidence')) {
+      context.handle(
+        _uncertainEvidenceMeta,
+        uncertainEvidence.isAcceptableOrUnknown(
+          data['uncertain_evidence']!,
+          _uncertainEvidenceMeta,
         ),
       );
     }
@@ -15850,6 +15898,14 @@ class $PlantObservationsTable extends PlantObservations
         DriftSqlType.bool,
         data['${effectivePrefix}current_faw_evidence'],
       ),
+      possibleNonFawEvidence: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}possible_non_faw_evidence'],
+      ),
+      uncertainEvidence: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}uncertain_evidence'],
+      ),
       oldDamagePresent: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}old_damage_present'],
@@ -15907,6 +15963,8 @@ class PlantObservationRecord extends DataClass
   final String? notAssessableReason;
   final String plantStatus;
   final bool? currentFawEvidence;
+  final bool? possibleNonFawEvidence;
+  final bool? uncertainEvidence;
   final bool oldDamagePresent;
   final String naturalEnemyQuickStatus;
   final String? wholePlantContextNote;
@@ -15930,6 +15988,8 @@ class PlantObservationRecord extends DataClass
     this.notAssessableReason,
     required this.plantStatus,
     this.currentFawEvidence,
+    this.possibleNonFawEvidence,
+    this.uncertainEvidence,
     required this.oldDamagePresent,
     required this.naturalEnemyQuickStatus,
     this.wholePlantContextNote,
@@ -15967,6 +16027,12 @@ class PlantObservationRecord extends DataClass
     map['plant_status'] = Variable<String>(plantStatus);
     if (!nullToAbsent || currentFawEvidence != null) {
       map['current_faw_evidence'] = Variable<bool>(currentFawEvidence);
+    }
+    if (!nullToAbsent || possibleNonFawEvidence != null) {
+      map['possible_non_faw_evidence'] = Variable<bool>(possibleNonFawEvidence);
+    }
+    if (!nullToAbsent || uncertainEvidence != null) {
+      map['uncertain_evidence'] = Variable<bool>(uncertainEvidence);
     }
     map['old_damage_present'] = Variable<bool>(oldDamagePresent);
     map['natural_enemy_quick_status'] = Variable<String>(
@@ -16020,6 +16086,12 @@ class PlantObservationRecord extends DataClass
       currentFawEvidence: currentFawEvidence == null && nullToAbsent
           ? const Value.absent()
           : Value(currentFawEvidence),
+      possibleNonFawEvidence: possibleNonFawEvidence == null && nullToAbsent
+          ? const Value.absent()
+          : Value(possibleNonFawEvidence),
+      uncertainEvidence: uncertainEvidence == null && nullToAbsent
+          ? const Value.absent()
+          : Value(uncertainEvidence),
       oldDamagePresent: Value(oldDamagePresent),
       naturalEnemyQuickStatus: Value(naturalEnemyQuickStatus),
       wholePlantContextNote: wholePlantContextNote == null && nullToAbsent
@@ -16069,6 +16141,10 @@ class PlantObservationRecord extends DataClass
       currentFawEvidence: serializer.fromJson<bool?>(
         json['currentFawEvidence'],
       ),
+      possibleNonFawEvidence: serializer.fromJson<bool?>(
+        json['possibleNonFawEvidence'],
+      ),
+      uncertainEvidence: serializer.fromJson<bool?>(json['uncertainEvidence']),
       oldDamagePresent: serializer.fromJson<bool>(json['oldDamagePresent']),
       naturalEnemyQuickStatus: serializer.fromJson<String>(
         json['naturalEnemyQuickStatus'],
@@ -16103,6 +16179,10 @@ class PlantObservationRecord extends DataClass
       'notAssessableReason': serializer.toJson<String?>(notAssessableReason),
       'plantStatus': serializer.toJson<String>(plantStatus),
       'currentFawEvidence': serializer.toJson<bool?>(currentFawEvidence),
+      'possibleNonFawEvidence': serializer.toJson<bool?>(
+        possibleNonFawEvidence,
+      ),
+      'uncertainEvidence': serializer.toJson<bool?>(uncertainEvidence),
       'oldDamagePresent': serializer.toJson<bool>(oldDamagePresent),
       'naturalEnemyQuickStatus': serializer.toJson<String>(
         naturalEnemyQuickStatus,
@@ -16133,6 +16213,8 @@ class PlantObservationRecord extends DataClass
     Value<String?> notAssessableReason = const Value.absent(),
     String? plantStatus,
     Value<bool?> currentFawEvidence = const Value.absent(),
+    Value<bool?> possibleNonFawEvidence = const Value.absent(),
+    Value<bool?> uncertainEvidence = const Value.absent(),
     bool? oldDamagePresent,
     String? naturalEnemyQuickStatus,
     Value<String?> wholePlantContextNote = const Value.absent(),
@@ -16162,6 +16244,12 @@ class PlantObservationRecord extends DataClass
     currentFawEvidence: currentFawEvidence.present
         ? currentFawEvidence.value
         : this.currentFawEvidence,
+    possibleNonFawEvidence: possibleNonFawEvidence.present
+        ? possibleNonFawEvidence.value
+        : this.possibleNonFawEvidence,
+    uncertainEvidence: uncertainEvidence.present
+        ? uncertainEvidence.value
+        : this.uncertainEvidence,
     oldDamagePresent: oldDamagePresent ?? this.oldDamagePresent,
     naturalEnemyQuickStatus:
         naturalEnemyQuickStatus ?? this.naturalEnemyQuickStatus,
@@ -16206,6 +16294,12 @@ class PlantObservationRecord extends DataClass
       currentFawEvidence: data.currentFawEvidence.present
           ? data.currentFawEvidence.value
           : this.currentFawEvidence,
+      possibleNonFawEvidence: data.possibleNonFawEvidence.present
+          ? data.possibleNonFawEvidence.value
+          : this.possibleNonFawEvidence,
+      uncertainEvidence: data.uncertainEvidence.present
+          ? data.uncertainEvidence.value
+          : this.uncertainEvidence,
       oldDamagePresent: data.oldDamagePresent.present
           ? data.oldDamagePresent.value
           : this.oldDamagePresent,
@@ -16246,6 +16340,8 @@ class PlantObservationRecord extends DataClass
           ..write('notAssessableReason: $notAssessableReason, ')
           ..write('plantStatus: $plantStatus, ')
           ..write('currentFawEvidence: $currentFawEvidence, ')
+          ..write('possibleNonFawEvidence: $possibleNonFawEvidence, ')
+          ..write('uncertainEvidence: $uncertainEvidence, ')
           ..write('oldDamagePresent: $oldDamagePresent, ')
           ..write('naturalEnemyQuickStatus: $naturalEnemyQuickStatus, ')
           ..write('wholePlantContextNote: $wholePlantContextNote, ')
@@ -16274,6 +16370,8 @@ class PlantObservationRecord extends DataClass
     notAssessableReason,
     plantStatus,
     currentFawEvidence,
+    possibleNonFawEvidence,
+    uncertainEvidence,
     oldDamagePresent,
     naturalEnemyQuickStatus,
     wholePlantContextNote,
@@ -16301,6 +16399,8 @@ class PlantObservationRecord extends DataClass
           other.notAssessableReason == this.notAssessableReason &&
           other.plantStatus == this.plantStatus &&
           other.currentFawEvidence == this.currentFawEvidence &&
+          other.possibleNonFawEvidence == this.possibleNonFawEvidence &&
+          other.uncertainEvidence == this.uncertainEvidence &&
           other.oldDamagePresent == this.oldDamagePresent &&
           other.naturalEnemyQuickStatus == this.naturalEnemyQuickStatus &&
           other.wholePlantContextNote == this.wholePlantContextNote &&
@@ -16327,6 +16427,8 @@ class PlantObservationsCompanion
   final Value<String?> notAssessableReason;
   final Value<String> plantStatus;
   final Value<bool?> currentFawEvidence;
+  final Value<bool?> possibleNonFawEvidence;
+  final Value<bool?> uncertainEvidence;
   final Value<bool> oldDamagePresent;
   final Value<String> naturalEnemyQuickStatus;
   final Value<String?> wholePlantContextNote;
@@ -16351,6 +16453,8 @@ class PlantObservationsCompanion
     this.notAssessableReason = const Value.absent(),
     this.plantStatus = const Value.absent(),
     this.currentFawEvidence = const Value.absent(),
+    this.possibleNonFawEvidence = const Value.absent(),
+    this.uncertainEvidence = const Value.absent(),
     this.oldDamagePresent = const Value.absent(),
     this.naturalEnemyQuickStatus = const Value.absent(),
     this.wholePlantContextNote = const Value.absent(),
@@ -16376,6 +16480,8 @@ class PlantObservationsCompanion
     this.notAssessableReason = const Value.absent(),
     required String plantStatus,
     this.currentFawEvidence = const Value.absent(),
+    this.possibleNonFawEvidence = const Value.absent(),
+    this.uncertainEvidence = const Value.absent(),
     this.oldDamagePresent = const Value.absent(),
     required String naturalEnemyQuickStatus,
     this.wholePlantContextNote = const Value.absent(),
@@ -16405,6 +16511,8 @@ class PlantObservationsCompanion
     Expression<String>? notAssessableReason,
     Expression<String>? plantStatus,
     Expression<bool>? currentFawEvidence,
+    Expression<bool>? possibleNonFawEvidence,
+    Expression<bool>? uncertainEvidence,
     Expression<bool>? oldDamagePresent,
     Expression<String>? naturalEnemyQuickStatus,
     Expression<String>? wholePlantContextNote,
@@ -16433,6 +16541,9 @@ class PlantObservationsCompanion
       if (plantStatus != null) 'plant_status': plantStatus,
       if (currentFawEvidence != null)
         'current_faw_evidence': currentFawEvidence,
+      if (possibleNonFawEvidence != null)
+        'possible_non_faw_evidence': possibleNonFawEvidence,
+      if (uncertainEvidence != null) 'uncertain_evidence': uncertainEvidence,
       if (oldDamagePresent != null) 'old_damage_present': oldDamagePresent,
       if (naturalEnemyQuickStatus != null)
         'natural_enemy_quick_status': naturalEnemyQuickStatus,
@@ -16462,6 +16573,8 @@ class PlantObservationsCompanion
     Value<String?>? notAssessableReason,
     Value<String>? plantStatus,
     Value<bool?>? currentFawEvidence,
+    Value<bool?>? possibleNonFawEvidence,
+    Value<bool?>? uncertainEvidence,
     Value<bool>? oldDamagePresent,
     Value<String>? naturalEnemyQuickStatus,
     Value<String?>? wholePlantContextNote,
@@ -16488,6 +16601,9 @@ class PlantObservationsCompanion
       notAssessableReason: notAssessableReason ?? this.notAssessableReason,
       plantStatus: plantStatus ?? this.plantStatus,
       currentFawEvidence: currentFawEvidence ?? this.currentFawEvidence,
+      possibleNonFawEvidence:
+          possibleNonFawEvidence ?? this.possibleNonFawEvidence,
+      uncertainEvidence: uncertainEvidence ?? this.uncertainEvidence,
       oldDamagePresent: oldDamagePresent ?? this.oldDamagePresent,
       naturalEnemyQuickStatus:
           naturalEnemyQuickStatus ?? this.naturalEnemyQuickStatus,
@@ -16551,6 +16667,14 @@ class PlantObservationsCompanion
     if (currentFawEvidence.present) {
       map['current_faw_evidence'] = Variable<bool>(currentFawEvidence.value);
     }
+    if (possibleNonFawEvidence.present) {
+      map['possible_non_faw_evidence'] = Variable<bool>(
+        possibleNonFawEvidence.value,
+      );
+    }
+    if (uncertainEvidence.present) {
+      map['uncertain_evidence'] = Variable<bool>(uncertainEvidence.value);
+    }
     if (oldDamagePresent.present) {
       map['old_damage_present'] = Variable<bool>(oldDamagePresent.value);
     }
@@ -16602,6 +16726,8 @@ class PlantObservationsCompanion
           ..write('notAssessableReason: $notAssessableReason, ')
           ..write('plantStatus: $plantStatus, ')
           ..write('currentFawEvidence: $currentFawEvidence, ')
+          ..write('possibleNonFawEvidence: $possibleNonFawEvidence, ')
+          ..write('uncertainEvidence: $uncertainEvidence, ')
           ..write('oldDamagePresent: $oldDamagePresent, ')
           ..write('naturalEnemyQuickStatus: $naturalEnemyQuickStatus, ')
           ..write('wholePlantContextNote: $wholePlantContextNote, ')
@@ -16764,6 +16890,20 @@ class $VegetativeObservationsTable extends VegetativeObservations
     requiredDuringInsert: false,
     defaultValue: const Constant('none_seen'),
   );
+  static const VerificationMeta _eggMassVisibleMeta = const VerificationMeta(
+    'eggMassVisible',
+  );
+  @override
+  late final GeneratedColumn<bool> eggMassVisible = GeneratedColumn<bool>(
+    'egg_mass_visible',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("egg_mass_visible" IN (0, 1))',
+    ),
+  );
   static const VerificationMeta _larvaCountMeta = const VerificationMeta(
     'larvaCount',
   );
@@ -16847,6 +16987,7 @@ class $VegetativeObservationsTable extends VegetativeObservations
     whorlFeedingSign,
     larvaVisible,
     larvalSize,
+    eggMassVisible,
     larvaCount,
     daBafsLeafDamageScore,
     damageScoreUncertain,
@@ -16949,6 +17090,15 @@ class $VegetativeObservationsTable extends VegetativeObservations
         larvalSize.isAcceptableOrUnknown(data['larval_size']!, _larvalSizeMeta),
       );
     }
+    if (data.containsKey('egg_mass_visible')) {
+      context.handle(
+        _eggMassVisibleMeta,
+        eggMassVisible.isAcceptableOrUnknown(
+          data['egg_mass_visible']!,
+          _eggMassVisibleMeta,
+        ),
+      );
+    }
     if (data.containsKey('larva_count')) {
       context.handle(
         _larvaCountMeta,
@@ -17046,6 +17196,10 @@ class $VegetativeObservationsTable extends VegetativeObservations
         DriftSqlType.string,
         data['${effectivePrefix}larval_size'],
       )!,
+      eggMassVisible: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}egg_mass_visible'],
+      ),
       larvaCount: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}larva_count'],
@@ -17091,6 +17245,7 @@ class VegetativeObservationRecord extends DataClass
   final bool whorlFeedingSign;
   final bool larvaVisible;
   final String larvalSize;
+  final bool? eggMassVisible;
   final int? larvaCount;
   final int? daBafsLeafDamageScore;
   final bool damageScoreUncertain;
@@ -17108,6 +17263,7 @@ class VegetativeObservationRecord extends DataClass
     required this.whorlFeedingSign,
     required this.larvaVisible,
     required this.larvalSize,
+    this.eggMassVisible,
     this.larvaCount,
     this.daBafsLeafDamageScore,
     required this.damageScoreUncertain,
@@ -17132,6 +17288,9 @@ class VegetativeObservationRecord extends DataClass
     map['whorl_feeding_sign'] = Variable<bool>(whorlFeedingSign);
     map['larva_visible'] = Variable<bool>(larvaVisible);
     map['larval_size'] = Variable<String>(larvalSize);
+    if (!nullToAbsent || eggMassVisible != null) {
+      map['egg_mass_visible'] = Variable<bool>(eggMassVisible);
+    }
     if (!nullToAbsent || larvaCount != null) {
       map['larva_count'] = Variable<int>(larvaCount);
     }
@@ -17162,6 +17321,9 @@ class VegetativeObservationRecord extends DataClass
       whorlFeedingSign: Value(whorlFeedingSign),
       larvaVisible: Value(larvaVisible),
       larvalSize: Value(larvalSize),
+      eggMassVisible: eggMassVisible == null && nullToAbsent
+          ? const Value.absent()
+          : Value(eggMassVisible),
       larvaCount: larvaCount == null && nullToAbsent
           ? const Value.absent()
           : Value(larvaCount),
@@ -17199,6 +17361,7 @@ class VegetativeObservationRecord extends DataClass
       whorlFeedingSign: serializer.fromJson<bool>(json['whorlFeedingSign']),
       larvaVisible: serializer.fromJson<bool>(json['larvaVisible']),
       larvalSize: serializer.fromJson<String>(json['larvalSize']),
+      eggMassVisible: serializer.fromJson<bool?>(json['eggMassVisible']),
       larvaCount: serializer.fromJson<int?>(json['larvaCount']),
       daBafsLeafDamageScore: serializer.fromJson<int?>(
         json['daBafsLeafDamageScore'],
@@ -17229,6 +17392,7 @@ class VegetativeObservationRecord extends DataClass
       'whorlFeedingSign': serializer.toJson<bool>(whorlFeedingSign),
       'larvaVisible': serializer.toJson<bool>(larvaVisible),
       'larvalSize': serializer.toJson<String>(larvalSize),
+      'eggMassVisible': serializer.toJson<bool?>(eggMassVisible),
       'larvaCount': serializer.toJson<int?>(larvaCount),
       'daBafsLeafDamageScore': serializer.toJson<int?>(daBafsLeafDamageScore),
       'damageScoreUncertain': serializer.toJson<bool>(damageScoreUncertain),
@@ -17249,6 +17413,7 @@ class VegetativeObservationRecord extends DataClass
     bool? whorlFeedingSign,
     bool? larvaVisible,
     String? larvalSize,
+    Value<bool?> eggMassVisible = const Value.absent(),
     Value<int?> larvaCount = const Value.absent(),
     Value<int?> daBafsLeafDamageScore = const Value.absent(),
     bool? damageScoreUncertain,
@@ -17268,6 +17433,9 @@ class VegetativeObservationRecord extends DataClass
     whorlFeedingSign: whorlFeedingSign ?? this.whorlFeedingSign,
     larvaVisible: larvaVisible ?? this.larvaVisible,
     larvalSize: larvalSize ?? this.larvalSize,
+    eggMassVisible: eggMassVisible.present
+        ? eggMassVisible.value
+        : this.eggMassVisible,
     larvaCount: larvaCount.present ? larvaCount.value : this.larvaCount,
     daBafsLeafDamageScore: daBafsLeafDamageScore.present
         ? daBafsLeafDamageScore.value
@@ -17311,6 +17479,9 @@ class VegetativeObservationRecord extends DataClass
       larvalSize: data.larvalSize.present
           ? data.larvalSize.value
           : this.larvalSize,
+      eggMassVisible: data.eggMassVisible.present
+          ? data.eggMassVisible.value
+          : this.eggMassVisible,
       larvaCount: data.larvaCount.present
           ? data.larvaCount.value
           : this.larvaCount,
@@ -17341,6 +17512,7 @@ class VegetativeObservationRecord extends DataClass
           ..write('whorlFeedingSign: $whorlFeedingSign, ')
           ..write('larvaVisible: $larvaVisible, ')
           ..write('larvalSize: $larvalSize, ')
+          ..write('eggMassVisible: $eggMassVisible, ')
           ..write('larvaCount: $larvaCount, ')
           ..write('daBafsLeafDamageScore: $daBafsLeafDamageScore, ')
           ..write('damageScoreUncertain: $damageScoreUncertain, ')
@@ -17363,6 +17535,7 @@ class VegetativeObservationRecord extends DataClass
     whorlFeedingSign,
     larvaVisible,
     larvalSize,
+    eggMassVisible,
     larvaCount,
     daBafsLeafDamageScore,
     damageScoreUncertain,
@@ -17384,6 +17557,7 @@ class VegetativeObservationRecord extends DataClass
           other.whorlFeedingSign == this.whorlFeedingSign &&
           other.larvaVisible == this.larvaVisible &&
           other.larvalSize == this.larvalSize &&
+          other.eggMassVisible == this.eggMassVisible &&
           other.larvaCount == this.larvaCount &&
           other.daBafsLeafDamageScore == this.daBafsLeafDamageScore &&
           other.damageScoreUncertain == this.damageScoreUncertain &&
@@ -17404,6 +17578,7 @@ class VegetativeObservationsCompanion
   final Value<bool> whorlFeedingSign;
   final Value<bool> larvaVisible;
   final Value<String> larvalSize;
+  final Value<bool?> eggMassVisible;
   final Value<int?> larvaCount;
   final Value<int?> daBafsLeafDamageScore;
   final Value<bool> damageScoreUncertain;
@@ -17422,6 +17597,7 @@ class VegetativeObservationsCompanion
     this.whorlFeedingSign = const Value.absent(),
     this.larvaVisible = const Value.absent(),
     this.larvalSize = const Value.absent(),
+    this.eggMassVisible = const Value.absent(),
     this.larvaCount = const Value.absent(),
     this.daBafsLeafDamageScore = const Value.absent(),
     this.damageScoreUncertain = const Value.absent(),
@@ -17441,6 +17617,7 @@ class VegetativeObservationsCompanion
     this.whorlFeedingSign = const Value.absent(),
     this.larvaVisible = const Value.absent(),
     this.larvalSize = const Value.absent(),
+    this.eggMassVisible = const Value.absent(),
     this.larvaCount = const Value.absent(),
     this.daBafsLeafDamageScore = const Value.absent(),
     this.damageScoreUncertain = const Value.absent(),
@@ -17460,6 +17637,7 @@ class VegetativeObservationsCompanion
     Expression<bool>? whorlFeedingSign,
     Expression<bool>? larvaVisible,
     Expression<String>? larvalSize,
+    Expression<bool>? eggMassVisible,
     Expression<int>? larvaCount,
     Expression<int>? daBafsLeafDamageScore,
     Expression<bool>? damageScoreUncertain,
@@ -17482,6 +17660,7 @@ class VegetativeObservationsCompanion
       if (whorlFeedingSign != null) 'whorl_feeding_sign': whorlFeedingSign,
       if (larvaVisible != null) 'larva_visible': larvaVisible,
       if (larvalSize != null) 'larval_size': larvalSize,
+      if (eggMassVisible != null) 'egg_mass_visible': eggMassVisible,
       if (larvaCount != null) 'larva_count': larvaCount,
       if (daBafsLeafDamageScore != null)
         'da_bafs_leaf_damage_score': daBafsLeafDamageScore,
@@ -17505,6 +17684,7 @@ class VegetativeObservationsCompanion
     Value<bool>? whorlFeedingSign,
     Value<bool>? larvaVisible,
     Value<String>? larvalSize,
+    Value<bool?>? eggMassVisible,
     Value<int?>? larvaCount,
     Value<int?>? daBafsLeafDamageScore,
     Value<bool>? damageScoreUncertain,
@@ -17526,6 +17706,7 @@ class VegetativeObservationsCompanion
       whorlFeedingSign: whorlFeedingSign ?? this.whorlFeedingSign,
       larvaVisible: larvaVisible ?? this.larvaVisible,
       larvalSize: larvalSize ?? this.larvalSize,
+      eggMassVisible: eggMassVisible ?? this.eggMassVisible,
       larvaCount: larvaCount ?? this.larvaCount,
       daBafsLeafDamageScore:
           daBafsLeafDamageScore ?? this.daBafsLeafDamageScore,
@@ -17574,6 +17755,9 @@ class VegetativeObservationsCompanion
     if (larvalSize.present) {
       map['larval_size'] = Variable<String>(larvalSize.value);
     }
+    if (eggMassVisible.present) {
+      map['egg_mass_visible'] = Variable<bool>(eggMassVisible.value);
+    }
     if (larvaCount.present) {
       map['larva_count'] = Variable<int>(larvaCount.value);
     }
@@ -17615,6 +17799,7 @@ class VegetativeObservationsCompanion
           ..write('whorlFeedingSign: $whorlFeedingSign, ')
           ..write('larvaVisible: $larvaVisible, ')
           ..write('larvalSize: $larvalSize, ')
+          ..write('eggMassVisible: $eggMassVisible, ')
           ..write('larvaCount: $larvaCount, ')
           ..write('daBafsLeafDamageScore: $daBafsLeafDamageScore, ')
           ..write('damageScoreUncertain: $damageScoreUncertain, ')
@@ -36651,6 +36836,8 @@ typedef $$PlantObservationsTableCreateCompanionBuilder =
       Value<String?> notAssessableReason,
       required String plantStatus,
       Value<bool?> currentFawEvidence,
+      Value<bool?> possibleNonFawEvidence,
+      Value<bool?> uncertainEvidence,
       Value<bool> oldDamagePresent,
       required String naturalEnemyQuickStatus,
       Value<String?> wholePlantContextNote,
@@ -36677,6 +36864,8 @@ typedef $$PlantObservationsTableUpdateCompanionBuilder =
       Value<String?> notAssessableReason,
       Value<String> plantStatus,
       Value<bool?> currentFawEvidence,
+      Value<bool?> possibleNonFawEvidence,
+      Value<bool?> uncertainEvidence,
       Value<bool> oldDamagePresent,
       Value<String> naturalEnemyQuickStatus,
       Value<String?> wholePlantContextNote,
@@ -36888,6 +37077,16 @@ class $$PlantObservationsTableFilterComposer
 
   ColumnFilters<bool> get currentFawEvidence => $composableBuilder(
     column: $table.currentFawEvidence,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get possibleNonFawEvidence => $composableBuilder(
+    column: $table.possibleNonFawEvidence,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get uncertainEvidence => $composableBuilder(
+    column: $table.uncertainEvidence,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -37132,6 +37331,16 @@ class $$PlantObservationsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get possibleNonFawEvidence => $composableBuilder(
+    column: $table.possibleNonFawEvidence,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get uncertainEvidence => $composableBuilder(
+    column: $table.uncertainEvidence,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get oldDamagePresent => $composableBuilder(
     column: $table.oldDamagePresent,
     builder: (column) => ColumnOrderings(column),
@@ -37255,6 +37464,16 @@ class $$PlantObservationsTableAnnotationComposer
 
   GeneratedColumn<bool> get currentFawEvidence => $composableBuilder(
     column: $table.currentFawEvidence,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get possibleNonFawEvidence => $composableBuilder(
+    column: $table.possibleNonFawEvidence,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get uncertainEvidence => $composableBuilder(
+    column: $table.uncertainEvidence,
     builder: (column) => column,
   );
 
@@ -37474,6 +37693,8 @@ class $$PlantObservationsTableTableManager
                 Value<String?> notAssessableReason = const Value.absent(),
                 Value<String> plantStatus = const Value.absent(),
                 Value<bool?> currentFawEvidence = const Value.absent(),
+                Value<bool?> possibleNonFawEvidence = const Value.absent(),
+                Value<bool?> uncertainEvidence = const Value.absent(),
                 Value<bool> oldDamagePresent = const Value.absent(),
                 Value<String> naturalEnemyQuickStatus = const Value.absent(),
                 Value<String?> wholePlantContextNote = const Value.absent(),
@@ -37498,6 +37719,8 @@ class $$PlantObservationsTableTableManager
                 notAssessableReason: notAssessableReason,
                 plantStatus: plantStatus,
                 currentFawEvidence: currentFawEvidence,
+                possibleNonFawEvidence: possibleNonFawEvidence,
+                uncertainEvidence: uncertainEvidence,
                 oldDamagePresent: oldDamagePresent,
                 naturalEnemyQuickStatus: naturalEnemyQuickStatus,
                 wholePlantContextNote: wholePlantContextNote,
@@ -37524,6 +37747,8 @@ class $$PlantObservationsTableTableManager
                 Value<String?> notAssessableReason = const Value.absent(),
                 required String plantStatus,
                 Value<bool?> currentFawEvidence = const Value.absent(),
+                Value<bool?> possibleNonFawEvidence = const Value.absent(),
+                Value<bool?> uncertainEvidence = const Value.absent(),
                 Value<bool> oldDamagePresent = const Value.absent(),
                 required String naturalEnemyQuickStatus,
                 Value<String?> wholePlantContextNote = const Value.absent(),
@@ -37548,6 +37773,8 @@ class $$PlantObservationsTableTableManager
                 notAssessableReason: notAssessableReason,
                 plantStatus: plantStatus,
                 currentFawEvidence: currentFawEvidence,
+                possibleNonFawEvidence: possibleNonFawEvidence,
+                uncertainEvidence: uncertainEvidence,
                 oldDamagePresent: oldDamagePresent,
                 naturalEnemyQuickStatus: naturalEnemyQuickStatus,
                 wholePlantContextNote: wholePlantContextNote,
@@ -37743,6 +37970,7 @@ typedef $$VegetativeObservationsTableCreateCompanionBuilder =
       Value<bool> whorlFeedingSign,
       Value<bool> larvaVisible,
       Value<String> larvalSize,
+      Value<bool?> eggMassVisible,
       Value<int?> larvaCount,
       Value<int?> daBafsLeafDamageScore,
       Value<bool> damageScoreUncertain,
@@ -37763,6 +37991,7 @@ typedef $$VegetativeObservationsTableUpdateCompanionBuilder =
       Value<bool> whorlFeedingSign,
       Value<bool> larvaVisible,
       Value<String> larvalSize,
+      Value<bool?> eggMassVisible,
       Value<int?> larvaCount,
       Value<int?> daBafsLeafDamageScore,
       Value<bool> damageScoreUncertain,
@@ -37856,6 +38085,11 @@ class $$VegetativeObservationsTableFilterComposer
 
   ColumnFilters<String> get larvalSize => $composableBuilder(
     column: $table.larvalSize,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get eggMassVisible => $composableBuilder(
+    column: $table.eggMassVisible,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -37967,6 +38201,11 @@ class $$VegetativeObservationsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get eggMassVisible => $composableBuilder(
+    column: $table.eggMassVisible,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get larvaCount => $composableBuilder(
     column: $table.larvaCount,
     builder: (column) => ColumnOrderings(column),
@@ -38073,6 +38312,11 @@ class $$VegetativeObservationsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<bool> get eggMassVisible => $composableBuilder(
+    column: $table.eggMassVisible,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get larvaCount => $composableBuilder(
     column: $table.larvaCount,
     builder: (column) => column,
@@ -38176,6 +38420,7 @@ class $$VegetativeObservationsTableTableManager
                 Value<bool> whorlFeedingSign = const Value.absent(),
                 Value<bool> larvaVisible = const Value.absent(),
                 Value<String> larvalSize = const Value.absent(),
+                Value<bool?> eggMassVisible = const Value.absent(),
                 Value<int?> larvaCount = const Value.absent(),
                 Value<int?> daBafsLeafDamageScore = const Value.absent(),
                 Value<bool> damageScoreUncertain = const Value.absent(),
@@ -38194,6 +38439,7 @@ class $$VegetativeObservationsTableTableManager
                 whorlFeedingSign: whorlFeedingSign,
                 larvaVisible: larvaVisible,
                 larvalSize: larvalSize,
+                eggMassVisible: eggMassVisible,
                 larvaCount: larvaCount,
                 daBafsLeafDamageScore: daBafsLeafDamageScore,
                 damageScoreUncertain: damageScoreUncertain,
@@ -38214,6 +38460,7 @@ class $$VegetativeObservationsTableTableManager
                 Value<bool> whorlFeedingSign = const Value.absent(),
                 Value<bool> larvaVisible = const Value.absent(),
                 Value<String> larvalSize = const Value.absent(),
+                Value<bool?> eggMassVisible = const Value.absent(),
                 Value<int?> larvaCount = const Value.absent(),
                 Value<int?> daBafsLeafDamageScore = const Value.absent(),
                 Value<bool> damageScoreUncertain = const Value.absent(),
@@ -38232,6 +38479,7 @@ class $$VegetativeObservationsTableTableManager
                 whorlFeedingSign: whorlFeedingSign,
                 larvaVisible: larvaVisible,
                 larvalSize: larvalSize,
+                eggMassVisible: eggMassVisible,
                 larvaCount: larvaCount,
                 daBafsLeafDamageScore: daBafsLeafDamageScore,
                 damageScoreUncertain: damageScoreUncertain,

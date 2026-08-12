@@ -301,6 +301,8 @@ class PlantObservations extends SyncableTable {
   TextColumn get notAssessableReason => text().nullable()();
   TextColumn get plantStatus => text()();
   BoolColumn get currentFawEvidence => boolean().nullable()();
+  BoolColumn get possibleNonFawEvidence => boolean().nullable()();
+  BoolColumn get uncertainEvidence => boolean().nullable()();
   BoolColumn get oldDamagePresent =>
       boolean().withDefault(const Constant(false))();
   TextColumn get naturalEnemyQuickStatus => text()();
@@ -335,6 +337,7 @@ class VegetativeObservations extends Table {
   BoolColumn get larvaVisible => boolean().withDefault(const Constant(false))();
   TextColumn get larvalSize =>
       text().withDefault(const Constant('none_seen'))();
+  BoolColumn get eggMassVisible => boolean().nullable()();
   IntColumn get larvaCount => integer().nullable()();
   IntColumn get daBafsLeafDamageScore => integer().nullable()();
   BoolColumn get damageScoreUncertain =>
@@ -536,7 +539,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -544,6 +547,20 @@ class AppDatabase extends _$AppDatabase {
     onUpgrade: (migrator, from, to) async {
       if (from < 2) {
         await migrator.createTable(appPreferences);
+      }
+      if (from < 3) {
+        await migrator.addColumn(
+          plantObservations,
+          plantObservations.possibleNonFawEvidence,
+        );
+        await migrator.addColumn(
+          plantObservations,
+          plantObservations.uncertainEvidence,
+        );
+        await migrator.addColumn(
+          vegetativeObservations,
+          vegetativeObservations.eggMassVisible,
+        );
       }
     },
     beforeOpen: (details) async {

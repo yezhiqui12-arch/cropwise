@@ -46,6 +46,32 @@ abstract final class DatabaseCodes {
   static const naturalEnemyObserved = 'observed';
   static const naturalEnemyUncertain = 'uncertain';
   static const naturalEnemyNotAssessable = 'not_assessable';
+  static const naturalEnemyNotCollected = 'not_collected';
+
+  static const plantStatuses = {
+    plantNegative,
+    plantCurrentPositive,
+    plantOldDamageOnly,
+    plantPossibleNonFaw,
+    plantUncertain,
+    plantNotAssessable,
+  };
+
+  static const naturalEnemyQuickStatuses = {
+    naturalEnemyNoneSeen,
+    naturalEnemyObserved,
+    naturalEnemyUncertain,
+    naturalEnemyNotAssessable,
+    naturalEnemyNotCollected,
+  };
+
+  static const larvalSizes = {
+    'none_seen',
+    'small',
+    'medium',
+    'large',
+    'uncertain',
+  };
 
   // Safety gate.
   static const noRecentTreatment = 'no_recent_treatment';

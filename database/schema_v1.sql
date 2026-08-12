@@ -412,9 +412,11 @@ CREATE TABLE plant_observations (
   plant_status TEXT NOT NULL
     CHECK (plant_status IN ('negative', 'current_positive', 'old_damage_only', 'possible_non_faw', 'uncertain', 'not_assessable')),
   current_faw_evidence INTEGER CHECK (current_faw_evidence IS NULL OR current_faw_evidence IN (0, 1)),
+  possible_non_faw_evidence INTEGER CHECK (possible_non_faw_evidence IS NULL OR possible_non_faw_evidence IN (0, 1)),
+  uncertain_evidence INTEGER CHECK (uncertain_evidence IS NULL OR uncertain_evidence IN (0, 1)),
   old_damage_present INTEGER NOT NULL DEFAULT 0 CHECK (old_damage_present IN (0, 1)),
   natural_enemy_quick_status TEXT NOT NULL
-    CHECK (natural_enemy_quick_status IN ('none_seen', 'observed', 'uncertain', 'not_assessable')),
+    CHECK (natural_enemy_quick_status IN ('none_seen', 'observed', 'uncertain', 'not_assessable', 'not_collected')),
   whole_plant_context_note TEXT,
   latitude REAL CHECK (latitude BETWEEN -90 AND 90),
   longitude REAL CHECK (longitude BETWEEN -180 AND 180),
@@ -444,6 +446,7 @@ CREATE TABLE vegetative_observations (
   larva_visible INTEGER NOT NULL DEFAULT 0 CHECK (larva_visible IN (0, 1)),
   larval_size TEXT NOT NULL DEFAULT 'none_seen'
     CHECK (larval_size IN ('none_seen', 'small', 'medium', 'large', 'uncertain')),
+  egg_mass_visible INTEGER CHECK (egg_mass_visible IS NULL OR egg_mass_visible IN (0, 1)),
   larva_count INTEGER CHECK (larva_count IS NULL OR larva_count >= 0),
   da_bafs_leaf_damage_score INTEGER CHECK (da_bafs_leaf_damage_score IS NULL OR da_bafs_leaf_damage_score BETWEEN 0 AND 9),
   damage_score_uncertain INTEGER NOT NULL DEFAULT 0 CHECK (damage_score_uncertain IN (0, 1)),

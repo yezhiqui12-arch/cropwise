@@ -282,6 +282,8 @@ class AssessmentRepository {
     required String naturalEnemyQuickStatus,
     bool assessable = true,
     bool? currentFawEvidence,
+    bool? possibleNonFawEvidence,
+    bool? uncertainEvidence,
     bool oldDamagePresent = false,
     String? notAssessableReason,
     String? persistentPlantIdentifier,
@@ -293,6 +295,22 @@ class AssessmentRepository {
         sequenceNumber,
         'sequenceNumber',
         'Must be 1-10',
+      );
+    }
+    if (!DatabaseCodes.plantStatuses.contains(plantStatus)) {
+      throw ArgumentError.value(
+        plantStatus,
+        'plantStatus',
+        'Unsupported plant status',
+      );
+    }
+    if (!DatabaseCodes.naturalEnemyQuickStatuses.contains(
+      naturalEnemyQuickStatus,
+    )) {
+      throw ArgumentError.value(
+        naturalEnemyQuickStatus,
+        'naturalEnemyQuickStatus',
+        'Unsupported natural-enemy quick status',
       );
     }
     if (!assessable && plantStatus != DatabaseCodes.plantNotAssessable) {
@@ -322,6 +340,8 @@ class AssessmentRepository {
             notAssessableReason: Value(notAssessableReason),
             plantStatus: plantStatus,
             currentFawEvidence: Value(currentFawEvidence),
+            possibleNonFawEvidence: Value(possibleNonFawEvidence),
+            uncertainEvidence: Value(uncertainEvidence),
             oldDamagePresent: Value(oldDamagePresent),
             naturalEnemyQuickStatus: naturalEnemyQuickStatus,
             capturedAt: Value(DateTime.now().toUtc()),
@@ -406,10 +426,13 @@ class AssessmentRepository {
     int? newestLeavesInspectedCount,
     bool smallFreshWindowpanes = false,
     bool infestedWhorl = false,
+    bool scraping = false,
+    bool cuttingOrTearing = false,
     bool freshFrass = false,
     bool whorlFeedingSign = false,
     bool larvaVisible = false,
     String larvalSize = 'none_seen',
+    bool? eggMassVisible,
     int? larvaCount,
     int? daBafsLeafDamageScore,
     bool damageScoreUncertain = false,
@@ -422,6 +445,13 @@ class AssessmentRepository {
         'Must be 0-9',
       );
     }
+    if (!DatabaseCodes.larvalSizes.contains(larvalSize)) {
+      throw ArgumentError.value(
+        larvalSize,
+        'larvalSize',
+        'Unsupported larval-size group',
+      );
+    }
     await database
         .into(database.vegetativeObservations)
         .insertOnConflictUpdate(
@@ -430,10 +460,13 @@ class AssessmentRepository {
             newestLeavesInspectedCount: Value(newestLeavesInspectedCount),
             smallFreshWindowpanes: Value(smallFreshWindowpanes),
             infestedWhorl: Value(infestedWhorl),
+            scraping: Value(scraping),
+            cuttingOrTearing: Value(cuttingOrTearing),
             freshFrass: Value(freshFrass),
             whorlFeedingSign: Value(whorlFeedingSign),
             larvaVisible: Value(larvaVisible),
             larvalSize: Value(larvalSize),
+            eggMassVisible: Value(eggMassVisible),
             larvaCount: Value(larvaCount),
             daBafsLeafDamageScore: Value(daBafsLeafDamageScore),
             damageScoreUncertain: Value(damageScoreUncertain),

@@ -167,6 +167,8 @@ The selected ten-plant sequence per station. It stores common fields:
 - assessable/not-assessable state and reason
 - current infestation status
 - old damage
+- possible non-FAW evidence, independently nullable
+- uncertainty evidence, independently nullable
 - whole-plant context
 - current FAW evidence status
 - natural-enemy quick status
@@ -176,7 +178,9 @@ Stage-specific details are stored in one of the child tables below.
 
 #### `vegetative_observations`
 
-Stores small fresh windowpanes, infested whorl, fresh frass, larva information, whorl-feeding signs, inspected newest leaves, and the separate DA-BAFS 0-9 score.
+Stores small fresh windowpanes, fresh scraping, fresh cutting or tearing, derived infested-whorl status, fresh frass, larva information, nullable egg-mass visibility, whorl-feeding signs, inspected newest leaves, and the separate DA-BAFS 0-9 score.
+
+`current_faw_evidence` is the stored SFW/IW current-infestation indicator. It is FAW-consistent field evidence and must not be presented as species confirmation. Possible non-FAW evidence, uncertainty, old damage, and the evaluator-confirmed `plant_status` remain separate so mixed observations are not discarded.
 
 #### `reproductive_observations`
 
@@ -309,7 +313,7 @@ Use text codes in the database and map them to Dart enums. Do not persist user-f
 
 | Code set | Values |
 |---|---|
-| `natural_enemy_quick_status` | `none_seen`, `observed`, `uncertain`, `not_assessable` |
+| `natural_enemy_quick_status` | `none_seen`, `observed`, `uncertain`, `not_assessable`, `not_collected` |
 | `natural_enemy_type` | `predator_present`, `direct_predation`, `egg_parasitism`, `larval_parasitism`, `pathogen_mortality`, `uncertain` |
 | `organism_group` | `earwig`, `ant`, `spider`, `lacewing`, `predatory_beetle`, `predatory_bug`, `bird`, `parasitoid`, `fungus_like`, `virus_like`, `other`, `uncertain` |
 | `origin` | `naturally_observed`, `intentional_release`, `intentional_application`, `uncertain` |
