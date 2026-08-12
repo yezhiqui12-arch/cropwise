@@ -18,7 +18,7 @@ void main() {
     final created = await fields.createFieldWithBoundaryAndCycle(
       name: 'Assessment Test Field',
       geometryGeojson: '{"type":"Polygon","coordinates":[]}',
-      areaHectares: 1.2,
+      areaHectares: 0.8,
       boundarySourceMethod: 'draw',
       boundaryConfirmationStatus: 'user_confirmed',
     );
@@ -78,8 +78,8 @@ void main() {
     await tester.tap(find.byKey(const Key('save_assessment_setup_button')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Assessment saved and started'), findsOneWidget);
-    expect(find.text('In progress and saved locally'), findsOneWidget);
+    expect(find.text('Block 1 · Station 1'), findsWidgets);
+    expect(find.text('Block 1 is the whole field'), findsOneWidget);
 
     final assessment = await database.select(database.assessments).getSingle();
     expect(assessment.status, DatabaseCodes.inProgress);

@@ -211,7 +211,7 @@ void main() {
     await _closeApp(tester, database);
   });
 
-  testWidgets('Scan opens the saved overview for an active assessment', (
+  testWidgets('Scan opens Station 1 preparation for an active assessment', (
     WidgetTester tester,
   ) async {
     final database = AppDatabase(NativeDatabase.memory());
@@ -232,7 +232,8 @@ void main() {
       find.byKey(const Key('resume_assessment_from_scan_button')),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Assessment Overview'), findsOneWidget);
+    expect(find.text('Block 1 · Station 1'), findsWidgets);
+    expect(find.text('Block 1 is the whole field'), findsOneWidget);
 
     await _closeApp(tester, database);
   });

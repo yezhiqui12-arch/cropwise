@@ -73,6 +73,25 @@ abstract final class DatabaseCodes {
     'uncertain',
   };
 
+  // Station location-unavailable reasons.
+  static const stationLocationServicesOff = 'location_services_off';
+  static const stationPermissionDenied = 'permission_denied';
+  static const stationPermissionBlocked = 'permission_blocked';
+  static const stationNoCurrentFix = 'no_current_fix';
+  static const stationUnsafeToWait = 'unsafe_to_wait';
+  static const stationLocationDeviceError = 'device_or_location_error';
+  static const stationLocationOther = 'other';
+
+  static const stationNotLocatedReasons = {
+    stationLocationServicesOff,
+    stationPermissionDenied,
+    stationPermissionBlocked,
+    stationNoCurrentFix,
+    stationUnsafeToWait,
+    stationLocationDeviceError,
+    stationLocationOther,
+  };
+
   // Safety gate.
   static const noRecentTreatment = 'no_recent_treatment';
   static const safeIntervalCompleted = 'safe_interval_completed';

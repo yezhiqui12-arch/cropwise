@@ -130,8 +130,7 @@ class ScanLandingScreen extends StatelessWidget {
         icon: Icons.play_circle_outline,
         status: 'ASSESSMENT ACTIVE',
         title: 'Resume assessment',
-        message:
-            'The assessment setup is active. Open its saved overview to continue.',
+        message: 'Continue Block 1, Station 1 from the next required step.',
         supportingMessage: 'Saved on this phone.',
         actionKey: const Key('resume_assessment_from_scan_button'),
         actionLabel: 'Resume assessment',

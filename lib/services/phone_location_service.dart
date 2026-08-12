@@ -46,12 +46,24 @@ class PhoneLocationReading {
 }
 
 class PhoneLocationException implements Exception {
-  const PhoneLocationException(this.message);
+  const PhoneLocationException(
+    this.message, {
+    this.code = PhoneLocationFailureCode.deviceError,
+  });
 
   final String message;
+  final PhoneLocationFailureCode code;
 
   @override
   String toString() => message;
+}
+
+enum PhoneLocationFailureCode {
+  servicesDisabled,
+  permissionDenied,
+  permissionBlocked,
+  noCurrentFix,
+  deviceError,
 }
 
 class PhoneLocationService {
@@ -106,6 +118,7 @@ class PhoneLocationService {
   Future<AveragedPhoneLocation> captureAverage({
     int targetSamples = 5,
     Duration maximumWait = const Duration(seconds: 12),
+    double? maximumAcceptedAccuracyMeters = 100,
   }) async {
     if (targetSamples < 1) {
       throw ArgumentError.value(
@@ -133,7 +146,12 @@ class PhoneLocationService {
           ),
         ).listen(
           (position) {
-            if (_isUsable(position)) samples.add(position);
+            if (_isUsable(
+              position,
+              maximumAcceptedAccuracyMeters: maximumAcceptedAccuracyMeters,
+            )) {
+              samples.add(position);
+            }
             if (samples.length >= targetSamples && !completion.isCompleted) {
               completion.complete();
             }
@@ -156,10 +174,16 @@ class PhoneLocationService {
             timeLimit: Duration(seconds: 10),
           ),
         );
-        if (_isUsable(single)) samples.add(single);
+        if (_isUsable(
+          single,
+          maximumAcceptedAccuracyMeters: maximumAcceptedAccuracyMeters,
+        )) {
+          samples.add(single);
+        }
       } on TimeoutException {
         throw const PhoneLocationException(
           'No GPS reading was received. Move outdoors and try again.',
+          code: PhoneLocationFailureCode.noCurrentFix,
         );
       } catch (error) {
         throw PhoneLocationException(
@@ -171,6 +195,7 @@ class PhoneLocationService {
     if (samples.isEmpty) {
       throw const PhoneLocationException(
         'The available GPS reading was not usable. Move outdoors and retry.',
+        code: PhoneLocationFailureCode.noCurrentFix,
       );
     }
 
@@ -181,6 +206,7 @@ class PhoneLocationService {
     if (!await Geolocator.isLocationServiceEnabled()) {
       throw const PhoneLocationException(
         'Location is turned off. Enable phone location and try again.',
+        code: PhoneLocationFailureCode.servicesDisabled,
       );
     }
 
@@ -191,16 +217,21 @@ class PhoneLocationService {
     if (permission == LocationPermission.denied) {
       throw const PhoneLocationException(
         'Location permission was denied. You can still save the field without GPS.',
+        code: PhoneLocationFailureCode.permissionDenied,
       );
     }
     if (permission == LocationPermission.deniedForever) {
       throw const PhoneLocationException(
         'Location permission is blocked. Enable it in the phone settings to record GPS.',
+        code: PhoneLocationFailureCode.permissionBlocked,
       );
     }
   }
 
-  bool _isUsable(Position position) {
+  bool _isUsable(
+    Position position, {
+    double? maximumAcceptedAccuracyMeters = 100,
+  }) {
     return position.latitude.isFinite &&
         position.longitude.isFinite &&
         position.latitude >= -90 &&
@@ -209,7 +240,8 @@ class PhoneLocationService {
         position.longitude <= 180 &&
         position.accuracy.isFinite &&
         position.accuracy >= 0 &&
-        position.accuracy <= 100;
+        (maximumAcceptedAccuracyMeters == null ||
+            position.accuracy <= maximumAcceptedAccuracyMeters);
   }
 
   AveragedPhoneLocation _average(List<Position> samples) {
