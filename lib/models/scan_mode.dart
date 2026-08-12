@@ -1,0 +1,1 @@
+enum ScanMode { plant, field }
