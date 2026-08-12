@@ -87,8 +87,13 @@ class AssessmentWorkspaceProvider extends ChangeNotifier {
     final workspace = _fieldWorkspace;
     final cropCycle = workspace?.cropCycle;
     final boundary = workspace?.boundary;
-    if (workspace == null || cropCycle == null || boundary == null) {
+    if (workspace == null || cropCycle == null) {
       throw StateError('The selected field is missing its local crop record.');
+    }
+    if (boundary == null || !workspace.hasApproximateOutline) {
+      throw StateError(
+        'Complete and confirm the approximate field outline before setting up an assessment.',
+      );
     }
 
     _setSaving(true);
@@ -137,6 +142,12 @@ class AssessmentWorkspaceProvider extends ChangeNotifier {
     final assessment = _currentAssessment;
     if (assessment == null) {
       throw StateError('There is no assessment awaiting a safety check.');
+    }
+    final workspace = _fieldWorkspace;
+    if (workspace?.boundary == null || !workspace!.hasApproximateOutline) {
+      throw StateError(
+        'Complete and confirm the approximate field outline before continuing this assessment.',
+      );
     }
     if (assessment.status == DatabaseCodes.inProgress) return assessment;
 

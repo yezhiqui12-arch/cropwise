@@ -3,7 +3,9 @@ import '../widgets/app_side_menu_drawer.dart';
 import '../widgets/bottom_nav_bar.dart';
 import '../widgets/top_header.dart';
 import 'boundary_map_screen.dart';
+import 'fields_screen.dart';
 import 'home_screen.dart';
+import 'scan/scan_landing_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -15,13 +17,34 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const Center(child: Text('Guided Scouting / Assess Screen')),
-    const Center(child: Text('Edge AI Camera Viewfinder')),
-    const BoundaryMapScreen(),
-    const Center(child: Text('DA-BPI RAG AI Assistant')),
-  ];
+  late final List<Widget> _screens;
+
+  @override
+  void initState() {
+    super.initState();
+    _screens = [
+      const HomeScreen(),
+      const Center(child: Text('Assessment records are not available yet.')),
+      ScanLandingScreen(
+        onRegisterField: _openFields,
+        onCompleteFieldOutline: () => _selectDestination(3),
+      ),
+      const BoundaryMapScreen(),
+      const Center(child: Text('WormWise Bot is not available yet.')),
+    ];
+  }
+
+  void _selectDestination(int index) {
+    if (_currentIndex == index) return;
+    setState(() => _currentIndex = index);
+  }
+
+  void _openFields() {
+    Navigator.push<void>(
+      context,
+      MaterialPageRoute(builder: (_) => const FieldsScreen()),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,11 +57,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: BottomNavBar(
         currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
+        onTap: _selectDestination,
       ),
     );
   }

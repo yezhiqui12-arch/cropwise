@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../data/local/database_codes.dart';
+import '../data/repositories/field_repository.dart';
 import '../providers/assessment_workspace_provider.dart';
 import '../services/assessment_protocol_selector.dart';
 import '../theme/app_colors.dart';
 import '../widgets/accessible_choice_field.dart';
 import 'assessment_session_screen.dart';
+import 'boundary_map_screen.dart';
 
 class AssessmentSetupScreen extends StatefulWidget {
   const AssessmentSetupScreen({super.key});
@@ -217,6 +219,12 @@ class _AssessmentSetupScreenState extends State<AssessmentSetupScreen> {
     if (workspace == null) {
       return const Scaffold(
         body: Center(child: Text('Select a maize field before assessment.')),
+      );
+    }
+    if (!workspace.hasApproximateOutline) {
+      return _BoundaryRequiredScreen(
+        workspace: workspace,
+        hasSavedAssessment: assessment != null,
       );
     }
     if (assessment?.status == DatabaseCodes.inProgress) {
@@ -541,6 +549,73 @@ class _AssessmentSetupScreenState extends State<AssessmentSetupScreen> {
         _safeIntervalVerified = false;
       }
     });
+  }
+}
+
+class _BoundaryRequiredScreen extends StatelessWidget {
+  const _BoundaryRequiredScreen({
+    required this.workspace,
+    required this.hasSavedAssessment,
+  });
+
+  final FieldWorkspaceRecord workspace;
+  final bool hasSavedAssessment;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Assessment Setup')),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            const Icon(
+              Icons.polyline_outlined,
+              size: 64,
+              color: AppColors.primary,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Complete field outline',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              hasSavedAssessment
+                  ? 'Your saved assessment setup remains on this phone. Confirm the field outline before continuing it.'
+                  : 'Confirm the field outline before setting up an assessment for ${workspace.field.name}.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'The outline is an approximate guide for field scouting. It is not a legal or survey-grade property boundary.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.textSecondary, height: 1.4),
+            ),
+            const SizedBox(height: 24),
+            ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 56),
+              child: FilledButton.icon(
+                key: const Key('complete_field_outline_from_setup_button'),
+                onPressed: () => Navigator.push<void>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const FieldBoundarySetupScreen(),
+                  ),
+                ),
+                icon: const Icon(Icons.map_outlined),
+                label: const Text('Complete field outline'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

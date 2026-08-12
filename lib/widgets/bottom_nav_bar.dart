@@ -82,30 +82,64 @@ class BottomNavBar extends StatelessWidget {
           ),
         ),
 
-        // Slightly Higher Elevated Center Scan Button
+        // Elevated center destination for active fieldwork.
         Positioned(
           top: -16,
-          child: GestureDetector(
-            onTap: () => onTap(2),
-            child: Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: AppColors.highContrastGreen,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 3.5),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.highContrastGreen.withValues(alpha: 0.4),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.center_focus_strong,
-                color: Colors.white,
-                size: 28,
+          child: Semantics(
+            button: true,
+            selected: currentIndex == 2,
+            label: 'Scan',
+            child: InkWell(
+              key: const Key('bottom_nav_scan'),
+              onTap: () => onTap(2),
+              customBorder: const CircleBorder(),
+              child: SizedBox(
+                width: 72,
+                height: 80,
+                child: Column(
+                  children: [
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: AppColors.highContrastGreen,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 3.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.highContrastGreen.withValues(
+                              alpha: 0.4,
+                            ),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.center_focus_strong,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    MediaQuery.withClampedTextScaling(
+                      maxScaleFactor: 1.3,
+                      child: Text(
+                        'Scan',
+                        maxLines: 1,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: currentIndex == 2
+                              ? FontWeight.bold
+                              : FontWeight.w500,
+                          color: currentIndex == 2
+                              ? AppColors.primary
+                              : AppColors.textMuted,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -134,12 +168,16 @@ class BottomNavBar extends StatelessWidget {
             size: 24,
           ),
           const SizedBox(height: 2),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-              color: isSelected ? AppColors.primary : AppColors.textMuted,
+          MediaQuery.withClampedTextScaling(
+            maxScaleFactor: 1.3,
+            child: Text(
+              label,
+              maxLines: 1,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                color: isSelected ? AppColors.primary : AppColors.textMuted,
+              ),
             ),
           ),
         ],
