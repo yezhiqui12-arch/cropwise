@@ -92,6 +92,48 @@ abstract final class DatabaseCodes {
     stationLocationOther,
   };
 
+  // Local evidence capture. These states do not imply remote upload.
+  static const evidenceScopeStationContext = 'station_context';
+  static const evidenceScopePlant = 'plant';
+  static const evidenceViewStationContext = 'station_context';
+  static const evidenceViewWhorlOverview = 'whorl_newest_leaves_overview';
+  static const evidenceViewCloseUp = 'evidence_close_up';
+  static const evidenceSessionInProgress = 'in_progress';
+  static const evidenceSessionComplete = 'complete';
+  static const evidenceSessionManualFallback = 'manual_fallback';
+  static const evidenceCollectionCamera = 'camera';
+  static const evidenceCollectionCameraWithFallback =
+      'camera_with_manual_fallback';
+  static const evidenceStorageStaged = 'staged';
+  static const evidenceStorageReady = 'ready';
+  static const evidenceStorageDeletionPending = 'deletion_pending';
+  static const evidenceStorageDeleted = 'deleted';
+  static const evidenceStorageMissing = 'missing';
+  static const evidenceCaptureSourceCamera = 'camera';
+  static const evidenceQualityEvaluatorConfirmed = 'evaluator_confirmed';
+
+  static const evidenceFallbackPermissionDenied = 'permission_denied';
+  static const evidenceFallbackPermissionBlocked = 'permission_blocked';
+  static const evidenceFallbackNoCamera = 'no_camera_hardware';
+  static const evidenceFallbackStorage = 'storage_unavailable';
+  static const evidenceFallbackCaptureFailure = 'capture_failure';
+  static const evidenceFallbackUnsafe = 'unsafe_to_photograph';
+  static const evidenceFallbackPrivacy = 'privacy_or_consent';
+  static const evidenceFallbackFraming = 'unable_to_frame_evidence';
+  static const evidenceFallbackOther = 'other';
+
+  static const evidenceFallbackReasons = {
+    evidenceFallbackPermissionDenied,
+    evidenceFallbackPermissionBlocked,
+    evidenceFallbackNoCamera,
+    evidenceFallbackStorage,
+    evidenceFallbackCaptureFailure,
+    evidenceFallbackUnsafe,
+    evidenceFallbackPrivacy,
+    evidenceFallbackFraming,
+    evidenceFallbackOther,
+  };
+
   // Safety gate.
   static const noRecentTreatment = 'no_recent_treatment';
   static const safeIntervalCompleted = 'safe_interval_completed';

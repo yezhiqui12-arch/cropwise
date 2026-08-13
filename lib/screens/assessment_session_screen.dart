@@ -3,11 +3,14 @@ import 'package:provider/provider.dart';
 
 import '../data/local/app_database.dart';
 import '../data/repositories/assessment_repository.dart';
+import '../data/repositories/evidence_capture_repository.dart';
 import '../data/repositories/station1_workflow_repository.dart';
 import '../data/services/atomic_plant_save_service.dart';
 import '../providers/assessment_workspace_provider.dart';
 import '../providers/station1_workflow_provider.dart';
 import '../services/phone_location_service.dart';
+import '../services/evidence_capture_coordinator.dart';
+import '../services/evidence_storage_service.dart';
 import 'station1/station1_workflow_screen.dart';
 
 class AssessmentSessionScreen extends StatelessWidget {
@@ -27,13 +30,22 @@ class AssessmentSessionScreen extends StatelessWidget {
     }
 
     final database = context.read<AppDatabase>();
+    final evidenceRepository = EvidenceCaptureRepository(database);
+    final evidenceCoordinator = EvidenceCaptureCoordinator(
+      repository: evidenceRepository,
+      storage: EvidenceStorageService(),
+    );
     const phoneLocation = PhoneLocationService();
     return ChangeNotifierProvider(
       create: (context) => Station1WorkflowProvider(
         assessmentId: assessment.id,
         workflowRepository: Station1WorkflowRepository(database),
         assessmentRepository: context.read<AssessmentRepository>(),
-        plantSaveService: AtomicPlantSaveService(database),
+        plantSaveService: AtomicPlantSaveService(
+          database,
+          evidenceRepository: evidenceRepository,
+        ),
+        evidenceCoordinator: evidenceCoordinator,
       )..initialize(),
       child: Station1WorkflowScreen(
         fieldName: workspace.fieldWorkspace?.field.name ?? 'Selected field',

@@ -20115,6 +20115,1232 @@ class EarObservationsCompanion extends UpdateCompanion<EarObservationRecord> {
   }
 }
 
+class $EvidenceCaptureSessionsTable extends EvidenceCaptureSessions
+    with
+        TableInfo<$EvidenceCaptureSessionsTable, EvidenceCaptureSessionRecord> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $EvidenceCaptureSessionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deviceIdMeta = const VerificationMeta(
+    'deviceId',
+  );
+  @override
+  late final GeneratedColumn<String> deviceId = GeneratedColumn<String>(
+    'device_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _syncStateMeta = const VerificationMeta(
+    'syncState',
+  );
+  @override
+  late final GeneratedColumn<String> syncState = GeneratedColumn<String>(
+    'sync_state',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(DatabaseCodes.localOnly),
+  );
+  static const VerificationMeta _serverVersionMeta = const VerificationMeta(
+    'serverVersion',
+  );
+  @override
+  late final GeneratedColumn<int> serverVersion = GeneratedColumn<int>(
+    'server_version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _assessmentIdMeta = const VerificationMeta(
+    'assessmentId',
+  );
+  @override
+  late final GeneratedColumn<String> assessmentId = GeneratedColumn<String>(
+    'assessment_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES assessments (id)',
+    ),
+  );
+  static const VerificationMeta _stationIdMeta = const VerificationMeta(
+    'stationId',
+  );
+  @override
+  late final GeneratedColumn<String> stationId = GeneratedColumn<String>(
+    'station_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES stations (id)',
+    ),
+  );
+  static const VerificationMeta _scopeTypeMeta = const VerificationMeta(
+    'scopeType',
+  );
+  @override
+  late final GeneratedColumn<String> scopeType = GeneratedColumn<String>(
+    'scope_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _scopeKeyMeta = const VerificationMeta(
+    'scopeKey',
+  );
+  @override
+  late final GeneratedColumn<String> scopeKey = GeneratedColumn<String>(
+    'scope_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _plantPositionMeta = const VerificationMeta(
+    'plantPosition',
+  );
+  @override
+  late final GeneratedColumn<int> plantPosition = GeneratedColumn<int>(
+    'plant_position',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _plantObservationIdMeta =
+      const VerificationMeta('plantObservationId');
+  @override
+  late final GeneratedColumn<String> plantObservationId =
+      GeneratedColumn<String>(
+        'plant_observation_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'REFERENCES plant_observations (id)',
+        ),
+      );
+  static const VerificationMeta _requirementsVersionMeta =
+      const VerificationMeta('requirementsVersion');
+  @override
+  late final GeneratedColumn<String> requirementsVersion =
+      GeneratedColumn<String>(
+        'requirements_version',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('camera_phase_a_v1'),
+      );
+  static const VerificationMeta _collectionModeMeta = const VerificationMeta(
+    'collectionMode',
+  );
+  @override
+  late final GeneratedColumn<String> collectionMode = GeneratedColumn<String>(
+    'collection_mode',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(DatabaseCodes.evidenceCollectionCamera),
+  );
+  static const VerificationMeta _collectionStatusMeta = const VerificationMeta(
+    'collectionStatus',
+  );
+  @override
+  late final GeneratedColumn<String> collectionStatus = GeneratedColumn<String>(
+    'collection_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(DatabaseCodes.evidenceSessionInProgress),
+  );
+  static const VerificationMeta _waivedViewTypesJsonMeta =
+      const VerificationMeta('waivedViewTypesJson');
+  @override
+  late final GeneratedColumn<String> waivedViewTypesJson =
+      GeneratedColumn<String>(
+        'waived_view_types_json',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _fallbackReasonCodeMeta =
+      const VerificationMeta('fallbackReasonCode');
+  @override
+  late final GeneratedColumn<String> fallbackReasonCode =
+      GeneratedColumn<String>(
+        'fallback_reason_code',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _fallbackNoteMeta = const VerificationMeta(
+    'fallbackNote',
+  );
+  @override
+  late final GeneratedColumn<String> fallbackNote = GeneratedColumn<String>(
+    'fallback_note',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _startedAtMeta = const VerificationMeta(
+    'startedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> startedAt = GeneratedColumn<DateTime>(
+    'started_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _completedAtMeta = const VerificationMeta(
+    'completedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> completedAt = GeneratedColumn<DateTime>(
+    'completed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    deviceId,
+    syncState,
+    serverVersion,
+    assessmentId,
+    stationId,
+    scopeType,
+    scopeKey,
+    plantPosition,
+    plantObservationId,
+    requirementsVersion,
+    collectionMode,
+    collectionStatus,
+    waivedViewTypesJson,
+    fallbackReasonCode,
+    fallbackNote,
+    startedAt,
+    completedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'evidence_capture_sessions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<EvidenceCaptureSessionRecord> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('device_id')) {
+      context.handle(
+        _deviceIdMeta,
+        deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta),
+      );
+    }
+    if (data.containsKey('sync_state')) {
+      context.handle(
+        _syncStateMeta,
+        syncState.isAcceptableOrUnknown(data['sync_state']!, _syncStateMeta),
+      );
+    }
+    if (data.containsKey('server_version')) {
+      context.handle(
+        _serverVersionMeta,
+        serverVersion.isAcceptableOrUnknown(
+          data['server_version']!,
+          _serverVersionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('assessment_id')) {
+      context.handle(
+        _assessmentIdMeta,
+        assessmentId.isAcceptableOrUnknown(
+          data['assessment_id']!,
+          _assessmentIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_assessmentIdMeta);
+    }
+    if (data.containsKey('station_id')) {
+      context.handle(
+        _stationIdMeta,
+        stationId.isAcceptableOrUnknown(data['station_id']!, _stationIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_stationIdMeta);
+    }
+    if (data.containsKey('scope_type')) {
+      context.handle(
+        _scopeTypeMeta,
+        scopeType.isAcceptableOrUnknown(data['scope_type']!, _scopeTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_scopeTypeMeta);
+    }
+    if (data.containsKey('scope_key')) {
+      context.handle(
+        _scopeKeyMeta,
+        scopeKey.isAcceptableOrUnknown(data['scope_key']!, _scopeKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_scopeKeyMeta);
+    }
+    if (data.containsKey('plant_position')) {
+      context.handle(
+        _plantPositionMeta,
+        plantPosition.isAcceptableOrUnknown(
+          data['plant_position']!,
+          _plantPositionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('plant_observation_id')) {
+      context.handle(
+        _plantObservationIdMeta,
+        plantObservationId.isAcceptableOrUnknown(
+          data['plant_observation_id']!,
+          _plantObservationIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('requirements_version')) {
+      context.handle(
+        _requirementsVersionMeta,
+        requirementsVersion.isAcceptableOrUnknown(
+          data['requirements_version']!,
+          _requirementsVersionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('collection_mode')) {
+      context.handle(
+        _collectionModeMeta,
+        collectionMode.isAcceptableOrUnknown(
+          data['collection_mode']!,
+          _collectionModeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('collection_status')) {
+      context.handle(
+        _collectionStatusMeta,
+        collectionStatus.isAcceptableOrUnknown(
+          data['collection_status']!,
+          _collectionStatusMeta,
+        ),
+      );
+    }
+    if (data.containsKey('waived_view_types_json')) {
+      context.handle(
+        _waivedViewTypesJsonMeta,
+        waivedViewTypesJson.isAcceptableOrUnknown(
+          data['waived_view_types_json']!,
+          _waivedViewTypesJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('fallback_reason_code')) {
+      context.handle(
+        _fallbackReasonCodeMeta,
+        fallbackReasonCode.isAcceptableOrUnknown(
+          data['fallback_reason_code']!,
+          _fallbackReasonCodeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('fallback_note')) {
+      context.handle(
+        _fallbackNoteMeta,
+        fallbackNote.isAcceptableOrUnknown(
+          data['fallback_note']!,
+          _fallbackNoteMeta,
+        ),
+      );
+    }
+    if (data.containsKey('started_at')) {
+      context.handle(
+        _startedAtMeta,
+        startedAt.isAcceptableOrUnknown(data['started_at']!, _startedAtMeta),
+      );
+    }
+    if (data.containsKey('completed_at')) {
+      context.handle(
+        _completedAtMeta,
+        completedAt.isAcceptableOrUnknown(
+          data['completed_at']!,
+          _completedAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {stationId, scopeKey},
+  ];
+  @override
+  EvidenceCaptureSessionRecord map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return EvidenceCaptureSessionRecord(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      deviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_id'],
+      ),
+      syncState: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_state'],
+      )!,
+      serverVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}server_version'],
+      )!,
+      assessmentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}assessment_id'],
+      )!,
+      stationId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}station_id'],
+      )!,
+      scopeType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}scope_type'],
+      )!,
+      scopeKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}scope_key'],
+      )!,
+      plantPosition: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}plant_position'],
+      ),
+      plantObservationId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}plant_observation_id'],
+      ),
+      requirementsVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}requirements_version'],
+      )!,
+      collectionMode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}collection_mode'],
+      )!,
+      collectionStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}collection_status'],
+      )!,
+      waivedViewTypesJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}waived_view_types_json'],
+      ),
+      fallbackReasonCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}fallback_reason_code'],
+      ),
+      fallbackNote: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}fallback_note'],
+      ),
+      startedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}started_at'],
+      )!,
+      completedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}completed_at'],
+      ),
+    );
+  }
+
+  @override
+  $EvidenceCaptureSessionsTable createAlias(String alias) {
+    return $EvidenceCaptureSessionsTable(attachedDatabase, alias);
+  }
+}
+
+class EvidenceCaptureSessionRecord extends DataClass
+    implements Insertable<EvidenceCaptureSessionRecord> {
+  final String id;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+  final String? deviceId;
+  final String syncState;
+  final int serverVersion;
+  final String assessmentId;
+  final String stationId;
+  final String scopeType;
+  final String scopeKey;
+  final int? plantPosition;
+  final String? plantObservationId;
+  final String requirementsVersion;
+  final String collectionMode;
+  final String collectionStatus;
+  final String? waivedViewTypesJson;
+  final String? fallbackReasonCode;
+  final String? fallbackNote;
+  final DateTime startedAt;
+  final DateTime? completedAt;
+  const EvidenceCaptureSessionRecord({
+    required this.id,
+    required this.createdAt,
+    required this.updatedAt,
+    this.deletedAt,
+    this.deviceId,
+    required this.syncState,
+    required this.serverVersion,
+    required this.assessmentId,
+    required this.stationId,
+    required this.scopeType,
+    required this.scopeKey,
+    this.plantPosition,
+    this.plantObservationId,
+    required this.requirementsVersion,
+    required this.collectionMode,
+    required this.collectionStatus,
+    this.waivedViewTypesJson,
+    this.fallbackReasonCode,
+    this.fallbackNote,
+    required this.startedAt,
+    this.completedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    if (!nullToAbsent || deviceId != null) {
+      map['device_id'] = Variable<String>(deviceId);
+    }
+    map['sync_state'] = Variable<String>(syncState);
+    map['server_version'] = Variable<int>(serverVersion);
+    map['assessment_id'] = Variable<String>(assessmentId);
+    map['station_id'] = Variable<String>(stationId);
+    map['scope_type'] = Variable<String>(scopeType);
+    map['scope_key'] = Variable<String>(scopeKey);
+    if (!nullToAbsent || plantPosition != null) {
+      map['plant_position'] = Variable<int>(plantPosition);
+    }
+    if (!nullToAbsent || plantObservationId != null) {
+      map['plant_observation_id'] = Variable<String>(plantObservationId);
+    }
+    map['requirements_version'] = Variable<String>(requirementsVersion);
+    map['collection_mode'] = Variable<String>(collectionMode);
+    map['collection_status'] = Variable<String>(collectionStatus);
+    if (!nullToAbsent || waivedViewTypesJson != null) {
+      map['waived_view_types_json'] = Variable<String>(waivedViewTypesJson);
+    }
+    if (!nullToAbsent || fallbackReasonCode != null) {
+      map['fallback_reason_code'] = Variable<String>(fallbackReasonCode);
+    }
+    if (!nullToAbsent || fallbackNote != null) {
+      map['fallback_note'] = Variable<String>(fallbackNote);
+    }
+    map['started_at'] = Variable<DateTime>(startedAt);
+    if (!nullToAbsent || completedAt != null) {
+      map['completed_at'] = Variable<DateTime>(completedAt);
+    }
+    return map;
+  }
+
+  EvidenceCaptureSessionsCompanion toCompanion(bool nullToAbsent) {
+    return EvidenceCaptureSessionsCompanion(
+      id: Value(id),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      deviceId: deviceId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deviceId),
+      syncState: Value(syncState),
+      serverVersion: Value(serverVersion),
+      assessmentId: Value(assessmentId),
+      stationId: Value(stationId),
+      scopeType: Value(scopeType),
+      scopeKey: Value(scopeKey),
+      plantPosition: plantPosition == null && nullToAbsent
+          ? const Value.absent()
+          : Value(plantPosition),
+      plantObservationId: plantObservationId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(plantObservationId),
+      requirementsVersion: Value(requirementsVersion),
+      collectionMode: Value(collectionMode),
+      collectionStatus: Value(collectionStatus),
+      waivedViewTypesJson: waivedViewTypesJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(waivedViewTypesJson),
+      fallbackReasonCode: fallbackReasonCode == null && nullToAbsent
+          ? const Value.absent()
+          : Value(fallbackReasonCode),
+      fallbackNote: fallbackNote == null && nullToAbsent
+          ? const Value.absent()
+          : Value(fallbackNote),
+      startedAt: Value(startedAt),
+      completedAt: completedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(completedAt),
+    );
+  }
+
+  factory EvidenceCaptureSessionRecord.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return EvidenceCaptureSessionRecord(
+      id: serializer.fromJson<String>(json['id']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      deviceId: serializer.fromJson<String?>(json['deviceId']),
+      syncState: serializer.fromJson<String>(json['syncState']),
+      serverVersion: serializer.fromJson<int>(json['serverVersion']),
+      assessmentId: serializer.fromJson<String>(json['assessmentId']),
+      stationId: serializer.fromJson<String>(json['stationId']),
+      scopeType: serializer.fromJson<String>(json['scopeType']),
+      scopeKey: serializer.fromJson<String>(json['scopeKey']),
+      plantPosition: serializer.fromJson<int?>(json['plantPosition']),
+      plantObservationId: serializer.fromJson<String?>(
+        json['plantObservationId'],
+      ),
+      requirementsVersion: serializer.fromJson<String>(
+        json['requirementsVersion'],
+      ),
+      collectionMode: serializer.fromJson<String>(json['collectionMode']),
+      collectionStatus: serializer.fromJson<String>(json['collectionStatus']),
+      waivedViewTypesJson: serializer.fromJson<String?>(
+        json['waivedViewTypesJson'],
+      ),
+      fallbackReasonCode: serializer.fromJson<String?>(
+        json['fallbackReasonCode'],
+      ),
+      fallbackNote: serializer.fromJson<String?>(json['fallbackNote']),
+      startedAt: serializer.fromJson<DateTime>(json['startedAt']),
+      completedAt: serializer.fromJson<DateTime?>(json['completedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'deviceId': serializer.toJson<String?>(deviceId),
+      'syncState': serializer.toJson<String>(syncState),
+      'serverVersion': serializer.toJson<int>(serverVersion),
+      'assessmentId': serializer.toJson<String>(assessmentId),
+      'stationId': serializer.toJson<String>(stationId),
+      'scopeType': serializer.toJson<String>(scopeType),
+      'scopeKey': serializer.toJson<String>(scopeKey),
+      'plantPosition': serializer.toJson<int?>(plantPosition),
+      'plantObservationId': serializer.toJson<String?>(plantObservationId),
+      'requirementsVersion': serializer.toJson<String>(requirementsVersion),
+      'collectionMode': serializer.toJson<String>(collectionMode),
+      'collectionStatus': serializer.toJson<String>(collectionStatus),
+      'waivedViewTypesJson': serializer.toJson<String?>(waivedViewTypesJson),
+      'fallbackReasonCode': serializer.toJson<String?>(fallbackReasonCode),
+      'fallbackNote': serializer.toJson<String?>(fallbackNote),
+      'startedAt': serializer.toJson<DateTime>(startedAt),
+      'completedAt': serializer.toJson<DateTime?>(completedAt),
+    };
+  }
+
+  EvidenceCaptureSessionRecord copyWith({
+    String? id,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    Value<DateTime?> deletedAt = const Value.absent(),
+    Value<String?> deviceId = const Value.absent(),
+    String? syncState,
+    int? serverVersion,
+    String? assessmentId,
+    String? stationId,
+    String? scopeType,
+    String? scopeKey,
+    Value<int?> plantPosition = const Value.absent(),
+    Value<String?> plantObservationId = const Value.absent(),
+    String? requirementsVersion,
+    String? collectionMode,
+    String? collectionStatus,
+    Value<String?> waivedViewTypesJson = const Value.absent(),
+    Value<String?> fallbackReasonCode = const Value.absent(),
+    Value<String?> fallbackNote = const Value.absent(),
+    DateTime? startedAt,
+    Value<DateTime?> completedAt = const Value.absent(),
+  }) => EvidenceCaptureSessionRecord(
+    id: id ?? this.id,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    deviceId: deviceId.present ? deviceId.value : this.deviceId,
+    syncState: syncState ?? this.syncState,
+    serverVersion: serverVersion ?? this.serverVersion,
+    assessmentId: assessmentId ?? this.assessmentId,
+    stationId: stationId ?? this.stationId,
+    scopeType: scopeType ?? this.scopeType,
+    scopeKey: scopeKey ?? this.scopeKey,
+    plantPosition: plantPosition.present
+        ? plantPosition.value
+        : this.plantPosition,
+    plantObservationId: plantObservationId.present
+        ? plantObservationId.value
+        : this.plantObservationId,
+    requirementsVersion: requirementsVersion ?? this.requirementsVersion,
+    collectionMode: collectionMode ?? this.collectionMode,
+    collectionStatus: collectionStatus ?? this.collectionStatus,
+    waivedViewTypesJson: waivedViewTypesJson.present
+        ? waivedViewTypesJson.value
+        : this.waivedViewTypesJson,
+    fallbackReasonCode: fallbackReasonCode.present
+        ? fallbackReasonCode.value
+        : this.fallbackReasonCode,
+    fallbackNote: fallbackNote.present ? fallbackNote.value : this.fallbackNote,
+    startedAt: startedAt ?? this.startedAt,
+    completedAt: completedAt.present ? completedAt.value : this.completedAt,
+  );
+  EvidenceCaptureSessionRecord copyWithCompanion(
+    EvidenceCaptureSessionsCompanion data,
+  ) {
+    return EvidenceCaptureSessionRecord(
+      id: data.id.present ? data.id.value : this.id,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+      syncState: data.syncState.present ? data.syncState.value : this.syncState,
+      serverVersion: data.serverVersion.present
+          ? data.serverVersion.value
+          : this.serverVersion,
+      assessmentId: data.assessmentId.present
+          ? data.assessmentId.value
+          : this.assessmentId,
+      stationId: data.stationId.present ? data.stationId.value : this.stationId,
+      scopeType: data.scopeType.present ? data.scopeType.value : this.scopeType,
+      scopeKey: data.scopeKey.present ? data.scopeKey.value : this.scopeKey,
+      plantPosition: data.plantPosition.present
+          ? data.plantPosition.value
+          : this.plantPosition,
+      plantObservationId: data.plantObservationId.present
+          ? data.plantObservationId.value
+          : this.plantObservationId,
+      requirementsVersion: data.requirementsVersion.present
+          ? data.requirementsVersion.value
+          : this.requirementsVersion,
+      collectionMode: data.collectionMode.present
+          ? data.collectionMode.value
+          : this.collectionMode,
+      collectionStatus: data.collectionStatus.present
+          ? data.collectionStatus.value
+          : this.collectionStatus,
+      waivedViewTypesJson: data.waivedViewTypesJson.present
+          ? data.waivedViewTypesJson.value
+          : this.waivedViewTypesJson,
+      fallbackReasonCode: data.fallbackReasonCode.present
+          ? data.fallbackReasonCode.value
+          : this.fallbackReasonCode,
+      fallbackNote: data.fallbackNote.present
+          ? data.fallbackNote.value
+          : this.fallbackNote,
+      startedAt: data.startedAt.present ? data.startedAt.value : this.startedAt,
+      completedAt: data.completedAt.present
+          ? data.completedAt.value
+          : this.completedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EvidenceCaptureSessionRecord(')
+          ..write('id: $id, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('syncState: $syncState, ')
+          ..write('serverVersion: $serverVersion, ')
+          ..write('assessmentId: $assessmentId, ')
+          ..write('stationId: $stationId, ')
+          ..write('scopeType: $scopeType, ')
+          ..write('scopeKey: $scopeKey, ')
+          ..write('plantPosition: $plantPosition, ')
+          ..write('plantObservationId: $plantObservationId, ')
+          ..write('requirementsVersion: $requirementsVersion, ')
+          ..write('collectionMode: $collectionMode, ')
+          ..write('collectionStatus: $collectionStatus, ')
+          ..write('waivedViewTypesJson: $waivedViewTypesJson, ')
+          ..write('fallbackReasonCode: $fallbackReasonCode, ')
+          ..write('fallbackNote: $fallbackNote, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('completedAt: $completedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+    id,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    deviceId,
+    syncState,
+    serverVersion,
+    assessmentId,
+    stationId,
+    scopeType,
+    scopeKey,
+    plantPosition,
+    plantObservationId,
+    requirementsVersion,
+    collectionMode,
+    collectionStatus,
+    waivedViewTypesJson,
+    fallbackReasonCode,
+    fallbackNote,
+    startedAt,
+    completedAt,
+  ]);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is EvidenceCaptureSessionRecord &&
+          other.id == this.id &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.deviceId == this.deviceId &&
+          other.syncState == this.syncState &&
+          other.serverVersion == this.serverVersion &&
+          other.assessmentId == this.assessmentId &&
+          other.stationId == this.stationId &&
+          other.scopeType == this.scopeType &&
+          other.scopeKey == this.scopeKey &&
+          other.plantPosition == this.plantPosition &&
+          other.plantObservationId == this.plantObservationId &&
+          other.requirementsVersion == this.requirementsVersion &&
+          other.collectionMode == this.collectionMode &&
+          other.collectionStatus == this.collectionStatus &&
+          other.waivedViewTypesJson == this.waivedViewTypesJson &&
+          other.fallbackReasonCode == this.fallbackReasonCode &&
+          other.fallbackNote == this.fallbackNote &&
+          other.startedAt == this.startedAt &&
+          other.completedAt == this.completedAt);
+}
+
+class EvidenceCaptureSessionsCompanion
+    extends UpdateCompanion<EvidenceCaptureSessionRecord> {
+  final Value<String> id;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<String?> deviceId;
+  final Value<String> syncState;
+  final Value<int> serverVersion;
+  final Value<String> assessmentId;
+  final Value<String> stationId;
+  final Value<String> scopeType;
+  final Value<String> scopeKey;
+  final Value<int?> plantPosition;
+  final Value<String?> plantObservationId;
+  final Value<String> requirementsVersion;
+  final Value<String> collectionMode;
+  final Value<String> collectionStatus;
+  final Value<String?> waivedViewTypesJson;
+  final Value<String?> fallbackReasonCode;
+  final Value<String?> fallbackNote;
+  final Value<DateTime> startedAt;
+  final Value<DateTime?> completedAt;
+  final Value<int> rowid;
+  const EvidenceCaptureSessionsCompanion({
+    this.id = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.syncState = const Value.absent(),
+    this.serverVersion = const Value.absent(),
+    this.assessmentId = const Value.absent(),
+    this.stationId = const Value.absent(),
+    this.scopeType = const Value.absent(),
+    this.scopeKey = const Value.absent(),
+    this.plantPosition = const Value.absent(),
+    this.plantObservationId = const Value.absent(),
+    this.requirementsVersion = const Value.absent(),
+    this.collectionMode = const Value.absent(),
+    this.collectionStatus = const Value.absent(),
+    this.waivedViewTypesJson = const Value.absent(),
+    this.fallbackReasonCode = const Value.absent(),
+    this.fallbackNote = const Value.absent(),
+    this.startedAt = const Value.absent(),
+    this.completedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  EvidenceCaptureSessionsCompanion.insert({
+    required String id,
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.syncState = const Value.absent(),
+    this.serverVersion = const Value.absent(),
+    required String assessmentId,
+    required String stationId,
+    required String scopeType,
+    required String scopeKey,
+    this.plantPosition = const Value.absent(),
+    this.plantObservationId = const Value.absent(),
+    this.requirementsVersion = const Value.absent(),
+    this.collectionMode = const Value.absent(),
+    this.collectionStatus = const Value.absent(),
+    this.waivedViewTypesJson = const Value.absent(),
+    this.fallbackReasonCode = const Value.absent(),
+    this.fallbackNote = const Value.absent(),
+    this.startedAt = const Value.absent(),
+    this.completedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       assessmentId = Value(assessmentId),
+       stationId = Value(stationId),
+       scopeType = Value(scopeType),
+       scopeKey = Value(scopeKey);
+  static Insertable<EvidenceCaptureSessionRecord> custom({
+    Expression<String>? id,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<String>? deviceId,
+    Expression<String>? syncState,
+    Expression<int>? serverVersion,
+    Expression<String>? assessmentId,
+    Expression<String>? stationId,
+    Expression<String>? scopeType,
+    Expression<String>? scopeKey,
+    Expression<int>? plantPosition,
+    Expression<String>? plantObservationId,
+    Expression<String>? requirementsVersion,
+    Expression<String>? collectionMode,
+    Expression<String>? collectionStatus,
+    Expression<String>? waivedViewTypesJson,
+    Expression<String>? fallbackReasonCode,
+    Expression<String>? fallbackNote,
+    Expression<DateTime>? startedAt,
+    Expression<DateTime>? completedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (deviceId != null) 'device_id': deviceId,
+      if (syncState != null) 'sync_state': syncState,
+      if (serverVersion != null) 'server_version': serverVersion,
+      if (assessmentId != null) 'assessment_id': assessmentId,
+      if (stationId != null) 'station_id': stationId,
+      if (scopeType != null) 'scope_type': scopeType,
+      if (scopeKey != null) 'scope_key': scopeKey,
+      if (plantPosition != null) 'plant_position': plantPosition,
+      if (plantObservationId != null)
+        'plant_observation_id': plantObservationId,
+      if (requirementsVersion != null)
+        'requirements_version': requirementsVersion,
+      if (collectionMode != null) 'collection_mode': collectionMode,
+      if (collectionStatus != null) 'collection_status': collectionStatus,
+      if (waivedViewTypesJson != null)
+        'waived_view_types_json': waivedViewTypesJson,
+      if (fallbackReasonCode != null)
+        'fallback_reason_code': fallbackReasonCode,
+      if (fallbackNote != null) 'fallback_note': fallbackNote,
+      if (startedAt != null) 'started_at': startedAt,
+      if (completedAt != null) 'completed_at': completedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  EvidenceCaptureSessionsCompanion copyWith({
+    Value<String>? id,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<String?>? deviceId,
+    Value<String>? syncState,
+    Value<int>? serverVersion,
+    Value<String>? assessmentId,
+    Value<String>? stationId,
+    Value<String>? scopeType,
+    Value<String>? scopeKey,
+    Value<int?>? plantPosition,
+    Value<String?>? plantObservationId,
+    Value<String>? requirementsVersion,
+    Value<String>? collectionMode,
+    Value<String>? collectionStatus,
+    Value<String?>? waivedViewTypesJson,
+    Value<String?>? fallbackReasonCode,
+    Value<String?>? fallbackNote,
+    Value<DateTime>? startedAt,
+    Value<DateTime?>? completedAt,
+    Value<int>? rowid,
+  }) {
+    return EvidenceCaptureSessionsCompanion(
+      id: id ?? this.id,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      deviceId: deviceId ?? this.deviceId,
+      syncState: syncState ?? this.syncState,
+      serverVersion: serverVersion ?? this.serverVersion,
+      assessmentId: assessmentId ?? this.assessmentId,
+      stationId: stationId ?? this.stationId,
+      scopeType: scopeType ?? this.scopeType,
+      scopeKey: scopeKey ?? this.scopeKey,
+      plantPosition: plantPosition ?? this.plantPosition,
+      plantObservationId: plantObservationId ?? this.plantObservationId,
+      requirementsVersion: requirementsVersion ?? this.requirementsVersion,
+      collectionMode: collectionMode ?? this.collectionMode,
+      collectionStatus: collectionStatus ?? this.collectionStatus,
+      waivedViewTypesJson: waivedViewTypesJson ?? this.waivedViewTypesJson,
+      fallbackReasonCode: fallbackReasonCode ?? this.fallbackReasonCode,
+      fallbackNote: fallbackNote ?? this.fallbackNote,
+      startedAt: startedAt ?? this.startedAt,
+      completedAt: completedAt ?? this.completedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (deviceId.present) {
+      map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (syncState.present) {
+      map['sync_state'] = Variable<String>(syncState.value);
+    }
+    if (serverVersion.present) {
+      map['server_version'] = Variable<int>(serverVersion.value);
+    }
+    if (assessmentId.present) {
+      map['assessment_id'] = Variable<String>(assessmentId.value);
+    }
+    if (stationId.present) {
+      map['station_id'] = Variable<String>(stationId.value);
+    }
+    if (scopeType.present) {
+      map['scope_type'] = Variable<String>(scopeType.value);
+    }
+    if (scopeKey.present) {
+      map['scope_key'] = Variable<String>(scopeKey.value);
+    }
+    if (plantPosition.present) {
+      map['plant_position'] = Variable<int>(plantPosition.value);
+    }
+    if (plantObservationId.present) {
+      map['plant_observation_id'] = Variable<String>(plantObservationId.value);
+    }
+    if (requirementsVersion.present) {
+      map['requirements_version'] = Variable<String>(requirementsVersion.value);
+    }
+    if (collectionMode.present) {
+      map['collection_mode'] = Variable<String>(collectionMode.value);
+    }
+    if (collectionStatus.present) {
+      map['collection_status'] = Variable<String>(collectionStatus.value);
+    }
+    if (waivedViewTypesJson.present) {
+      map['waived_view_types_json'] = Variable<String>(
+        waivedViewTypesJson.value,
+      );
+    }
+    if (fallbackReasonCode.present) {
+      map['fallback_reason_code'] = Variable<String>(fallbackReasonCode.value);
+    }
+    if (fallbackNote.present) {
+      map['fallback_note'] = Variable<String>(fallbackNote.value);
+    }
+    if (startedAt.present) {
+      map['started_at'] = Variable<DateTime>(startedAt.value);
+    }
+    if (completedAt.present) {
+      map['completed_at'] = Variable<DateTime>(completedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EvidenceCaptureSessionsCompanion(')
+          ..write('id: $id, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('syncState: $syncState, ')
+          ..write('serverVersion: $serverVersion, ')
+          ..write('assessmentId: $assessmentId, ')
+          ..write('stationId: $stationId, ')
+          ..write('scopeType: $scopeType, ')
+          ..write('scopeKey: $scopeKey, ')
+          ..write('plantPosition: $plantPosition, ')
+          ..write('plantObservationId: $plantObservationId, ')
+          ..write('requirementsVersion: $requirementsVersion, ')
+          ..write('collectionMode: $collectionMode, ')
+          ..write('collectionStatus: $collectionStatus, ')
+          ..write('waivedViewTypesJson: $waivedViewTypesJson, ')
+          ..write('fallbackReasonCode: $fallbackReasonCode, ')
+          ..write('fallbackNote: $fallbackNote, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('completedAt: $completedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $EvidenceMediaTable extends EvidenceMedia
     with TableInfo<$EvidenceMediaTable, EvidenceMediaRecord> {
   @override
@@ -20298,6 +21524,20 @@ class $EvidenceMediaTable extends EvidenceMedia
       'REFERENCES safety_checks (id)',
     ),
   );
+  static const VerificationMeta _captureSessionIdMeta = const VerificationMeta(
+    'captureSessionId',
+  );
+  @override
+  late final GeneratedColumn<String> captureSessionId = GeneratedColumn<String>(
+    'capture_session_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES evidence_capture_sessions (id)',
+    ),
+  );
   static const VerificationMeta _mediaTypeMeta = const VerificationMeta(
     'mediaType',
   );
@@ -20443,6 +21683,74 @@ class $EvidenceMediaTable extends EvidenceMedia
     requiredDuringInsert: false,
     defaultValue: const Constant('unchecked'),
   );
+  static const VerificationMeta _captureSourceMeta = const VerificationMeta(
+    'captureSource',
+  );
+  @override
+  late final GeneratedColumn<String> captureSource = GeneratedColumn<String>(
+    'capture_source',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _widthPxMeta = const VerificationMeta(
+    'widthPx',
+  );
+  @override
+  late final GeneratedColumn<int> widthPx = GeneratedColumn<int>(
+    'width_px',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _heightPxMeta = const VerificationMeta(
+    'heightPx',
+  );
+  @override
+  late final GeneratedColumn<int> heightPx = GeneratedColumn<int>(
+    'height_px',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _qualityIssuesJsonMeta = const VerificationMeta(
+    'qualityIssuesJson',
+  );
+  @override
+  late final GeneratedColumn<String> qualityIssuesJson =
+      GeneratedColumn<String>(
+        'quality_issues_json',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _qualityCheckVersionMeta =
+      const VerificationMeta('qualityCheckVersion');
+  @override
+  late final GeneratedColumn<String> qualityCheckVersion =
+      GeneratedColumn<String>(
+        'quality_check_version',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _storageStateMeta = const VerificationMeta(
+    'storageState',
+  );
+  @override
+  late final GeneratedColumn<String> storageState = GeneratedColumn<String>(
+    'storage_state',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(DatabaseCodes.evidenceStorageStaged),
+  );
   static const VerificationMeta _uploadStateMeta = const VerificationMeta(
     'uploadState',
   );
@@ -20486,6 +21794,7 @@ class $EvidenceMediaTable extends EvidenceMedia
     earObservationId,
     interventionId,
     safetyCheckId,
+    captureSessionId,
     mediaType,
     viewType,
     localUri,
@@ -20499,6 +21808,12 @@ class $EvidenceMediaTable extends EvidenceMedia
     longitude,
     gpsAccuracyM,
     qualityStatus,
+    captureSource,
+    widthPx,
+    heightPx,
+    qualityIssuesJson,
+    qualityCheckVersion,
+    storageState,
     uploadState,
     isOriginal,
   ];
@@ -20620,6 +21935,15 @@ class $EvidenceMediaTable extends EvidenceMedia
         ),
       );
     }
+    if (data.containsKey('capture_session_id')) {
+      context.handle(
+        _captureSessionIdMeta,
+        captureSessionId.isAcceptableOrUnknown(
+          data['capture_session_id']!,
+          _captureSessionIdMeta,
+        ),
+      );
+    }
     if (data.containsKey('media_type')) {
       context.handle(
         _mediaTypeMeta,
@@ -20716,6 +22040,54 @@ class $EvidenceMediaTable extends EvidenceMedia
         ),
       );
     }
+    if (data.containsKey('capture_source')) {
+      context.handle(
+        _captureSourceMeta,
+        captureSource.isAcceptableOrUnknown(
+          data['capture_source']!,
+          _captureSourceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('width_px')) {
+      context.handle(
+        _widthPxMeta,
+        widthPx.isAcceptableOrUnknown(data['width_px']!, _widthPxMeta),
+      );
+    }
+    if (data.containsKey('height_px')) {
+      context.handle(
+        _heightPxMeta,
+        heightPx.isAcceptableOrUnknown(data['height_px']!, _heightPxMeta),
+      );
+    }
+    if (data.containsKey('quality_issues_json')) {
+      context.handle(
+        _qualityIssuesJsonMeta,
+        qualityIssuesJson.isAcceptableOrUnknown(
+          data['quality_issues_json']!,
+          _qualityIssuesJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('quality_check_version')) {
+      context.handle(
+        _qualityCheckVersionMeta,
+        qualityCheckVersion.isAcceptableOrUnknown(
+          data['quality_check_version']!,
+          _qualityCheckVersionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('storage_state')) {
+      context.handle(
+        _storageStateMeta,
+        storageState.isAcceptableOrUnknown(
+          data['storage_state']!,
+          _storageStateMeta,
+        ),
+      );
+    }
     if (data.containsKey('upload_state')) {
       context.handle(
         _uploadStateMeta,
@@ -20796,6 +22168,10 @@ class $EvidenceMediaTable extends EvidenceMedia
         DriftSqlType.string,
         data['${effectivePrefix}safety_check_id'],
       ),
+      captureSessionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}capture_session_id'],
+      ),
       mediaType: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}media_type'],
@@ -20848,6 +22224,30 @@ class $EvidenceMediaTable extends EvidenceMedia
         DriftSqlType.string,
         data['${effectivePrefix}quality_status'],
       )!,
+      captureSource: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}capture_source'],
+      ),
+      widthPx: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}width_px'],
+      ),
+      heightPx: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}height_px'],
+      ),
+      qualityIssuesJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}quality_issues_json'],
+      ),
+      qualityCheckVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}quality_check_version'],
+      ),
+      storageState: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}storage_state'],
+      )!,
       uploadState: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}upload_state'],
@@ -20881,6 +22281,7 @@ class EvidenceMediaRecord extends DataClass
   final String? earObservationId;
   final String? interventionId;
   final String? safetyCheckId;
+  final String? captureSessionId;
   final String mediaType;
   final String? viewType;
   final String localUri;
@@ -20894,6 +22295,12 @@ class EvidenceMediaRecord extends DataClass
   final double? longitude;
   final double? gpsAccuracyM;
   final String qualityStatus;
+  final String? captureSource;
+  final int? widthPx;
+  final int? heightPx;
+  final String? qualityIssuesJson;
+  final String? qualityCheckVersion;
+  final String storageState;
   final String uploadState;
   final bool isOriginal;
   const EvidenceMediaRecord({
@@ -20911,6 +22318,7 @@ class EvidenceMediaRecord extends DataClass
     this.earObservationId,
     this.interventionId,
     this.safetyCheckId,
+    this.captureSessionId,
     required this.mediaType,
     this.viewType,
     required this.localUri,
@@ -20924,6 +22332,12 @@ class EvidenceMediaRecord extends DataClass
     this.longitude,
     this.gpsAccuracyM,
     required this.qualityStatus,
+    this.captureSource,
+    this.widthPx,
+    this.heightPx,
+    this.qualityIssuesJson,
+    this.qualityCheckVersion,
+    required this.storageState,
     required this.uploadState,
     required this.isOriginal,
   });
@@ -20962,6 +22376,9 @@ class EvidenceMediaRecord extends DataClass
     if (!nullToAbsent || safetyCheckId != null) {
       map['safety_check_id'] = Variable<String>(safetyCheckId);
     }
+    if (!nullToAbsent || captureSessionId != null) {
+      map['capture_session_id'] = Variable<String>(captureSessionId);
+    }
     map['media_type'] = Variable<String>(mediaType);
     if (!nullToAbsent || viewType != null) {
       map['view_type'] = Variable<String>(viewType);
@@ -20993,6 +22410,22 @@ class EvidenceMediaRecord extends DataClass
       map['gps_accuracy_m'] = Variable<double>(gpsAccuracyM);
     }
     map['quality_status'] = Variable<String>(qualityStatus);
+    if (!nullToAbsent || captureSource != null) {
+      map['capture_source'] = Variable<String>(captureSource);
+    }
+    if (!nullToAbsent || widthPx != null) {
+      map['width_px'] = Variable<int>(widthPx);
+    }
+    if (!nullToAbsent || heightPx != null) {
+      map['height_px'] = Variable<int>(heightPx);
+    }
+    if (!nullToAbsent || qualityIssuesJson != null) {
+      map['quality_issues_json'] = Variable<String>(qualityIssuesJson);
+    }
+    if (!nullToAbsent || qualityCheckVersion != null) {
+      map['quality_check_version'] = Variable<String>(qualityCheckVersion);
+    }
+    map['storage_state'] = Variable<String>(storageState);
     map['upload_state'] = Variable<String>(uploadState);
     map['is_original'] = Variable<bool>(isOriginal);
     return map;
@@ -21031,6 +22464,9 @@ class EvidenceMediaRecord extends DataClass
       safetyCheckId: safetyCheckId == null && nullToAbsent
           ? const Value.absent()
           : Value(safetyCheckId),
+      captureSessionId: captureSessionId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(captureSessionId),
       mediaType: Value(mediaType),
       viewType: viewType == null && nullToAbsent
           ? const Value.absent()
@@ -21062,6 +22498,22 @@ class EvidenceMediaRecord extends DataClass
           ? const Value.absent()
           : Value(gpsAccuracyM),
       qualityStatus: Value(qualityStatus),
+      captureSource: captureSource == null && nullToAbsent
+          ? const Value.absent()
+          : Value(captureSource),
+      widthPx: widthPx == null && nullToAbsent
+          ? const Value.absent()
+          : Value(widthPx),
+      heightPx: heightPx == null && nullToAbsent
+          ? const Value.absent()
+          : Value(heightPx),
+      qualityIssuesJson: qualityIssuesJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(qualityIssuesJson),
+      qualityCheckVersion: qualityCheckVersion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(qualityCheckVersion),
+      storageState: Value(storageState),
       uploadState: Value(uploadState),
       isOriginal: Value(isOriginal),
     );
@@ -21091,6 +22543,7 @@ class EvidenceMediaRecord extends DataClass
       earObservationId: serializer.fromJson<String?>(json['earObservationId']),
       interventionId: serializer.fromJson<String?>(json['interventionId']),
       safetyCheckId: serializer.fromJson<String?>(json['safetyCheckId']),
+      captureSessionId: serializer.fromJson<String?>(json['captureSessionId']),
       mediaType: serializer.fromJson<String>(json['mediaType']),
       viewType: serializer.fromJson<String?>(json['viewType']),
       localUri: serializer.fromJson<String>(json['localUri']),
@@ -21106,6 +22559,16 @@ class EvidenceMediaRecord extends DataClass
       longitude: serializer.fromJson<double?>(json['longitude']),
       gpsAccuracyM: serializer.fromJson<double?>(json['gpsAccuracyM']),
       qualityStatus: serializer.fromJson<String>(json['qualityStatus']),
+      captureSource: serializer.fromJson<String?>(json['captureSource']),
+      widthPx: serializer.fromJson<int?>(json['widthPx']),
+      heightPx: serializer.fromJson<int?>(json['heightPx']),
+      qualityIssuesJson: serializer.fromJson<String?>(
+        json['qualityIssuesJson'],
+      ),
+      qualityCheckVersion: serializer.fromJson<String?>(
+        json['qualityCheckVersion'],
+      ),
+      storageState: serializer.fromJson<String>(json['storageState']),
       uploadState: serializer.fromJson<String>(json['uploadState']),
       isOriginal: serializer.fromJson<bool>(json['isOriginal']),
     );
@@ -21130,6 +22593,7 @@ class EvidenceMediaRecord extends DataClass
       'earObservationId': serializer.toJson<String?>(earObservationId),
       'interventionId': serializer.toJson<String?>(interventionId),
       'safetyCheckId': serializer.toJson<String?>(safetyCheckId),
+      'captureSessionId': serializer.toJson<String?>(captureSessionId),
       'mediaType': serializer.toJson<String>(mediaType),
       'viewType': serializer.toJson<String?>(viewType),
       'localUri': serializer.toJson<String>(localUri),
@@ -21143,6 +22607,12 @@ class EvidenceMediaRecord extends DataClass
       'longitude': serializer.toJson<double?>(longitude),
       'gpsAccuracyM': serializer.toJson<double?>(gpsAccuracyM),
       'qualityStatus': serializer.toJson<String>(qualityStatus),
+      'captureSource': serializer.toJson<String?>(captureSource),
+      'widthPx': serializer.toJson<int?>(widthPx),
+      'heightPx': serializer.toJson<int?>(heightPx),
+      'qualityIssuesJson': serializer.toJson<String?>(qualityIssuesJson),
+      'qualityCheckVersion': serializer.toJson<String?>(qualityCheckVersion),
+      'storageState': serializer.toJson<String>(storageState),
       'uploadState': serializer.toJson<String>(uploadState),
       'isOriginal': serializer.toJson<bool>(isOriginal),
     };
@@ -21163,6 +22633,7 @@ class EvidenceMediaRecord extends DataClass
     Value<String?> earObservationId = const Value.absent(),
     Value<String?> interventionId = const Value.absent(),
     Value<String?> safetyCheckId = const Value.absent(),
+    Value<String?> captureSessionId = const Value.absent(),
     String? mediaType,
     Value<String?> viewType = const Value.absent(),
     String? localUri,
@@ -21176,6 +22647,12 @@ class EvidenceMediaRecord extends DataClass
     Value<double?> longitude = const Value.absent(),
     Value<double?> gpsAccuracyM = const Value.absent(),
     String? qualityStatus,
+    Value<String?> captureSource = const Value.absent(),
+    Value<int?> widthPx = const Value.absent(),
+    Value<int?> heightPx = const Value.absent(),
+    Value<String?> qualityIssuesJson = const Value.absent(),
+    Value<String?> qualityCheckVersion = const Value.absent(),
+    String? storageState,
     String? uploadState,
     bool? isOriginal,
   }) => EvidenceMediaRecord(
@@ -21203,6 +22680,9 @@ class EvidenceMediaRecord extends DataClass
     safetyCheckId: safetyCheckId.present
         ? safetyCheckId.value
         : this.safetyCheckId,
+    captureSessionId: captureSessionId.present
+        ? captureSessionId.value
+        : this.captureSessionId,
     mediaType: mediaType ?? this.mediaType,
     viewType: viewType.present ? viewType.value : this.viewType,
     localUri: localUri ?? this.localUri,
@@ -21218,6 +22698,18 @@ class EvidenceMediaRecord extends DataClass
     longitude: longitude.present ? longitude.value : this.longitude,
     gpsAccuracyM: gpsAccuracyM.present ? gpsAccuracyM.value : this.gpsAccuracyM,
     qualityStatus: qualityStatus ?? this.qualityStatus,
+    captureSource: captureSource.present
+        ? captureSource.value
+        : this.captureSource,
+    widthPx: widthPx.present ? widthPx.value : this.widthPx,
+    heightPx: heightPx.present ? heightPx.value : this.heightPx,
+    qualityIssuesJson: qualityIssuesJson.present
+        ? qualityIssuesJson.value
+        : this.qualityIssuesJson,
+    qualityCheckVersion: qualityCheckVersion.present
+        ? qualityCheckVersion.value
+        : this.qualityCheckVersion,
+    storageState: storageState ?? this.storageState,
     uploadState: uploadState ?? this.uploadState,
     isOriginal: isOriginal ?? this.isOriginal,
   );
@@ -21251,6 +22743,9 @@ class EvidenceMediaRecord extends DataClass
       safetyCheckId: data.safetyCheckId.present
           ? data.safetyCheckId.value
           : this.safetyCheckId,
+      captureSessionId: data.captureSessionId.present
+          ? data.captureSessionId.value
+          : this.captureSessionId,
       mediaType: data.mediaType.present ? data.mediaType.value : this.mediaType,
       viewType: data.viewType.present ? data.viewType.value : this.viewType,
       localUri: data.localUri.present ? data.localUri.value : this.localUri,
@@ -21274,6 +22769,20 @@ class EvidenceMediaRecord extends DataClass
       qualityStatus: data.qualityStatus.present
           ? data.qualityStatus.value
           : this.qualityStatus,
+      captureSource: data.captureSource.present
+          ? data.captureSource.value
+          : this.captureSource,
+      widthPx: data.widthPx.present ? data.widthPx.value : this.widthPx,
+      heightPx: data.heightPx.present ? data.heightPx.value : this.heightPx,
+      qualityIssuesJson: data.qualityIssuesJson.present
+          ? data.qualityIssuesJson.value
+          : this.qualityIssuesJson,
+      qualityCheckVersion: data.qualityCheckVersion.present
+          ? data.qualityCheckVersion.value
+          : this.qualityCheckVersion,
+      storageState: data.storageState.present
+          ? data.storageState.value
+          : this.storageState,
       uploadState: data.uploadState.present
           ? data.uploadState.value
           : this.uploadState,
@@ -21300,6 +22809,7 @@ class EvidenceMediaRecord extends DataClass
           ..write('earObservationId: $earObservationId, ')
           ..write('interventionId: $interventionId, ')
           ..write('safetyCheckId: $safetyCheckId, ')
+          ..write('captureSessionId: $captureSessionId, ')
           ..write('mediaType: $mediaType, ')
           ..write('viewType: $viewType, ')
           ..write('localUri: $localUri, ')
@@ -21313,6 +22823,12 @@ class EvidenceMediaRecord extends DataClass
           ..write('longitude: $longitude, ')
           ..write('gpsAccuracyM: $gpsAccuracyM, ')
           ..write('qualityStatus: $qualityStatus, ')
+          ..write('captureSource: $captureSource, ')
+          ..write('widthPx: $widthPx, ')
+          ..write('heightPx: $heightPx, ')
+          ..write('qualityIssuesJson: $qualityIssuesJson, ')
+          ..write('qualityCheckVersion: $qualityCheckVersion, ')
+          ..write('storageState: $storageState, ')
           ..write('uploadState: $uploadState, ')
           ..write('isOriginal: $isOriginal')
           ..write(')'))
@@ -21335,6 +22851,7 @@ class EvidenceMediaRecord extends DataClass
     earObservationId,
     interventionId,
     safetyCheckId,
+    captureSessionId,
     mediaType,
     viewType,
     localUri,
@@ -21348,6 +22865,12 @@ class EvidenceMediaRecord extends DataClass
     longitude,
     gpsAccuracyM,
     qualityStatus,
+    captureSource,
+    widthPx,
+    heightPx,
+    qualityIssuesJson,
+    qualityCheckVersion,
+    storageState,
     uploadState,
     isOriginal,
   ]);
@@ -21369,6 +22892,7 @@ class EvidenceMediaRecord extends DataClass
           other.earObservationId == this.earObservationId &&
           other.interventionId == this.interventionId &&
           other.safetyCheckId == this.safetyCheckId &&
+          other.captureSessionId == this.captureSessionId &&
           other.mediaType == this.mediaType &&
           other.viewType == this.viewType &&
           other.localUri == this.localUri &&
@@ -21382,6 +22906,12 @@ class EvidenceMediaRecord extends DataClass
           other.longitude == this.longitude &&
           other.gpsAccuracyM == this.gpsAccuracyM &&
           other.qualityStatus == this.qualityStatus &&
+          other.captureSource == this.captureSource &&
+          other.widthPx == this.widthPx &&
+          other.heightPx == this.heightPx &&
+          other.qualityIssuesJson == this.qualityIssuesJson &&
+          other.qualityCheckVersion == this.qualityCheckVersion &&
+          other.storageState == this.storageState &&
           other.uploadState == this.uploadState &&
           other.isOriginal == this.isOriginal);
 }
@@ -21401,6 +22931,7 @@ class EvidenceMediaCompanion extends UpdateCompanion<EvidenceMediaRecord> {
   final Value<String?> earObservationId;
   final Value<String?> interventionId;
   final Value<String?> safetyCheckId;
+  final Value<String?> captureSessionId;
   final Value<String> mediaType;
   final Value<String?> viewType;
   final Value<String> localUri;
@@ -21414,6 +22945,12 @@ class EvidenceMediaCompanion extends UpdateCompanion<EvidenceMediaRecord> {
   final Value<double?> longitude;
   final Value<double?> gpsAccuracyM;
   final Value<String> qualityStatus;
+  final Value<String?> captureSource;
+  final Value<int?> widthPx;
+  final Value<int?> heightPx;
+  final Value<String?> qualityIssuesJson;
+  final Value<String?> qualityCheckVersion;
+  final Value<String> storageState;
   final Value<String> uploadState;
   final Value<bool> isOriginal;
   final Value<int> rowid;
@@ -21432,6 +22969,7 @@ class EvidenceMediaCompanion extends UpdateCompanion<EvidenceMediaRecord> {
     this.earObservationId = const Value.absent(),
     this.interventionId = const Value.absent(),
     this.safetyCheckId = const Value.absent(),
+    this.captureSessionId = const Value.absent(),
     this.mediaType = const Value.absent(),
     this.viewType = const Value.absent(),
     this.localUri = const Value.absent(),
@@ -21445,6 +22983,12 @@ class EvidenceMediaCompanion extends UpdateCompanion<EvidenceMediaRecord> {
     this.longitude = const Value.absent(),
     this.gpsAccuracyM = const Value.absent(),
     this.qualityStatus = const Value.absent(),
+    this.captureSource = const Value.absent(),
+    this.widthPx = const Value.absent(),
+    this.heightPx = const Value.absent(),
+    this.qualityIssuesJson = const Value.absent(),
+    this.qualityCheckVersion = const Value.absent(),
+    this.storageState = const Value.absent(),
     this.uploadState = const Value.absent(),
     this.isOriginal = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -21464,6 +23008,7 @@ class EvidenceMediaCompanion extends UpdateCompanion<EvidenceMediaRecord> {
     this.earObservationId = const Value.absent(),
     this.interventionId = const Value.absent(),
     this.safetyCheckId = const Value.absent(),
+    this.captureSessionId = const Value.absent(),
     required String mediaType,
     this.viewType = const Value.absent(),
     required String localUri,
@@ -21477,6 +23022,12 @@ class EvidenceMediaCompanion extends UpdateCompanion<EvidenceMediaRecord> {
     this.longitude = const Value.absent(),
     this.gpsAccuracyM = const Value.absent(),
     this.qualityStatus = const Value.absent(),
+    this.captureSource = const Value.absent(),
+    this.widthPx = const Value.absent(),
+    this.heightPx = const Value.absent(),
+    this.qualityIssuesJson = const Value.absent(),
+    this.qualityCheckVersion = const Value.absent(),
+    this.storageState = const Value.absent(),
     this.uploadState = const Value.absent(),
     this.isOriginal = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -21500,6 +23051,7 @@ class EvidenceMediaCompanion extends UpdateCompanion<EvidenceMediaRecord> {
     Expression<String>? earObservationId,
     Expression<String>? interventionId,
     Expression<String>? safetyCheckId,
+    Expression<String>? captureSessionId,
     Expression<String>? mediaType,
     Expression<String>? viewType,
     Expression<String>? localUri,
@@ -21513,6 +23065,12 @@ class EvidenceMediaCompanion extends UpdateCompanion<EvidenceMediaRecord> {
     Expression<double>? longitude,
     Expression<double>? gpsAccuracyM,
     Expression<String>? qualityStatus,
+    Expression<String>? captureSource,
+    Expression<int>? widthPx,
+    Expression<int>? heightPx,
+    Expression<String>? qualityIssuesJson,
+    Expression<String>? qualityCheckVersion,
+    Expression<String>? storageState,
     Expression<String>? uploadState,
     Expression<bool>? isOriginal,
     Expression<int>? rowid,
@@ -21534,6 +23092,7 @@ class EvidenceMediaCompanion extends UpdateCompanion<EvidenceMediaRecord> {
       if (earObservationId != null) 'ear_observation_id': earObservationId,
       if (interventionId != null) 'intervention_id': interventionId,
       if (safetyCheckId != null) 'safety_check_id': safetyCheckId,
+      if (captureSessionId != null) 'capture_session_id': captureSessionId,
       if (mediaType != null) 'media_type': mediaType,
       if (viewType != null) 'view_type': viewType,
       if (localUri != null) 'local_uri': localUri,
@@ -21547,6 +23106,13 @@ class EvidenceMediaCompanion extends UpdateCompanion<EvidenceMediaRecord> {
       if (longitude != null) 'longitude': longitude,
       if (gpsAccuracyM != null) 'gps_accuracy_m': gpsAccuracyM,
       if (qualityStatus != null) 'quality_status': qualityStatus,
+      if (captureSource != null) 'capture_source': captureSource,
+      if (widthPx != null) 'width_px': widthPx,
+      if (heightPx != null) 'height_px': heightPx,
+      if (qualityIssuesJson != null) 'quality_issues_json': qualityIssuesJson,
+      if (qualityCheckVersion != null)
+        'quality_check_version': qualityCheckVersion,
+      if (storageState != null) 'storage_state': storageState,
       if (uploadState != null) 'upload_state': uploadState,
       if (isOriginal != null) 'is_original': isOriginal,
       if (rowid != null) 'rowid': rowid,
@@ -21568,6 +23134,7 @@ class EvidenceMediaCompanion extends UpdateCompanion<EvidenceMediaRecord> {
     Value<String?>? earObservationId,
     Value<String?>? interventionId,
     Value<String?>? safetyCheckId,
+    Value<String?>? captureSessionId,
     Value<String>? mediaType,
     Value<String?>? viewType,
     Value<String>? localUri,
@@ -21581,6 +23148,12 @@ class EvidenceMediaCompanion extends UpdateCompanion<EvidenceMediaRecord> {
     Value<double?>? longitude,
     Value<double?>? gpsAccuracyM,
     Value<String>? qualityStatus,
+    Value<String?>? captureSource,
+    Value<int?>? widthPx,
+    Value<int?>? heightPx,
+    Value<String?>? qualityIssuesJson,
+    Value<String?>? qualityCheckVersion,
+    Value<String>? storageState,
     Value<String>? uploadState,
     Value<bool>? isOriginal,
     Value<int>? rowid,
@@ -21601,6 +23174,7 @@ class EvidenceMediaCompanion extends UpdateCompanion<EvidenceMediaRecord> {
       earObservationId: earObservationId ?? this.earObservationId,
       interventionId: interventionId ?? this.interventionId,
       safetyCheckId: safetyCheckId ?? this.safetyCheckId,
+      captureSessionId: captureSessionId ?? this.captureSessionId,
       mediaType: mediaType ?? this.mediaType,
       viewType: viewType ?? this.viewType,
       localUri: localUri ?? this.localUri,
@@ -21614,6 +23188,12 @@ class EvidenceMediaCompanion extends UpdateCompanion<EvidenceMediaRecord> {
       longitude: longitude ?? this.longitude,
       gpsAccuracyM: gpsAccuracyM ?? this.gpsAccuracyM,
       qualityStatus: qualityStatus ?? this.qualityStatus,
+      captureSource: captureSource ?? this.captureSource,
+      widthPx: widthPx ?? this.widthPx,
+      heightPx: heightPx ?? this.heightPx,
+      qualityIssuesJson: qualityIssuesJson ?? this.qualityIssuesJson,
+      qualityCheckVersion: qualityCheckVersion ?? this.qualityCheckVersion,
+      storageState: storageState ?? this.storageState,
       uploadState: uploadState ?? this.uploadState,
       isOriginal: isOriginal ?? this.isOriginal,
       rowid: rowid ?? this.rowid,
@@ -21667,6 +23247,9 @@ class EvidenceMediaCompanion extends UpdateCompanion<EvidenceMediaRecord> {
     if (safetyCheckId.present) {
       map['safety_check_id'] = Variable<String>(safetyCheckId.value);
     }
+    if (captureSessionId.present) {
+      map['capture_session_id'] = Variable<String>(captureSessionId.value);
+    }
     if (mediaType.present) {
       map['media_type'] = Variable<String>(mediaType.value);
     }
@@ -21706,6 +23289,26 @@ class EvidenceMediaCompanion extends UpdateCompanion<EvidenceMediaRecord> {
     if (qualityStatus.present) {
       map['quality_status'] = Variable<String>(qualityStatus.value);
     }
+    if (captureSource.present) {
+      map['capture_source'] = Variable<String>(captureSource.value);
+    }
+    if (widthPx.present) {
+      map['width_px'] = Variable<int>(widthPx.value);
+    }
+    if (heightPx.present) {
+      map['height_px'] = Variable<int>(heightPx.value);
+    }
+    if (qualityIssuesJson.present) {
+      map['quality_issues_json'] = Variable<String>(qualityIssuesJson.value);
+    }
+    if (qualityCheckVersion.present) {
+      map['quality_check_version'] = Variable<String>(
+        qualityCheckVersion.value,
+      );
+    }
+    if (storageState.present) {
+      map['storage_state'] = Variable<String>(storageState.value);
+    }
     if (uploadState.present) {
       map['upload_state'] = Variable<String>(uploadState.value);
     }
@@ -21735,6 +23338,7 @@ class EvidenceMediaCompanion extends UpdateCompanion<EvidenceMediaRecord> {
           ..write('earObservationId: $earObservationId, ')
           ..write('interventionId: $interventionId, ')
           ..write('safetyCheckId: $safetyCheckId, ')
+          ..write('captureSessionId: $captureSessionId, ')
           ..write('mediaType: $mediaType, ')
           ..write('viewType: $viewType, ')
           ..write('localUri: $localUri, ')
@@ -21748,6 +23352,12 @@ class EvidenceMediaCompanion extends UpdateCompanion<EvidenceMediaRecord> {
           ..write('longitude: $longitude, ')
           ..write('gpsAccuracyM: $gpsAccuracyM, ')
           ..write('qualityStatus: $qualityStatus, ')
+          ..write('captureSource: $captureSource, ')
+          ..write('widthPx: $widthPx, ')
+          ..write('heightPx: $heightPx, ')
+          ..write('qualityIssuesJson: $qualityIssuesJson, ')
+          ..write('qualityCheckVersion: $qualityCheckVersion, ')
+          ..write('storageState: $storageState, ')
           ..write('uploadState: $uploadState, ')
           ..write('isOriginal: $isOriginal, ')
           ..write('rowid: $rowid')
@@ -24649,6 +26259,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $EarObservationsTable earObservations = $EarObservationsTable(
     this,
   );
+  late final $EvidenceCaptureSessionsTable evidenceCaptureSessions =
+      $EvidenceCaptureSessionsTable(this);
   late final $EvidenceMediaTable evidenceMedia = $EvidenceMediaTable(this);
   late final $MetricResultsTable metricResults = $MetricResultsTable(this);
   late final $SyncOutboxTable syncOutbox = $SyncOutboxTable(this);
@@ -24676,6 +26288,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     vegetativeObservations,
     reproductiveObservations,
     earObservations,
+    evidenceCaptureSessions,
     evidenceMedia,
     metricResults,
     syncOutbox,
@@ -32240,6 +33853,31 @@ final class $$AssessmentsTableReferences
     );
   }
 
+  static MultiTypedResultKey<
+    $EvidenceCaptureSessionsTable,
+    List<EvidenceCaptureSessionRecord>
+  >
+  _evidenceCaptureSessionsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.evidenceCaptureSessions,
+        aliasName: 'assessments__id__evidence_capture_sessions__assessment_id',
+      );
+
+  $$EvidenceCaptureSessionsTableProcessedTableManager
+  get evidenceCaptureSessionsRefs {
+    final manager = $$EvidenceCaptureSessionsTableTableManager(
+      $_db,
+      $_db.evidenceCaptureSessions,
+    ).filter((f) => f.assessmentId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _evidenceCaptureSessionsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
   static MultiTypedResultKey<$EvidenceMediaTable, List<EvidenceMediaRecord>>
   _evidenceMediaRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
     db.evidenceMedia,
@@ -32543,6 +34181,32 @@ class $$AssessmentsTableFilterComposer
                 $removeJoinBuilderFromRootComposer,
           ),
     );
+    return f(composer);
+  }
+
+  Expression<bool> evidenceCaptureSessionsRefs(
+    Expression<bool> Function($$EvidenceCaptureSessionsTableFilterComposer f) f,
+  ) {
+    final $$EvidenceCaptureSessionsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.evidenceCaptureSessions,
+          getReferencedColumn: (t) => t.assessmentId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$EvidenceCaptureSessionsTableFilterComposer(
+                $db: $db,
+                $table: $db.evidenceCaptureSessions,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
     return f(composer);
   }
 
@@ -33071,6 +34735,33 @@ class $$AssessmentsTableAnnotationComposer
     return f(composer);
   }
 
+  Expression<T> evidenceCaptureSessionsRefs<T extends Object>(
+    Expression<T> Function($$EvidenceCaptureSessionsTableAnnotationComposer a)
+    f,
+  ) {
+    final $$EvidenceCaptureSessionsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.evidenceCaptureSessions,
+          getReferencedColumn: (t) => t.assessmentId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$EvidenceCaptureSessionsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.evidenceCaptureSessions,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
   Expression<T> evidenceMediaRefs<T extends Object>(
     Expression<T> Function($$EvidenceMediaTableAnnotationComposer a) f,
   ) {
@@ -33141,6 +34832,7 @@ class $$AssessmentsTableTableManager
             bool evaluatorPersonId,
             bool safetyChecksRefs,
             bool assessmentBlockRunsRefs,
+            bool evidenceCaptureSessionsRefs,
             bool evidenceMediaRefs,
             bool metricResultsRefs,
           })
@@ -33307,6 +34999,7 @@ class $$AssessmentsTableTableManager
                 evaluatorPersonId = false,
                 safetyChecksRefs = false,
                 assessmentBlockRunsRefs = false,
+                evidenceCaptureSessionsRefs = false,
                 evidenceMediaRefs = false,
                 metricResultsRefs = false,
               }) {
@@ -33315,6 +35008,7 @@ class $$AssessmentsTableTableManager
                   explicitlyWatchedTables: [
                     if (safetyChecksRefs) db.safetyChecks,
                     if (assessmentBlockRunsRefs) db.assessmentBlockRuns,
+                    if (evidenceCaptureSessionsRefs) db.evidenceCaptureSessions,
                     if (evidenceMediaRefs) db.evidenceMedia,
                     if (metricResultsRefs) db.metricResults,
                   ],
@@ -33426,6 +35120,27 @@ class $$AssessmentsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (evidenceCaptureSessionsRefs)
+                        await $_getPrefetchedData<
+                          AssessmentRecord,
+                          $AssessmentsTable,
+                          EvidenceCaptureSessionRecord
+                        >(
+                          currentTable: table,
+                          referencedTable: $$AssessmentsTableReferences
+                              ._evidenceCaptureSessionsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$AssessmentsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).evidenceCaptureSessionsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.assessmentId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                       if (evidenceMediaRefs)
                         await $_getPrefetchedData<
                           AssessmentRecord,
@@ -33494,6 +35209,7 @@ typedef $$AssessmentsTableProcessedTableManager =
         bool evaluatorPersonId,
         bool safetyChecksRefs,
         bool assessmentBlockRunsRefs,
+        bool evidenceCaptureSessionsRefs,
         bool evidenceMediaRefs,
         bool metricResultsRefs,
       })
@@ -35329,6 +37045,31 @@ final class $$StationsTableReferences
     );
   }
 
+  static MultiTypedResultKey<
+    $EvidenceCaptureSessionsTable,
+    List<EvidenceCaptureSessionRecord>
+  >
+  _evidenceCaptureSessionsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.evidenceCaptureSessions,
+        aliasName: 'stations__id__evidence_capture_sessions__station_id',
+      );
+
+  $$EvidenceCaptureSessionsTableProcessedTableManager
+  get evidenceCaptureSessionsRefs {
+    final manager = $$EvidenceCaptureSessionsTableTableManager(
+      $_db,
+      $_db.evidenceCaptureSessions,
+    ).filter((f) => f.stationId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _evidenceCaptureSessionsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
   static MultiTypedResultKey<$EvidenceMediaTable, List<EvidenceMediaRecord>>
   _evidenceMediaRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
     db.evidenceMedia,
@@ -35499,6 +37240,32 @@ class $$StationsTableFilterComposer
                 $removeJoinBuilderFromRootComposer,
           ),
     );
+    return f(composer);
+  }
+
+  Expression<bool> evidenceCaptureSessionsRefs(
+    Expression<bool> Function($$EvidenceCaptureSessionsTableFilterComposer f) f,
+  ) {
+    final $$EvidenceCaptureSessionsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.evidenceCaptureSessions,
+          getReferencedColumn: (t) => t.stationId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$EvidenceCaptureSessionsTableFilterComposer(
+                $db: $db,
+                $table: $db.evidenceCaptureSessions,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
     return f(composer);
   }
 
@@ -35772,6 +37539,33 @@ class $$StationsTableAnnotationComposer
     return f(composer);
   }
 
+  Expression<T> evidenceCaptureSessionsRefs<T extends Object>(
+    Expression<T> Function($$EvidenceCaptureSessionsTableAnnotationComposer a)
+    f,
+  ) {
+    final $$EvidenceCaptureSessionsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.evidenceCaptureSessions,
+          getReferencedColumn: (t) => t.stationId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$EvidenceCaptureSessionsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.evidenceCaptureSessions,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
   Expression<T> evidenceMediaRefs<T extends Object>(
     Expression<T> Function($$EvidenceMediaTableAnnotationComposer a) f,
   ) {
@@ -35815,6 +37609,7 @@ class $$StationsTableTableManager
             bool assessmentBlockRunId,
             bool plantingUnitObservationsRefs,
             bool plantObservationsRefs,
+            bool evidenceCaptureSessionsRefs,
             bool evidenceMediaRefs,
           })
         > {
@@ -35914,6 +37709,7 @@ class $$StationsTableTableManager
                 assessmentBlockRunId = false,
                 plantingUnitObservationsRefs = false,
                 plantObservationsRefs = false,
+                evidenceCaptureSessionsRefs = false,
                 evidenceMediaRefs = false,
               }) {
                 return PrefetchHooks(
@@ -35922,6 +37718,7 @@ class $$StationsTableTableManager
                     if (plantingUnitObservationsRefs)
                       db.plantingUnitObservations,
                     if (plantObservationsRefs) db.plantObservations,
+                    if (evidenceCaptureSessionsRefs) db.evidenceCaptureSessions,
                     if (evidenceMediaRefs) db.evidenceMedia,
                   ],
                   addJoins:
@@ -36000,6 +37797,27 @@ class $$StationsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (evidenceCaptureSessionsRefs)
+                        await $_getPrefetchedData<
+                          StationRecord,
+                          $StationsTable,
+                          EvidenceCaptureSessionRecord
+                        >(
+                          currentTable: table,
+                          referencedTable: $$StationsTableReferences
+                              ._evidenceCaptureSessionsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$StationsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).evidenceCaptureSessionsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.stationId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                       if (evidenceMediaRefs)
                         await $_getPrefetchedData<
                           StationRecord,
@@ -36045,6 +37863,7 @@ typedef $$StationsTableProcessedTableManager =
         bool assessmentBlockRunId,
         bool plantingUnitObservationsRefs,
         bool plantObservationsRefs,
+        bool evidenceCaptureSessionsRefs,
         bool evidenceMediaRefs,
       })
     >;
@@ -36987,6 +38806,36 @@ final class $$PlantObservationsTableReferences
     );
   }
 
+  static MultiTypedResultKey<
+    $EvidenceCaptureSessionsTable,
+    List<EvidenceCaptureSessionRecord>
+  >
+  _evidenceCaptureSessionsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.evidenceCaptureSessions,
+    aliasName:
+        'plant_observations__id__evidence_capture_sessions__plant_observation_id',
+  );
+
+  $$EvidenceCaptureSessionsTableProcessedTableManager
+  get evidenceCaptureSessionsRefs {
+    final manager =
+        $$EvidenceCaptureSessionsTableTableManager(
+          $_db,
+          $_db.evidenceCaptureSessions,
+        ).filter(
+          (f) => f.plantObservationId.id.sqlEquals($_itemColumn<String>('id')!),
+        );
+
+    final cache = $_typedResult.readTableOrNull(
+      _evidenceCaptureSessionsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
   static MultiTypedResultKey<$EvidenceMediaTable, List<EvidenceMediaRecord>>
   _evidenceMediaRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
     db.evidenceMedia,
@@ -37228,6 +39077,32 @@ class $$PlantObservationsTableFilterComposer
                 $removeJoinBuilderFromRootComposer,
           ),
     );
+    return f(composer);
+  }
+
+  Expression<bool> evidenceCaptureSessionsRefs(
+    Expression<bool> Function($$EvidenceCaptureSessionsTableFilterComposer f) f,
+  ) {
+    final $$EvidenceCaptureSessionsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.evidenceCaptureSessions,
+          getReferencedColumn: (t) => t.plantObservationId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$EvidenceCaptureSessionsTableFilterComposer(
+                $db: $db,
+                $table: $db.evidenceCaptureSessions,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
     return f(composer);
   }
 
@@ -37614,6 +39489,33 @@ class $$PlantObservationsTableAnnotationComposer
     return f(composer);
   }
 
+  Expression<T> evidenceCaptureSessionsRefs<T extends Object>(
+    Expression<T> Function($$EvidenceCaptureSessionsTableAnnotationComposer a)
+    f,
+  ) {
+    final $$EvidenceCaptureSessionsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.evidenceCaptureSessions,
+          getReferencedColumn: (t) => t.plantObservationId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$EvidenceCaptureSessionsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.evidenceCaptureSessions,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
   Expression<T> evidenceMediaRefs<T extends Object>(
     Expression<T> Function($$EvidenceMediaTableAnnotationComposer a) f,
   ) {
@@ -37658,6 +39560,7 @@ class $$PlantObservationsTableTableManager
             bool vegetativeObservationsRefs,
             bool reproductiveObservationsRefs,
             bool earObservationsRefs,
+            bool evidenceCaptureSessionsRefs,
             bool evidenceMediaRefs,
           })
         > {
@@ -37799,6 +39702,7 @@ class $$PlantObservationsTableTableManager
                 vegetativeObservationsRefs = false,
                 reproductiveObservationsRefs = false,
                 earObservationsRefs = false,
+                evidenceCaptureSessionsRefs = false,
                 evidenceMediaRefs = false,
               }) {
                 return PrefetchHooks(
@@ -37808,6 +39712,7 @@ class $$PlantObservationsTableTableManager
                     if (reproductiveObservationsRefs)
                       db.reproductiveObservations,
                     if (earObservationsRefs) db.earObservations,
+                    if (evidenceCaptureSessionsRefs) db.evidenceCaptureSessions,
                     if (evidenceMediaRefs) db.evidenceMedia,
                   ],
                   addJoins:
@@ -37909,6 +39814,27 @@ class $$PlantObservationsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (evidenceCaptureSessionsRefs)
+                        await $_getPrefetchedData<
+                          PlantObservationRecord,
+                          $PlantObservationsTable,
+                          EvidenceCaptureSessionRecord
+                        >(
+                          currentTable: table,
+                          referencedTable: $$PlantObservationsTableReferences
+                              ._evidenceCaptureSessionsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$PlantObservationsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).evidenceCaptureSessionsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.plantObservationId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                       if (evidenceMediaRefs)
                         await $_getPrefetchedData<
                           PlantObservationRecord,
@@ -37955,6 +39881,7 @@ typedef $$PlantObservationsTableProcessedTableManager =
         bool vegetativeObservationsRefs,
         bool reproductiveObservationsRefs,
         bool earObservationsRefs,
+        bool evidenceCaptureSessionsRefs,
         bool evidenceMediaRefs,
       })
     >;
@@ -39898,6 +41825,961 @@ typedef $$EarObservationsTableProcessedTableManager =
       EarObservationRecord,
       PrefetchHooks Function({bool plantObservationId, bool evidenceMediaRefs})
     >;
+typedef $$EvidenceCaptureSessionsTableCreateCompanionBuilder =
+    EvidenceCaptureSessionsCompanion Function({
+      required String id,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<String?> deviceId,
+      Value<String> syncState,
+      Value<int> serverVersion,
+      required String assessmentId,
+      required String stationId,
+      required String scopeType,
+      required String scopeKey,
+      Value<int?> plantPosition,
+      Value<String?> plantObservationId,
+      Value<String> requirementsVersion,
+      Value<String> collectionMode,
+      Value<String> collectionStatus,
+      Value<String?> waivedViewTypesJson,
+      Value<String?> fallbackReasonCode,
+      Value<String?> fallbackNote,
+      Value<DateTime> startedAt,
+      Value<DateTime?> completedAt,
+      Value<int> rowid,
+    });
+typedef $$EvidenceCaptureSessionsTableUpdateCompanionBuilder =
+    EvidenceCaptureSessionsCompanion Function({
+      Value<String> id,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<String?> deviceId,
+      Value<String> syncState,
+      Value<int> serverVersion,
+      Value<String> assessmentId,
+      Value<String> stationId,
+      Value<String> scopeType,
+      Value<String> scopeKey,
+      Value<int?> plantPosition,
+      Value<String?> plantObservationId,
+      Value<String> requirementsVersion,
+      Value<String> collectionMode,
+      Value<String> collectionStatus,
+      Value<String?> waivedViewTypesJson,
+      Value<String?> fallbackReasonCode,
+      Value<String?> fallbackNote,
+      Value<DateTime> startedAt,
+      Value<DateTime?> completedAt,
+      Value<int> rowid,
+    });
+
+final class $$EvidenceCaptureSessionsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $EvidenceCaptureSessionsTable,
+          EvidenceCaptureSessionRecord
+        > {
+  $$EvidenceCaptureSessionsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $AssessmentsTable _assessmentIdTable(_$AppDatabase db) => db
+      .assessments
+      .createAlias('evidence_capture_sessions__assessment_id__assessments__id');
+
+  $$AssessmentsTableProcessedTableManager get assessmentId {
+    final $_column = $_itemColumn<String>('assessment_id')!;
+
+    final manager = $$AssessmentsTableTableManager(
+      $_db,
+      $_db.assessments,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_assessmentIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $StationsTable _stationIdTable(_$AppDatabase db) => db.stations
+      .createAlias('evidence_capture_sessions__station_id__stations__id');
+
+  $$StationsTableProcessedTableManager get stationId {
+    final $_column = $_itemColumn<String>('station_id')!;
+
+    final manager = $$StationsTableTableManager(
+      $_db,
+      $_db.stations,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_stationIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $PlantObservationsTable _plantObservationIdTable(
+    _$AppDatabase db,
+  ) => db.plantObservations.createAlias(
+    'evidence_capture_sessions__plant_observation_id__plant_observations__id',
+  );
+
+  $$PlantObservationsTableProcessedTableManager? get plantObservationId {
+    final $_column = $_itemColumn<String>('plant_observation_id');
+    if ($_column == null) return null;
+    final manager = $$PlantObservationsTableTableManager(
+      $_db,
+      $_db.plantObservations,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_plantObservationIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static MultiTypedResultKey<$EvidenceMediaTable, List<EvidenceMediaRecord>>
+  _evidenceMediaRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.evidenceMedia,
+    aliasName:
+        'evidence_capture_sessions__id__evidence_media__capture_session_id',
+  );
+
+  $$EvidenceMediaTableProcessedTableManager get evidenceMediaRefs {
+    final manager = $$EvidenceMediaTableTableManager($_db, $_db.evidenceMedia)
+        .filter(
+          (f) => f.captureSessionId.id.sqlEquals($_itemColumn<String>('id')!),
+        );
+
+    final cache = $_typedResult.readTableOrNull(_evidenceMediaRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$EvidenceCaptureSessionsTableFilterComposer
+    extends Composer<_$AppDatabase, $EvidenceCaptureSessionsTable> {
+  $$EvidenceCaptureSessionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get syncState => $composableBuilder(
+    column: $table.syncState,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get serverVersion => $composableBuilder(
+    column: $table.serverVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get scopeType => $composableBuilder(
+    column: $table.scopeType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get scopeKey => $composableBuilder(
+    column: $table.scopeKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get plantPosition => $composableBuilder(
+    column: $table.plantPosition,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get requirementsVersion => $composableBuilder(
+    column: $table.requirementsVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get collectionMode => $composableBuilder(
+    column: $table.collectionMode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get collectionStatus => $composableBuilder(
+    column: $table.collectionStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get waivedViewTypesJson => $composableBuilder(
+    column: $table.waivedViewTypesJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fallbackReasonCode => $composableBuilder(
+    column: $table.fallbackReasonCode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fallbackNote => $composableBuilder(
+    column: $table.fallbackNote,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get startedAt => $composableBuilder(
+    column: $table.startedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$AssessmentsTableFilterComposer get assessmentId {
+    final $$AssessmentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.assessmentId,
+      referencedTable: $db.assessments,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AssessmentsTableFilterComposer(
+            $db: $db,
+            $table: $db.assessments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$StationsTableFilterComposer get stationId {
+    final $$StationsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.stationId,
+      referencedTable: $db.stations,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$StationsTableFilterComposer(
+            $db: $db,
+            $table: $db.stations,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$PlantObservationsTableFilterComposer get plantObservationId {
+    final $$PlantObservationsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.plantObservationId,
+      referencedTable: $db.plantObservations,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PlantObservationsTableFilterComposer(
+            $db: $db,
+            $table: $db.plantObservations,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<bool> evidenceMediaRefs(
+    Expression<bool> Function($$EvidenceMediaTableFilterComposer f) f,
+  ) {
+    final $$EvidenceMediaTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.evidenceMedia,
+      getReferencedColumn: (t) => t.captureSessionId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$EvidenceMediaTableFilterComposer(
+            $db: $db,
+            $table: $db.evidenceMedia,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$EvidenceCaptureSessionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $EvidenceCaptureSessionsTable> {
+  $$EvidenceCaptureSessionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get syncState => $composableBuilder(
+    column: $table.syncState,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get serverVersion => $composableBuilder(
+    column: $table.serverVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get scopeType => $composableBuilder(
+    column: $table.scopeType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get scopeKey => $composableBuilder(
+    column: $table.scopeKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get plantPosition => $composableBuilder(
+    column: $table.plantPosition,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get requirementsVersion => $composableBuilder(
+    column: $table.requirementsVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get collectionMode => $composableBuilder(
+    column: $table.collectionMode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get collectionStatus => $composableBuilder(
+    column: $table.collectionStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get waivedViewTypesJson => $composableBuilder(
+    column: $table.waivedViewTypesJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get fallbackReasonCode => $composableBuilder(
+    column: $table.fallbackReasonCode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get fallbackNote => $composableBuilder(
+    column: $table.fallbackNote,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get startedAt => $composableBuilder(
+    column: $table.startedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$AssessmentsTableOrderingComposer get assessmentId {
+    final $$AssessmentsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.assessmentId,
+      referencedTable: $db.assessments,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AssessmentsTableOrderingComposer(
+            $db: $db,
+            $table: $db.assessments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$StationsTableOrderingComposer get stationId {
+    final $$StationsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.stationId,
+      referencedTable: $db.stations,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$StationsTableOrderingComposer(
+            $db: $db,
+            $table: $db.stations,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$PlantObservationsTableOrderingComposer get plantObservationId {
+    final $$PlantObservationsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.plantObservationId,
+      referencedTable: $db.plantObservations,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PlantObservationsTableOrderingComposer(
+            $db: $db,
+            $table: $db.plantObservations,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$EvidenceCaptureSessionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $EvidenceCaptureSessionsTable> {
+  $$EvidenceCaptureSessionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get deviceId =>
+      $composableBuilder(column: $table.deviceId, builder: (column) => column);
+
+  GeneratedColumn<String> get syncState =>
+      $composableBuilder(column: $table.syncState, builder: (column) => column);
+
+  GeneratedColumn<int> get serverVersion => $composableBuilder(
+    column: $table.serverVersion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get scopeType =>
+      $composableBuilder(column: $table.scopeType, builder: (column) => column);
+
+  GeneratedColumn<String> get scopeKey =>
+      $composableBuilder(column: $table.scopeKey, builder: (column) => column);
+
+  GeneratedColumn<int> get plantPosition => $composableBuilder(
+    column: $table.plantPosition,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get requirementsVersion => $composableBuilder(
+    column: $table.requirementsVersion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get collectionMode => $composableBuilder(
+    column: $table.collectionMode,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get collectionStatus => $composableBuilder(
+    column: $table.collectionStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get waivedViewTypesJson => $composableBuilder(
+    column: $table.waivedViewTypesJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get fallbackReasonCode => $composableBuilder(
+    column: $table.fallbackReasonCode,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get fallbackNote => $composableBuilder(
+    column: $table.fallbackNote,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get startedAt =>
+      $composableBuilder(column: $table.startedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => column,
+  );
+
+  $$AssessmentsTableAnnotationComposer get assessmentId {
+    final $$AssessmentsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.assessmentId,
+      referencedTable: $db.assessments,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AssessmentsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.assessments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$StationsTableAnnotationComposer get stationId {
+    final $$StationsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.stationId,
+      referencedTable: $db.stations,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$StationsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.stations,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$PlantObservationsTableAnnotationComposer get plantObservationId {
+    final $$PlantObservationsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.plantObservationId,
+          referencedTable: $db.plantObservations,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PlantObservationsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.plantObservations,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+
+  Expression<T> evidenceMediaRefs<T extends Object>(
+    Expression<T> Function($$EvidenceMediaTableAnnotationComposer a) f,
+  ) {
+    final $$EvidenceMediaTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.evidenceMedia,
+      getReferencedColumn: (t) => t.captureSessionId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$EvidenceMediaTableAnnotationComposer(
+            $db: $db,
+            $table: $db.evidenceMedia,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$EvidenceCaptureSessionsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $EvidenceCaptureSessionsTable,
+          EvidenceCaptureSessionRecord,
+          $$EvidenceCaptureSessionsTableFilterComposer,
+          $$EvidenceCaptureSessionsTableOrderingComposer,
+          $$EvidenceCaptureSessionsTableAnnotationComposer,
+          $$EvidenceCaptureSessionsTableCreateCompanionBuilder,
+          $$EvidenceCaptureSessionsTableUpdateCompanionBuilder,
+          (
+            EvidenceCaptureSessionRecord,
+            $$EvidenceCaptureSessionsTableReferences,
+          ),
+          EvidenceCaptureSessionRecord,
+          PrefetchHooks Function({
+            bool assessmentId,
+            bool stationId,
+            bool plantObservationId,
+            bool evidenceMediaRefs,
+          })
+        > {
+  $$EvidenceCaptureSessionsTableTableManager(
+    _$AppDatabase db,
+    $EvidenceCaptureSessionsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$EvidenceCaptureSessionsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$EvidenceCaptureSessionsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$EvidenceCaptureSessionsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<String?> deviceId = const Value.absent(),
+                Value<String> syncState = const Value.absent(),
+                Value<int> serverVersion = const Value.absent(),
+                Value<String> assessmentId = const Value.absent(),
+                Value<String> stationId = const Value.absent(),
+                Value<String> scopeType = const Value.absent(),
+                Value<String> scopeKey = const Value.absent(),
+                Value<int?> plantPosition = const Value.absent(),
+                Value<String?> plantObservationId = const Value.absent(),
+                Value<String> requirementsVersion = const Value.absent(),
+                Value<String> collectionMode = const Value.absent(),
+                Value<String> collectionStatus = const Value.absent(),
+                Value<String?> waivedViewTypesJson = const Value.absent(),
+                Value<String?> fallbackReasonCode = const Value.absent(),
+                Value<String?> fallbackNote = const Value.absent(),
+                Value<DateTime> startedAt = const Value.absent(),
+                Value<DateTime?> completedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => EvidenceCaptureSessionsCompanion(
+                id: id,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                deviceId: deviceId,
+                syncState: syncState,
+                serverVersion: serverVersion,
+                assessmentId: assessmentId,
+                stationId: stationId,
+                scopeType: scopeType,
+                scopeKey: scopeKey,
+                plantPosition: plantPosition,
+                plantObservationId: plantObservationId,
+                requirementsVersion: requirementsVersion,
+                collectionMode: collectionMode,
+                collectionStatus: collectionStatus,
+                waivedViewTypesJson: waivedViewTypesJson,
+                fallbackReasonCode: fallbackReasonCode,
+                fallbackNote: fallbackNote,
+                startedAt: startedAt,
+                completedAt: completedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<String?> deviceId = const Value.absent(),
+                Value<String> syncState = const Value.absent(),
+                Value<int> serverVersion = const Value.absent(),
+                required String assessmentId,
+                required String stationId,
+                required String scopeType,
+                required String scopeKey,
+                Value<int?> plantPosition = const Value.absent(),
+                Value<String?> plantObservationId = const Value.absent(),
+                Value<String> requirementsVersion = const Value.absent(),
+                Value<String> collectionMode = const Value.absent(),
+                Value<String> collectionStatus = const Value.absent(),
+                Value<String?> waivedViewTypesJson = const Value.absent(),
+                Value<String?> fallbackReasonCode = const Value.absent(),
+                Value<String?> fallbackNote = const Value.absent(),
+                Value<DateTime> startedAt = const Value.absent(),
+                Value<DateTime?> completedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => EvidenceCaptureSessionsCompanion.insert(
+                id: id,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                deviceId: deviceId,
+                syncState: syncState,
+                serverVersion: serverVersion,
+                assessmentId: assessmentId,
+                stationId: stationId,
+                scopeType: scopeType,
+                scopeKey: scopeKey,
+                plantPosition: plantPosition,
+                plantObservationId: plantObservationId,
+                requirementsVersion: requirementsVersion,
+                collectionMode: collectionMode,
+                collectionStatus: collectionStatus,
+                waivedViewTypesJson: waivedViewTypesJson,
+                fallbackReasonCode: fallbackReasonCode,
+                fallbackNote: fallbackNote,
+                startedAt: startedAt,
+                completedAt: completedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$EvidenceCaptureSessionsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({
+                assessmentId = false,
+                stationId = false,
+                plantObservationId = false,
+                evidenceMediaRefs = false,
+              }) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (evidenceMediaRefs) db.evidenceMedia,
+                  ],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (assessmentId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.assessmentId,
+                                    referencedTable:
+                                        $$EvidenceCaptureSessionsTableReferences
+                                            ._assessmentIdTable(db),
+                                    referencedColumn:
+                                        $$EvidenceCaptureSessionsTableReferences
+                                            ._assessmentIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (stationId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.stationId,
+                                    referencedTable:
+                                        $$EvidenceCaptureSessionsTableReferences
+                                            ._stationIdTable(db),
+                                    referencedColumn:
+                                        $$EvidenceCaptureSessionsTableReferences
+                                            ._stationIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (plantObservationId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.plantObservationId,
+                                    referencedTable:
+                                        $$EvidenceCaptureSessionsTableReferences
+                                            ._plantObservationIdTable(db),
+                                    referencedColumn:
+                                        $$EvidenceCaptureSessionsTableReferences
+                                            ._plantObservationIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (evidenceMediaRefs)
+                        await $_getPrefetchedData<
+                          EvidenceCaptureSessionRecord,
+                          $EvidenceCaptureSessionsTable,
+                          EvidenceMediaRecord
+                        >(
+                          currentTable: table,
+                          referencedTable:
+                              $$EvidenceCaptureSessionsTableReferences
+                                  ._evidenceMediaRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$EvidenceCaptureSessionsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).evidenceMediaRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.captureSessionId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$EvidenceCaptureSessionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $EvidenceCaptureSessionsTable,
+      EvidenceCaptureSessionRecord,
+      $$EvidenceCaptureSessionsTableFilterComposer,
+      $$EvidenceCaptureSessionsTableOrderingComposer,
+      $$EvidenceCaptureSessionsTableAnnotationComposer,
+      $$EvidenceCaptureSessionsTableCreateCompanionBuilder,
+      $$EvidenceCaptureSessionsTableUpdateCompanionBuilder,
+      (EvidenceCaptureSessionRecord, $$EvidenceCaptureSessionsTableReferences),
+      EvidenceCaptureSessionRecord,
+      PrefetchHooks Function({
+        bool assessmentId,
+        bool stationId,
+        bool plantObservationId,
+        bool evidenceMediaRefs,
+      })
+    >;
 typedef $$EvidenceMediaTableCreateCompanionBuilder =
     EvidenceMediaCompanion Function({
       required String id,
@@ -39914,6 +42796,7 @@ typedef $$EvidenceMediaTableCreateCompanionBuilder =
       Value<String?> earObservationId,
       Value<String?> interventionId,
       Value<String?> safetyCheckId,
+      Value<String?> captureSessionId,
       required String mediaType,
       Value<String?> viewType,
       required String localUri,
@@ -39927,6 +42810,12 @@ typedef $$EvidenceMediaTableCreateCompanionBuilder =
       Value<double?> longitude,
       Value<double?> gpsAccuracyM,
       Value<String> qualityStatus,
+      Value<String?> captureSource,
+      Value<int?> widthPx,
+      Value<int?> heightPx,
+      Value<String?> qualityIssuesJson,
+      Value<String?> qualityCheckVersion,
+      Value<String> storageState,
       Value<String> uploadState,
       Value<bool> isOriginal,
       Value<int> rowid,
@@ -39947,6 +42836,7 @@ typedef $$EvidenceMediaTableUpdateCompanionBuilder =
       Value<String?> earObservationId,
       Value<String?> interventionId,
       Value<String?> safetyCheckId,
+      Value<String?> captureSessionId,
       Value<String> mediaType,
       Value<String?> viewType,
       Value<String> localUri,
@@ -39960,6 +42850,12 @@ typedef $$EvidenceMediaTableUpdateCompanionBuilder =
       Value<double?> longitude,
       Value<double?> gpsAccuracyM,
       Value<String> qualityStatus,
+      Value<String?> captureSource,
+      Value<int?> widthPx,
+      Value<int?> heightPx,
+      Value<String?> qualityIssuesJson,
+      Value<String?> qualityCheckVersion,
+      Value<String> storageState,
       Value<String> uploadState,
       Value<bool> isOriginal,
       Value<int> rowid,
@@ -40108,6 +43004,26 @@ final class $$EvidenceMediaTableReferences
       manager.$state.copyWith(prefetchedData: [item]),
     );
   }
+
+  static $EvidenceCaptureSessionsTable _captureSessionIdTable(
+    _$AppDatabase db,
+  ) => db.evidenceCaptureSessions.createAlias(
+    'evidence_media__capture_session_id__evidence_capture_sessions__id',
+  );
+
+  $$EvidenceCaptureSessionsTableProcessedTableManager? get captureSessionId {
+    final $_column = $_itemColumn<String>('capture_session_id');
+    if ($_column == null) return null;
+    final manager = $$EvidenceCaptureSessionsTableTableManager(
+      $_db,
+      $_db.evidenceCaptureSessions,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_captureSessionIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
 }
 
 class $$EvidenceMediaTableFilterComposer
@@ -40216,6 +43132,36 @@ class $$EvidenceMediaTableFilterComposer
 
   ColumnFilters<String> get qualityStatus => $composableBuilder(
     column: $table.qualityStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get captureSource => $composableBuilder(
+    column: $table.captureSource,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get widthPx => $composableBuilder(
+    column: $table.widthPx,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get heightPx => $composableBuilder(
+    column: $table.heightPx,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get qualityIssuesJson => $composableBuilder(
+    column: $table.qualityIssuesJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get qualityCheckVersion => $composableBuilder(
+    column: $table.qualityCheckVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get storageState => $composableBuilder(
+    column: $table.storageState,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -40390,6 +43336,30 @@ class $$EvidenceMediaTableFilterComposer
     );
     return composer;
   }
+
+  $$EvidenceCaptureSessionsTableFilterComposer get captureSessionId {
+    final $$EvidenceCaptureSessionsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.captureSessionId,
+          referencedTable: $db.evidenceCaptureSessions,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$EvidenceCaptureSessionsTableFilterComposer(
+                $db: $db,
+                $table: $db.evidenceCaptureSessions,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
 }
 
 class $$EvidenceMediaTableOrderingComposer
@@ -40498,6 +43468,36 @@ class $$EvidenceMediaTableOrderingComposer
 
   ColumnOrderings<String> get qualityStatus => $composableBuilder(
     column: $table.qualityStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get captureSource => $composableBuilder(
+    column: $table.captureSource,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get widthPx => $composableBuilder(
+    column: $table.widthPx,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get heightPx => $composableBuilder(
+    column: $table.heightPx,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get qualityIssuesJson => $composableBuilder(
+    column: $table.qualityIssuesJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get qualityCheckVersion => $composableBuilder(
+    column: $table.qualityCheckVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get storageState => $composableBuilder(
+    column: $table.storageState,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -40673,6 +43673,30 @@ class $$EvidenceMediaTableOrderingComposer
     );
     return composer;
   }
+
+  $$EvidenceCaptureSessionsTableOrderingComposer get captureSessionId {
+    final $$EvidenceCaptureSessionsTableOrderingComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.captureSessionId,
+          referencedTable: $db.evidenceCaptureSessions,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$EvidenceCaptureSessionsTableOrderingComposer(
+                $db: $db,
+                $table: $db.evidenceCaptureSessions,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
 }
 
 class $$EvidenceMediaTableAnnotationComposer
@@ -40753,6 +43777,32 @@ class $$EvidenceMediaTableAnnotationComposer
 
   GeneratedColumn<String> get qualityStatus => $composableBuilder(
     column: $table.qualityStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get captureSource => $composableBuilder(
+    column: $table.captureSource,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get widthPx =>
+      $composableBuilder(column: $table.widthPx, builder: (column) => column);
+
+  GeneratedColumn<int> get heightPx =>
+      $composableBuilder(column: $table.heightPx, builder: (column) => column);
+
+  GeneratedColumn<String> get qualityIssuesJson => $composableBuilder(
+    column: $table.qualityIssuesJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get qualityCheckVersion => $composableBuilder(
+    column: $table.qualityCheckVersion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get storageState => $composableBuilder(
+    column: $table.storageState,
     builder: (column) => column,
   );
 
@@ -40929,6 +43979,30 @@ class $$EvidenceMediaTableAnnotationComposer
     );
     return composer;
   }
+
+  $$EvidenceCaptureSessionsTableAnnotationComposer get captureSessionId {
+    final $$EvidenceCaptureSessionsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.captureSessionId,
+          referencedTable: $db.evidenceCaptureSessions,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$EvidenceCaptureSessionsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.evidenceCaptureSessions,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
 }
 
 class $$EvidenceMediaTableTableManager
@@ -40952,6 +44026,7 @@ class $$EvidenceMediaTableTableManager
             bool earObservationId,
             bool interventionId,
             bool safetyCheckId,
+            bool captureSessionId,
           })
         > {
   $$EvidenceMediaTableTableManager(_$AppDatabase db, $EvidenceMediaTable table)
@@ -40981,6 +44056,7 @@ class $$EvidenceMediaTableTableManager
                 Value<String?> earObservationId = const Value.absent(),
                 Value<String?> interventionId = const Value.absent(),
                 Value<String?> safetyCheckId = const Value.absent(),
+                Value<String?> captureSessionId = const Value.absent(),
                 Value<String> mediaType = const Value.absent(),
                 Value<String?> viewType = const Value.absent(),
                 Value<String> localUri = const Value.absent(),
@@ -40994,6 +44070,12 @@ class $$EvidenceMediaTableTableManager
                 Value<double?> longitude = const Value.absent(),
                 Value<double?> gpsAccuracyM = const Value.absent(),
                 Value<String> qualityStatus = const Value.absent(),
+                Value<String?> captureSource = const Value.absent(),
+                Value<int?> widthPx = const Value.absent(),
+                Value<int?> heightPx = const Value.absent(),
+                Value<String?> qualityIssuesJson = const Value.absent(),
+                Value<String?> qualityCheckVersion = const Value.absent(),
+                Value<String> storageState = const Value.absent(),
                 Value<String> uploadState = const Value.absent(),
                 Value<bool> isOriginal = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -41012,6 +44094,7 @@ class $$EvidenceMediaTableTableManager
                 earObservationId: earObservationId,
                 interventionId: interventionId,
                 safetyCheckId: safetyCheckId,
+                captureSessionId: captureSessionId,
                 mediaType: mediaType,
                 viewType: viewType,
                 localUri: localUri,
@@ -41025,6 +44108,12 @@ class $$EvidenceMediaTableTableManager
                 longitude: longitude,
                 gpsAccuracyM: gpsAccuracyM,
                 qualityStatus: qualityStatus,
+                captureSource: captureSource,
+                widthPx: widthPx,
+                heightPx: heightPx,
+                qualityIssuesJson: qualityIssuesJson,
+                qualityCheckVersion: qualityCheckVersion,
+                storageState: storageState,
                 uploadState: uploadState,
                 isOriginal: isOriginal,
                 rowid: rowid,
@@ -41045,6 +44134,7 @@ class $$EvidenceMediaTableTableManager
                 Value<String?> earObservationId = const Value.absent(),
                 Value<String?> interventionId = const Value.absent(),
                 Value<String?> safetyCheckId = const Value.absent(),
+                Value<String?> captureSessionId = const Value.absent(),
                 required String mediaType,
                 Value<String?> viewType = const Value.absent(),
                 required String localUri,
@@ -41058,6 +44148,12 @@ class $$EvidenceMediaTableTableManager
                 Value<double?> longitude = const Value.absent(),
                 Value<double?> gpsAccuracyM = const Value.absent(),
                 Value<String> qualityStatus = const Value.absent(),
+                Value<String?> captureSource = const Value.absent(),
+                Value<int?> widthPx = const Value.absent(),
+                Value<int?> heightPx = const Value.absent(),
+                Value<String?> qualityIssuesJson = const Value.absent(),
+                Value<String?> qualityCheckVersion = const Value.absent(),
+                Value<String> storageState = const Value.absent(),
                 Value<String> uploadState = const Value.absent(),
                 Value<bool> isOriginal = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -41076,6 +44172,7 @@ class $$EvidenceMediaTableTableManager
                 earObservationId: earObservationId,
                 interventionId: interventionId,
                 safetyCheckId: safetyCheckId,
+                captureSessionId: captureSessionId,
                 mediaType: mediaType,
                 viewType: viewType,
                 localUri: localUri,
@@ -41089,6 +44186,12 @@ class $$EvidenceMediaTableTableManager
                 longitude: longitude,
                 gpsAccuracyM: gpsAccuracyM,
                 qualityStatus: qualityStatus,
+                captureSource: captureSource,
+                widthPx: widthPx,
+                heightPx: heightPx,
+                qualityIssuesJson: qualityIssuesJson,
+                qualityCheckVersion: qualityCheckVersion,
+                storageState: storageState,
                 uploadState: uploadState,
                 isOriginal: isOriginal,
                 rowid: rowid,
@@ -41110,6 +44213,7 @@ class $$EvidenceMediaTableTableManager
                 earObservationId = false,
                 interventionId = false,
                 safetyCheckId = false,
+                captureSessionId = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -41238,6 +44342,21 @@ class $$EvidenceMediaTableTableManager
                                   )
                                   as T;
                         }
+                        if (captureSessionId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.captureSessionId,
+                                    referencedTable:
+                                        $$EvidenceMediaTableReferences
+                                            ._captureSessionIdTable(db),
+                                    referencedColumn:
+                                        $$EvidenceMediaTableReferences
+                                            ._captureSessionIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
 
                         return state;
                       },
@@ -41270,6 +44389,7 @@ typedef $$EvidenceMediaTableProcessedTableManager =
         bool earObservationId,
         bool interventionId,
         bool safetyCheckId,
+        bool captureSessionId,
       })
     >;
 typedef $$MetricResultsTableCreateCompanionBuilder =
@@ -42920,6 +46040,11 @@ class $AppDatabaseManager {
       );
   $$EarObservationsTableTableManager get earObservations =>
       $$EarObservationsTableTableManager(_db, _db.earObservations);
+  $$EvidenceCaptureSessionsTableTableManager get evidenceCaptureSessions =>
+      $$EvidenceCaptureSessionsTableTableManager(
+        _db,
+        _db.evidenceCaptureSessions,
+      );
   $$EvidenceMediaTableTableManager get evidenceMedia =>
       $$EvidenceMediaTableTableManager(_db, _db.evidenceMedia);
   $$MetricResultsTableTableManager get metricResults =>

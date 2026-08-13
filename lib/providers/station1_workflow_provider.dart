@@ -1,10 +1,14 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 
 import '../data/local/app_database.dart';
 import '../data/local/database_codes.dart';
 import '../data/repositories/assessment_repository.dart';
+import '../data/repositories/evidence_capture_repository.dart';
 import '../data/repositories/station1_workflow_repository.dart';
 import '../data/services/atomic_plant_save_service.dart';
+import '../services/evidence_capture_coordinator.dart';
 import '../services/phone_location_service.dart';
 
 enum Station1ViewState {
@@ -18,6 +22,7 @@ enum Station1ViewState {
   blockPreparation,
   resumeCheck,
   stationLocation,
+  stationContextEvidence,
   plantSelection,
   plantEntry,
   stationReview,
@@ -34,14 +39,17 @@ class Station1WorkflowProvider extends ChangeNotifier {
     required Station1WorkflowRepository workflowRepository,
     required AssessmentRepository assessmentRepository,
     required AtomicPlantSaveService plantSaveService,
+    EvidenceCaptureCoordinator? evidenceCoordinator,
   }) : _workflow = workflowRepository,
        _assessments = assessmentRepository,
-       _plantSaves = plantSaveService;
+       _plantSaves = plantSaveService,
+       _evidence = evidenceCoordinator;
 
   final String assessmentId;
   final Station1WorkflowRepository _workflow;
   final AssessmentRepository _assessments;
   final AtomicPlantSaveService _plantSaves;
+  final EvidenceCaptureCoordinator? _evidence;
 
   Station1ViewState _state = Station1ViewState.loading;
   Station1ViewState? _resumeTarget;
@@ -49,6 +57,10 @@ class Station1WorkflowProvider extends ChangeNotifier {
   BoundaryRecord? _boundary;
   PreparedStation1Run? _prepared;
   Station1Snapshot? _snapshot;
+  EvidenceCaptureBundle? _stationContextEvidence;
+  EvidenceCaptureBundle? _currentEvidence;
+  List<EvidenceCaptureBundle> _stationEvidenceBundles = const [];
+  PilotWorkloadMetrics _pilotWorkloadMetrics = PilotWorkloadMetrics.empty;
   int? _currentPlantPosition;
   Object? _error;
   bool _isSaving = false;
@@ -59,6 +71,11 @@ class Station1WorkflowProvider extends ChangeNotifier {
   PreparedStation1Run? get prepared => _prepared;
   Station1Snapshot? get snapshot => _snapshot;
   int? get currentPlantPosition => _currentPlantPosition;
+  EvidenceCaptureBundle? get stationContextEvidence => _stationContextEvidence;
+  EvidenceCaptureBundle? get currentEvidence => _currentEvidence;
+  List<EvidenceCaptureBundle> get stationEvidenceBundles =>
+      _stationEvidenceBundles;
+  PilotWorkloadMetrics get pilotWorkloadMetrics => _pilotWorkloadMetrics;
   Object? get error => _error;
   bool get isSaving => _isSaving;
   int get savedPlantCount => _snapshot?.plants.length ?? 0;
@@ -77,6 +94,11 @@ class Station1WorkflowProvider extends ChangeNotifier {
     try {
       _assessment = await _workflow.assessmentById(assessmentId);
       final assessment = _assessment!;
+
+      await _evidence?.reconcileAssessment(
+        assessmentId: assessment.id,
+        actorPersonId: assessment.evaluatorPersonId,
+      );
 
       if (assessment.status == DatabaseCodes.safetyBlocked) {
         _setState(Station1ViewState.safetyBlocked);
@@ -171,20 +193,22 @@ class Station1WorkflowProvider extends ChangeNotifier {
     });
   }
 
-  void beginTenConsecutivePlants() {
+  Future<void> beginTenConsecutivePlants() async {
     final snapshot = _snapshot;
     if (snapshot?.station == null) {
       throw StateError('Record the Station 1 location step first.');
     }
     _currentPlantPosition = snapshot!.nextMissingPlantPosition;
+    await _loadCurrentEvidence();
     _setState(Station1ViewState.plantEntry);
   }
 
-  void editPlant(int position) {
+  Future<void> editPlant(int position) async {
     if (position < 1 || position > 10) {
       throw ArgumentError.value(position, 'position', 'Must be 1-10');
     }
     _currentPlantPosition = position;
+    await _loadCurrentEvidence();
     _setState(Station1ViewState.plantEntry);
   }
 
@@ -203,6 +227,92 @@ class Station1WorkflowProvider extends ChangeNotifier {
     await _perform(() async {
       await _ensureAssessmentActive();
       await _plantSaves.saveVegetativePlant(input);
+      await _loadSnapshot(askForResume: false);
+    });
+  }
+
+  Future<File> resolveEvidenceFile(String localUri) {
+    final evidence = _evidence;
+    if (evidence == null) {
+      throw StateError('Camera evidence is unavailable.');
+    }
+    return evidence.resolve(localUri);
+  }
+
+  Future<void> stageEvidence({
+    required String viewType,
+    required String sourcePath,
+  }) async {
+    await _perform(() async {
+      await _ensureAssessmentActive();
+      final evidence = _requireEvidenceCoordinator();
+      final bundle = _requireActiveEvidenceBundle();
+      final updated = await evidence.stageCapture(
+        session: bundle.session,
+        viewType: viewType,
+        sourcePath: sourcePath,
+        actorPersonId: _requireAssessment().evaluatorPersonId,
+      );
+      _replaceEvidenceBundle(updated);
+      await _refreshPilotWorkloadMetrics();
+    });
+  }
+
+  Future<void> acceptEvidence(EvidenceMediaRecord media) async {
+    await _perform(() async {
+      final updated = await _requireEvidenceCoordinator().accept(
+        media: media,
+        actorPersonId: _requireAssessment().evaluatorPersonId,
+      );
+      _replaceEvidenceBundle(updated);
+      await _refreshPilotWorkloadMetrics();
+    });
+  }
+
+  Future<void> removeEvidence(
+    EvidenceMediaRecord media, {
+    bool retake = false,
+  }) async {
+    await _perform(() async {
+      final updated = await _requireEvidenceCoordinator().remove(
+        media: media,
+        actorPersonId: _requireAssessment().evaluatorPersonId,
+        retake: retake,
+      );
+      _replaceEvidenceBundle(updated);
+      await _refreshPilotWorkloadMetrics();
+    });
+  }
+
+  Future<void> waiveEvidence({
+    required String viewType,
+    required String reasonCode,
+    String? note,
+  }) async {
+    await _perform(() async {
+      final bundle = _requireActiveEvidenceBundle();
+      final updated = await _requireEvidenceCoordinator().waive(
+        session: bundle.session,
+        viewType: viewType,
+        reasonCode: reasonCode,
+        actorPersonId: _requireAssessment().evaluatorPersonId,
+        note: note,
+      );
+      _replaceEvidenceBundle(updated);
+      await _refreshPilotWorkloadMetrics();
+    });
+  }
+
+  Future<void> continueAfterStationContext() async {
+    final bundle = _stationContextEvidence;
+    if (bundle == null) throw StateError('Station context is unavailable.');
+    await _perform(() async {
+      await _requireEvidenceCoordinator().completeStationContext(
+        session: bundle.session,
+        actorPersonId: _requireAssessment().evaluatorPersonId,
+      );
+      _stationContextEvidence = await _requireEvidenceCoordinator().repository
+          .loadBundle(bundle.session.id);
       await _loadSnapshot(askForResume: false);
     });
   }
@@ -260,6 +370,7 @@ class Station1WorkflowProvider extends ChangeNotifier {
     if (snapshot == null) throw StateError('Station data is unavailable.');
     await _perform(() async {
       await _ensureAssessmentActive();
+      _validateReviewEvidence(snapshot);
       await _workflow.confirmStationReview(
         snapshot: snapshot,
         actorPersonId: _requireAssessment().evaluatorPersonId,
@@ -268,11 +379,81 @@ class Station1WorkflowProvider extends ChangeNotifier {
     });
   }
 
+  void _validateReviewEvidence(Station1Snapshot snapshot) {
+    if (_evidence == null) return;
+    final context = _stationEvidenceBundles.where(
+      (bundle) =>
+          bundle.session.scopeType == DatabaseCodes.evidenceScopeStationContext,
+    );
+    if (context.isEmpty ||
+        !context.first.isViewSatisfied(
+          DatabaseCodes.evidenceViewStationContext,
+        )) {
+      throw StateError(
+        'Station context needs an accepted image or documented manual fallback.',
+      );
+    }
+    for (final plant in snapshot.plants) {
+      final matches = _stationEvidenceBundles.where(
+        (bundle) =>
+            bundle.session.scopeType == DatabaseCodes.evidenceScopePlant &&
+            bundle.session.plantPosition == plant.plant.sequenceNumber,
+      );
+      if (matches.isEmpty) {
+        throw StateError(
+          'Plant ${plant.plant.sequenceNumber} has no evidence capture record.',
+        );
+      }
+      if (!plant.plant.assessable) continue;
+      final bundle = matches.first;
+      if (!bundle.isViewSatisfied(DatabaseCodes.evidenceViewWhorlOverview)) {
+        throw StateError(
+          'Plant ${plant.plant.sequenceNumber} needs a whorl overview or documented manual fallback.',
+        );
+      }
+      if (_plantNeedsCloseUp(plant) &&
+          !bundle.isViewSatisfied(DatabaseCodes.evidenceViewCloseUp)) {
+        throw StateError(
+          'Plant ${plant.plant.sequenceNumber} needs its evidence close-up or documented manual fallback.',
+        );
+      }
+    }
+  }
+
+  bool _plantNeedsCloseUp(Station1PlantRecord plant) =>
+      plant.vegetative.smallFreshWindowpanes ||
+      plant.vegetative.scraping ||
+      plant.vegetative.cuttingOrTearing ||
+      plant.vegetative.freshFrass ||
+      plant.vegetative.whorlFeedingSign ||
+      plant.vegetative.larvaVisible ||
+      plant.vegetative.eggMassVisible == true ||
+      plant.plant.oldDamagePresent ||
+      plant.plant.possibleNonFawEvidence == true ||
+      plant.plant.uncertainEvidence == true;
+
   void retry() => initialize();
 
   Future<void> _loadSnapshot({required bool askForResume}) async {
     _snapshot = await _workflow.loadSnapshot(_requirePrepared());
+    final station = _snapshot!.station;
+    if (station != null && _evidence != null) {
+      _stationContextEvidence = await _evidence.ensureStationContext(
+        assessmentId: assessmentId,
+        stationId: station.id,
+        actorPersonId: _requireAssessment().evaluatorPersonId,
+      );
+      _stationEvidenceBundles = await _evidence.repository.loadStationBundles(
+        station.id,
+      );
+      _pilotWorkloadMetrics = await _evidence.loadPilotWorkloadMetrics(
+        station.id,
+      );
+    }
     final target = _targetFor(_snapshot!);
+    if (target == Station1ViewState.plantEntry) {
+      await _loadCurrentEvidence();
+    }
     if (askForResume && target != Station1ViewState.stationComplete) {
       _resumeTarget = target;
       _setState(Station1ViewState.resumeCheck);
@@ -284,14 +465,91 @@ class Station1WorkflowProvider extends ChangeNotifier {
 
   Station1ViewState _targetFor(Station1Snapshot snapshot) {
     if (snapshot.station == null) return Station1ViewState.stationLocation;
+    if (_evidence != null &&
+        (_stationContextEvidence?.session.completedAt == null ||
+            !(_stationContextEvidence?.isViewSatisfied(
+                  DatabaseCodes.evidenceViewStationContext,
+                ) ??
+                false))) {
+      return Station1ViewState.stationContextEvidence;
+    }
     if (snapshot.reviewIsCurrent) return Station1ViewState.stationComplete;
-    if (snapshot.plants.isEmpty) return Station1ViewState.plantSelection;
+    if (snapshot.plants.isEmpty) {
+      for (final bundle in _stationEvidenceBundles) {
+        if (bundle.session.scopeType == DatabaseCodes.evidenceScopePlant &&
+            bundle.session.plantPosition != null &&
+            bundle.session.plantObservationId == null) {
+          _currentPlantPosition = bundle.session.plantPosition;
+          return Station1ViewState.plantEntry;
+        }
+      }
+      return Station1ViewState.plantSelection;
+    }
     if (snapshot.plants.length < 10) {
       _currentPlantPosition = snapshot.nextMissingPlantPosition;
       return Station1ViewState.plantEntry;
     }
     _currentPlantPosition = null;
     return Station1ViewState.stationReview;
+  }
+
+  Future<void> _loadCurrentEvidence() async {
+    final evidence = _evidence;
+    final position = _currentPlantPosition;
+    final station = _snapshot?.station;
+    if (evidence == null || position == null || station == null) {
+      _currentEvidence = null;
+      return;
+    }
+    _currentEvidence = await evidence.ensurePlant(
+      assessmentId: assessmentId,
+      stationId: station.id,
+      plantPosition: position,
+      actorPersonId: _requireAssessment().evaluatorPersonId,
+    );
+  }
+
+  EvidenceCaptureCoordinator _requireEvidenceCoordinator() {
+    final value = _evidence;
+    if (value == null) throw StateError('Camera evidence is unavailable.');
+    return value;
+  }
+
+  EvidenceCaptureBundle _requireActiveEvidenceBundle() {
+    final value = _state == Station1ViewState.stationContextEvidence
+        ? _stationContextEvidence
+        : _currentEvidence;
+    if (value == null) throw StateError('Evidence capture is unavailable.');
+    return value;
+  }
+
+  void _replaceEvidenceBundle(EvidenceCaptureBundle value) {
+    if (value.session.scopeType == DatabaseCodes.evidenceScopeStationContext) {
+      _stationContextEvidence = value;
+    } else {
+      _currentEvidence = value;
+    }
+    final replaced = <EvidenceCaptureBundle>[];
+    var found = false;
+    for (final bundle in _stationEvidenceBundles) {
+      if (bundle.session.id == value.session.id) {
+        replaced.add(value);
+        found = true;
+      } else {
+        replaced.add(bundle);
+      }
+    }
+    if (!found) replaced.add(value);
+    _stationEvidenceBundles = List.unmodifiable(replaced);
+    notifyListeners();
+  }
+
+  Future<void> _refreshPilotWorkloadMetrics() async {
+    final evidence = _evidence;
+    final stationId = _snapshot?.station?.id;
+    if (evidence == null || stationId == null) return;
+    _pilotWorkloadMetrics = await evidence.loadPilotWorkloadMetrics(stationId);
+    notifyListeners();
   }
 
   Future<void> _perform(Future<void> Function() operation) async {

@@ -485,9 +485,22 @@ class Station1WorkflowRepository {
     required StationRecord station,
     required List<Station1PlantRecord> plants,
   }) async {
+    final evidenceSessions = await (database.select(
+      database.evidenceCaptureSessions,
+    )..where((row) => row.stationId.equals(station.id))).get();
+    final evidenceSessionIds = evidenceSessions
+        .map((session) => session.id)
+        .toList(growable: false);
+    final evidenceMedia = evidenceSessionIds.isEmpty
+        ? const <EvidenceMediaRecord>[]
+        : await (database.select(database.evidenceMedia)
+                ..where((row) => row.captureSessionId.isIn(evidenceSessionIds)))
+              .get();
     final entityIds = <String>[
       station.id,
       ...plants.map((item) => item.plant.id),
+      ...evidenceSessionIds,
+      ...evidenceMedia.map((item) => item.id),
     ];
     final audits = await (database.select(
       database.auditLogs,
@@ -500,7 +513,11 @@ class Station1WorkflowRepository {
                       audit.entityId == station.id &&
                       audit.action != 'review_confirmed') ||
                   (audit.entityType == 'plant_observations' &&
-                      plants.any((item) => item.plant.id == audit.entityId)),
+                      plants.any((item) => item.plant.id == audit.entityId)) ||
+                  (audit.entityType == 'evidence_capture_sessions' &&
+                      evidenceSessionIds.contains(audit.entityId)) ||
+                  (audit.entityType == 'evidence_media' &&
+                      evidenceMedia.any((item) => item.id == audit.entityId)),
             )
             .map((audit) => audit.id)
             .toList(growable: false)

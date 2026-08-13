@@ -15,13 +15,16 @@ const _fieldPolygon =
     '[121.01,17.01],[121.0,17.01],[121.0,17.0]]]}';
 
 void main() {
-  test('schema v2 migrates to v3 without rewriting old observations', () async {
-    final database = AppDatabase(
-      NativeDatabase.memory(
-        setup: (rawDatabase) {
-          rawDatabase.execute(_v2PlantObservationsSql);
-          rawDatabase.execute(_v2VegetativeObservationsSql);
-          rawDatabase.execute("""
+  test(
+    'schema v2 migrates through v4 without rewriting old observations',
+    () async {
+      final database = AppDatabase(
+        NativeDatabase.memory(
+          setup: (rawDatabase) {
+            rawDatabase.execute(_v2PlantObservationsSql);
+            rawDatabase.execute(_v2VegetativeObservationsSql);
+            rawDatabase.execute(_v2EvidenceMediaSql);
+            rawDatabase.execute("""
             INSERT INTO plant_observations (
               id, station_id, sequence_number, plant_status,
               current_faw_evidence, old_damage_present,
@@ -31,7 +34,7 @@ void main() {
               NULL, 1, 'none_seen'
             )
           """);
-          rawDatabase.execute("""
+            rawDatabase.execute("""
             INSERT INTO vegetative_observations (
               plant_observation_id, newest_leaves_inspected_count,
               small_fresh_windowpanes, infested_whorl, scraping,
@@ -41,34 +44,35 @@ void main() {
               'legacy-plant', 4, 1, 1, 1, 0, 0, 0, 0, 'none_seen'
             )
           """);
-          rawDatabase.userVersion = 2;
-        },
-      ),
-    );
+            rawDatabase.userVersion = 2;
+          },
+        ),
+      );
 
-    final version = await database
-        .customSelect('PRAGMA user_version')
-        .getSingle();
-    final plant = await (database.select(
-      database.plantObservations,
-    )..where((row) => row.id.equals('legacy-plant'))).getSingle();
-    final vegetative =
-        await (database.select(database.vegetativeObservations)
-              ..where((row) => row.plantObservationId.equals('legacy-plant')))
-            .getSingle();
+      final version = await database
+          .customSelect('PRAGMA user_version')
+          .getSingle();
+      final plant = await (database.select(
+        database.plantObservations,
+      )..where((row) => row.id.equals('legacy-plant'))).getSingle();
+      final vegetative =
+          await (database.select(database.vegetativeObservations)
+                ..where((row) => row.plantObservationId.equals('legacy-plant')))
+              .getSingle();
 
-    expect(version.read<int>('user_version'), 3);
-    expect(plant.plantStatus, 'uncertain');
-    expect(plant.currentFawEvidence, isNull);
-    expect(plant.oldDamagePresent, isTrue);
-    expect(plant.possibleNonFawEvidence, isNull);
-    expect(plant.uncertainEvidence, isNull);
-    expect(vegetative.smallFreshWindowpanes, isTrue);
-    expect(vegetative.scraping, isTrue);
-    expect(vegetative.eggMassVisible, isNull);
+      expect(version.read<int>('user_version'), 4);
+      expect(plant.plantStatus, 'uncertain');
+      expect(plant.currentFawEvidence, isNull);
+      expect(plant.oldDamagePresent, isTrue);
+      expect(plant.possibleNonFawEvidence, isNull);
+      expect(plant.uncertainEvidence, isNull);
+      expect(vegetative.smallFreshWindowpanes, isTrue);
+      expect(vegetative.scraping, isTrue);
+      expect(vegetative.eggMassVisible, isNull);
 
-    await database.close();
-  });
+      await database.close();
+    },
+  );
 
   group('atomic vegetative plant save', () {
     late AppDatabase database;
@@ -460,5 +464,39 @@ const _v2VegetativeObservationsSql = """
     damage_score_reason TEXT,
     created_at INTEGER NOT NULL DEFAULT (unixepoch()),
     updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+  )
+""";
+
+const _v2EvidenceMediaSql = """
+  CREATE TABLE evidence_media (
+    id TEXT PRIMARY KEY,
+    assessment_id TEXT NOT NULL,
+    station_id TEXT,
+    planting_unit_observation_id TEXT,
+    plant_observation_id TEXT,
+    ear_observation_id TEXT,
+    intervention_id TEXT,
+    safety_check_id TEXT,
+    media_type TEXT NOT NULL,
+    view_type TEXT,
+    local_uri TEXT NOT NULL,
+    remote_uri TEXT,
+    thumbnail_local_uri TEXT,
+    mime_type TEXT,
+    byte_size INTEGER,
+    sha256_checksum TEXT NOT NULL,
+    captured_at INTEGER,
+    latitude REAL,
+    longitude REAL,
+    gps_accuracy_m REAL,
+    quality_status TEXT NOT NULL DEFAULT 'unchecked',
+    upload_state TEXT NOT NULL DEFAULT 'local_only',
+    is_original INTEGER NOT NULL DEFAULT 1,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+    updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+    deleted_at INTEGER,
+    device_id TEXT,
+    sync_state TEXT NOT NULL DEFAULT 'local_only',
+    server_version INTEGER NOT NULL DEFAULT 0
   )
 """;

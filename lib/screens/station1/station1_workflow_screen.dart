@@ -2,13 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/station1_workflow_provider.dart';
+import '../../data/local/app_database.dart';
+import '../../data/local/database_codes.dart';
+import '../../services/evidence_camera_service.dart';
 import '../../services/assessment_protocol_selector.dart';
 import '../../services/phone_location_service.dart';
 import '../../theme/app_colors.dart';
 import 'plant_observation_step.dart';
+import 'evidence_capture_panel.dart';
+import 'evidence_photo_viewer.dart';
+import 'guided_camera_screen.dart';
 import 'plant_selection_step.dart';
 import 'resume_assessment_step.dart';
 import 'station_location_step.dart';
+import 'station_context_evidence_step.dart';
 import 'station_review_step.dart';
 
 class Station1WorkflowScreen extends StatelessWidget {
@@ -16,10 +23,12 @@ class Station1WorkflowScreen extends StatelessWidget {
     super.key,
     required this.fieldName,
     required this.captureLocation,
+    this.cameraFactory = const PluginEvidenceCameraFactory(),
   });
 
   final String fieldName;
   final Future<AveragedPhoneLocation> Function() captureLocation;
+  final EvidenceCameraFactory cameraFactory;
 
   @override
   Widget build(BuildContext context) {
@@ -114,8 +123,34 @@ class Station1WorkflowScreen extends StatelessWidget {
             onUseLocation: workflow.saveStationCoordinates,
             onSaveUnavailable: workflow.saveStationUnavailable,
           ),
+          Station1ViewState.stationContextEvidence =>
+            StationContextEvidenceStep(
+              bundle: workflow.stationContextEvidence!,
+              isSaving: workflow.isSaving,
+              resolveFile: workflow.resolveEvidenceFile,
+              onCapture: () => _captureEvidence(
+                context,
+                workflow,
+                DatabaseCodes.evidenceViewStationContext,
+              ),
+              onInspect: (media) => _inspectEvidence(context, workflow, media),
+              onAccept: (media) =>
+                  _run(context, () => workflow.acceptEvidence(media)),
+              onRetake: (media) => _retakeEvidence(context, workflow, media),
+              onRemove: (media) =>
+                  _run(context, () => workflow.removeEvidence(media)),
+              onManualFallback: (reason, note) => _run(
+                context,
+                () => workflow.waiveEvidence(
+                  viewType: DatabaseCodes.evidenceViewStationContext,
+                  reasonCode: reason,
+                  note: note,
+                ),
+              ),
+              onContinue: workflow.continueAfterStationContext,
+            ),
           Station1ViewState.plantSelection => PlantSelectionStep(
-            onBegin: workflow.beginTenConsecutivePlants,
+            onBegin: () => _run(context, workflow.beginTenConsecutivePlants),
           ),
           Station1ViewState.plantEntry => PlantObservationStep(
             key: ValueKey('plant_${workflow.currentPlantPosition}'),
@@ -129,12 +164,38 @@ class Station1WorkflowScreen extends StatelessWidget {
             onCancelEdit: workflow.savedPlantCount == 10
                 ? workflow.returnToReview
                 : null,
+            evidence: workflow.currentEvidence,
+            resolveEvidenceFile: workflow.resolveEvidenceFile,
+            onCaptureEvidence: (viewType) =>
+                _captureEvidence(context, workflow, viewType),
+            onInspectEvidence: (media) =>
+                _inspectEvidence(context, workflow, media),
+            onAcceptEvidence: (media) =>
+                _run(context, () => workflow.acceptEvidence(media)),
+            onRetakeEvidence: (media) =>
+                _retakeEvidence(context, workflow, media),
+            onRemoveEvidence: (media) =>
+                _run(context, () => workflow.removeEvidence(media)),
+            onManualFallback: (viewType, reason, note) => _run(
+              context,
+              () => workflow.waiveEvidence(
+                viewType: viewType,
+                reasonCode: reason,
+                note: note,
+              ),
+            ),
           ),
           Station1ViewState.stationReview => StationReviewStep(
             snapshot: workflow.snapshot!,
             isSaving: workflow.isSaving,
-            onEdit: workflow.editPlant,
+            onEdit: (position) =>
+                _run(context, () => workflow.editPlant(position)),
             onConfirm: () => _run(context, workflow.confirmStationReview),
+            evidenceBundles: workflow.stationEvidenceBundles,
+            resolveEvidenceFile: workflow.resolveEvidenceFile,
+            onOpenEvidence: (media, scopeLabel) =>
+                _openReadOnlyEvidence(context, workflow, media, scopeLabel),
+            pilotWorkloadMetrics: workflow.pilotWorkloadMetrics,
           ),
           Station1ViewState.stationComplete => _MessageStep(
             key: const Key('station1_complete'),
@@ -186,6 +247,184 @@ class Station1WorkflowScreen extends StatelessWidget {
       ).showSnackBar(SnackBar(content: Text(_friendlyError(error))));
     }
   }
+
+  Future<void> _captureEvidence(
+    BuildContext context,
+    Station1WorkflowProvider workflow,
+    String viewType,
+  ) async {
+    final (title, viewLabel, instruction) = switch (viewType) {
+      DatabaseCodes.evidenceViewStationContext => (
+        'Station context',
+        'Station-context view',
+        'Frame the maize row and immediate Station 1 surroundings. Avoid people and identifying documents.',
+      ),
+      DatabaseCodes.evidenceViewCloseUp => (
+        'Evidence close-up',
+        'Conditional close-up',
+        'Frame the specific visible sign or organism closely enough for a useful record.',
+      ),
+      _ => (
+        'Whorl overview',
+        'Whorl and newest leaves',
+        'Gently expose the whorl and frame the newest three or four emerging leaves together.',
+      ),
+    };
+    final result = await Navigator.push<GuidedCameraResult>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => GuidedCameraScreen(
+          title: title,
+          viewLabel: viewLabel,
+          instruction: instruction,
+          cameraFactory: cameraFactory,
+        ),
+      ),
+    );
+    if (!context.mounted || result == null) return;
+    if (result.sourcePath != null) {
+      await _run(
+        context,
+        () => workflow.stageEvidence(
+          viewType: viewType,
+          sourcePath: result.sourcePath!,
+        ),
+      );
+      if (!context.mounted) return;
+      final bundle = viewType == DatabaseCodes.evidenceViewStationContext
+          ? workflow.stationContextEvidence
+          : workflow.currentEvidence;
+      final media = bundle?.mediaForView(viewType);
+      if (media != null &&
+          media.storageState == DatabaseCodes.evidenceStorageStaged) {
+        await _inspectEvidence(context, workflow, media);
+      }
+      return;
+    }
+    final fallback = await showEvidenceFallbackDialog(
+      context,
+      suggestedReasonCode: result.fallbackReasonCode,
+    );
+    if (!context.mounted || fallback == null) return;
+    await _run(
+      context,
+      () => workflow.waiveEvidence(
+        viewType: viewType,
+        reasonCode: fallback.reasonCode,
+        note: fallback.note,
+      ),
+    );
+  }
+
+  Future<void> _inspectEvidence(
+    BuildContext context,
+    Station1WorkflowProvider workflow,
+    EvidenceMediaRecord media,
+  ) async {
+    final bundle = media.viewType == DatabaseCodes.evidenceViewStationContext
+        ? workflow.stationContextEvidence
+        : workflow.currentEvidence;
+    final scopeLabel = bundle?.session.plantPosition == null
+        ? 'Block 1 · Station 1'
+        : 'Plant ${bundle!.session.plantPosition}';
+    final action = await Navigator.push<EvidencePhotoAction>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EvidencePhotoViewer(
+          media: media,
+          scopeLabel: scopeLabel,
+          resolveFile: workflow.resolveEvidenceFile,
+          allowActions: true,
+          allowAddCloseUp:
+              media.viewType == DatabaseCodes.evidenceViewWhorlOverview &&
+              bundle?.mediaForView(DatabaseCodes.evidenceViewCloseUp) == null,
+        ),
+      ),
+    );
+    if (!context.mounted || action == null) return;
+    switch (action) {
+      case EvidencePhotoAction.usePhoto:
+        await _run(context, () => workflow.acceptEvidence(media));
+        return;
+      case EvidencePhotoAction.retake:
+        await _retakeEvidence(context, workflow, media);
+        return;
+      case EvidencePhotoAction.addCloseUp:
+        if (media.storageState == DatabaseCodes.evidenceStorageStaged) {
+          await _run(context, () => workflow.acceptEvidence(media));
+        }
+        if (context.mounted) {
+          await _captureEvidence(
+            context,
+            workflow,
+            DatabaseCodes.evidenceViewCloseUp,
+          );
+        }
+        return;
+      case EvidencePhotoAction.remove:
+        final confirmed = await _confirmEvidenceRemoval(context, retake: false);
+        if (!context.mounted) return;
+        if (confirmed) {
+          await _run(context, () => workflow.removeEvidence(media));
+        }
+        return;
+    }
+  }
+
+  Future<void> _retakeEvidence(
+    BuildContext context,
+    Station1WorkflowProvider workflow,
+    EvidenceMediaRecord media,
+  ) async {
+    final confirmed = await _confirmEvidenceRemoval(context, retake: true);
+    if (!context.mounted || !confirmed) return;
+    await _run(context, () => workflow.removeEvidence(media, retake: true));
+    if (context.mounted) {
+      await _captureEvidence(context, workflow, media.viewType!);
+    }
+  }
+
+  Future<bool> _confirmEvidenceRemoval(
+    BuildContext context, {
+    required bool retake,
+  }) async =>
+      await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(retake ? 'Retake this photo?' : 'Remove this photo?'),
+          content: const Text(
+            'The image file will be deleted. WormWise keeps only an audited metadata tombstone and checksum.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              key: const Key('confirm_viewer_evidence_removal'),
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(retake ? 'Delete and retake' : 'Delete photo'),
+            ),
+          ],
+        ),
+      ) ??
+      false;
+
+  Future<void> _openReadOnlyEvidence(
+    BuildContext context,
+    Station1WorkflowProvider workflow,
+    EvidenceMediaRecord media,
+    String scopeLabel,
+  ) => Navigator.push<void>(
+    context,
+    MaterialPageRoute(
+      builder: (_) => EvidencePhotoViewer(
+        media: media,
+        scopeLabel: scopeLabel,
+        resolveFile: workflow.resolveEvidenceFile,
+      ),
+    ),
+  );
 
   static String _friendlyError(Object? error) {
     if (error == null) return 'Try again. Your earlier records remain saved.';

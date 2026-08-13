@@ -4,6 +4,7 @@ import '../local/app_database.dart';
 import '../local/database_codes.dart';
 import '../local/local_id.dart';
 import '../repositories/local_mutation_recorder.dart';
+import '../repositories/evidence_capture_repository.dart';
 
 class VegetativePlantSave {
   const VegetativePlantSave({
@@ -29,6 +30,10 @@ class VegetativePlantSave {
     this.evaluatorNotes,
     this.actorPersonId,
     this.deviceId,
+    this.evidenceCaptureSessionId,
+    this.requiredEvidenceViewTypes = const {},
+    this.requireCameraPhaseAEvidence = false,
+    this.pilotActiveDurationMs = 0,
   });
 
   final String stationId;
@@ -53,6 +58,10 @@ class VegetativePlantSave {
   final String? evaluatorNotes;
   final String? actorPersonId;
   final String? deviceId;
+  final String? evidenceCaptureSessionId;
+  final Set<String> requiredEvidenceViewTypes;
+  final bool requireCameraPhaseAEvidence;
+  final int pilotActiveDurationMs;
 }
 
 class SavedVegetativePlant {
@@ -85,11 +94,15 @@ abstract final class VegetativeEvidenceDerivation {
 }
 
 class AtomicPlantSaveService {
-  AtomicPlantSaveService(this.database)
-    : _mutations = LocalMutationRecorder(database);
+  AtomicPlantSaveService(
+    this.database, {
+    EvidenceCaptureRepository? evidenceRepository,
+  }) : _mutations = LocalMutationRecorder(database),
+       _evidence = evidenceRepository ?? EvidenceCaptureRepository(database);
 
   final AppDatabase database;
   final LocalMutationRecorder _mutations;
+  final EvidenceCaptureRepository _evidence;
 
   Future<SavedVegetativePlant> saveVegetativePlant(
     VegetativePlantSave input,
@@ -222,6 +235,18 @@ class AtomicPlantSaveService {
         database.vegetativeObservations,
       )..where((row) => row.plantObservationId.equals(plantId))).getSingle();
 
+      if (input.requireCameraPhaseAEvidence) {
+        await _evidence.attachPlantEvidenceInCurrentTransaction(
+          sessionId: input.evidenceCaptureSessionId!,
+          stationId: input.stationId,
+          plantPosition: input.plantPosition,
+          plantObservationId: plantId,
+          requiredViewTypes: input.requiredEvidenceViewTypes,
+          actorPersonId: input.actorPersonId ?? '',
+          pilotActiveDurationMs: input.pilotActiveDurationMs,
+        );
+      }
+
       await _mutations.record(
         entityType: 'plant_observations',
         entityId: plantId,
@@ -242,6 +267,13 @@ class AtomicPlantSaveService {
   }
 
   void _validate(VegetativePlantSave input) {
+    if (input.pilotActiveDurationMs < 0) {
+      throw ArgumentError.value(
+        input.pilotActiveDurationMs,
+        'pilotActiveDurationMs',
+        'Pilot active duration cannot be negative',
+      );
+    }
     if (input.plantPosition < 1 || input.plantPosition > 10) {
       throw ArgumentError.value(
         input.plantPosition,
@@ -263,6 +295,19 @@ class AtomicPlantSaveService {
         input.naturalEnemyQuickStatus,
         'naturalEnemyQuickStatus',
         'Unsupported natural-enemy quick status',
+      );
+    }
+    if (input.requireCameraPhaseAEvidence &&
+        (input.evidenceCaptureSessionId == null ||
+            input.evidenceCaptureSessionId!.isEmpty)) {
+      throw ArgumentError(
+        'Camera Phase A saves require the active evidence capture session.',
+      );
+    }
+    if (input.requireCameraPhaseAEvidence &&
+        (input.actorPersonId == null || input.actorPersonId!.isEmpty)) {
+      throw ArgumentError(
+        'Camera Phase A saves require the evaluator identity for audit.',
       );
     }
     if (!DatabaseCodes.larvalSizes.contains(input.larvalSize)) {

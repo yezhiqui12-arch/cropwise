@@ -39,7 +39,11 @@ dependencies:
   intl: ^0.20.3
   fl_chart: ^1.2.0
   flutter_svg: ^2.3.0
+  camera: ^0.12.0+2
+  crypto: ^3.0.7
+  image: ^4.9.1
   image_picker: ^1.2.3
+  path_provider: ^2.1.6
   drift: ^2.34.3
   drift_flutter: ^0.3.1
   latlong2: ^0.10.1

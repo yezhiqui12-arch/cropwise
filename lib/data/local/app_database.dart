@@ -406,6 +406,35 @@ class EarObservations extends SyncableTable {
   ];
 }
 
+@DataClassName('EvidenceCaptureSessionRecord')
+class EvidenceCaptureSessions extends SyncableTable {
+  TextColumn get assessmentId => text().references(Assessments, #id)();
+  TextColumn get stationId => text().references(Stations, #id)();
+  TextColumn get scopeType => text()();
+  TextColumn get scopeKey => text()();
+  IntColumn get plantPosition => integer().nullable()();
+  TextColumn get plantObservationId =>
+      text().nullable().references(PlantObservations, #id)();
+  TextColumn get requirementsVersion =>
+      text().withDefault(const Constant('camera_phase_a_v1'))();
+  TextColumn get collectionMode => text().withDefault(
+    const Constant(DatabaseCodes.evidenceCollectionCamera),
+  )();
+  TextColumn get collectionStatus => text().withDefault(
+    const Constant(DatabaseCodes.evidenceSessionInProgress),
+  )();
+  TextColumn get waivedViewTypesJson => text().nullable()();
+  TextColumn get fallbackReasonCode => text().nullable()();
+  TextColumn get fallbackNote => text().nullable()();
+  DateTimeColumn get startedAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get completedAt => dateTime().nullable()();
+
+  @override
+  List<Set<Column<Object>>> get uniqueKeys => [
+    {stationId, scopeKey},
+  ];
+}
+
 @DataClassName('EvidenceMediaRecord')
 class EvidenceMedia extends SyncableTable {
   TextColumn get assessmentId => text().references(Assessments, #id)();
@@ -420,6 +449,8 @@ class EvidenceMedia extends SyncableTable {
       text().nullable().references(Interventions, #id)();
   TextColumn get safetyCheckId =>
       text().nullable().references(SafetyChecks, #id)();
+  TextColumn get captureSessionId =>
+      text().nullable().references(EvidenceCaptureSessions, #id)();
   TextColumn get mediaType => text()();
   TextColumn get viewType => text().nullable()();
   TextColumn get localUri => text()();
@@ -434,6 +465,13 @@ class EvidenceMedia extends SyncableTable {
   RealColumn get gpsAccuracyM => real().nullable()();
   TextColumn get qualityStatus =>
       text().withDefault(const Constant('unchecked'))();
+  TextColumn get captureSource => text().nullable()();
+  IntColumn get widthPx => integer().nullable()();
+  IntColumn get heightPx => integer().nullable()();
+  TextColumn get qualityIssuesJson => text().nullable()();
+  TextColumn get qualityCheckVersion => text().nullable()();
+  TextColumn get storageState =>
+      text().withDefault(const Constant(DatabaseCodes.evidenceStorageStaged))();
   TextColumn get uploadState =>
       text().withDefault(const Constant(DatabaseCodes.localOnly))();
   BoolColumn get isOriginal => boolean().withDefault(const Constant(true))();
@@ -528,6 +566,7 @@ class AppPreferences extends Table {
     VegetativeObservations,
     ReproductiveObservations,
     EarObservations,
+    EvidenceCaptureSessions,
     EvidenceMedia,
     MetricResults,
     SyncOutbox,
@@ -539,7 +578,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -560,6 +599,28 @@ class AppDatabase extends _$AppDatabase {
         await migrator.addColumn(
           vegetativeObservations,
           vegetativeObservations.eggMassVisible,
+        );
+      }
+      if (from < 4) {
+        await migrator.createTable(evidenceCaptureSessions);
+        await migrator.addColumn(evidenceMedia, evidenceMedia.captureSessionId);
+        await migrator.addColumn(evidenceMedia, evidenceMedia.captureSource);
+        await migrator.addColumn(evidenceMedia, evidenceMedia.widthPx);
+        await migrator.addColumn(evidenceMedia, evidenceMedia.heightPx);
+        await migrator.addColumn(
+          evidenceMedia,
+          evidenceMedia.qualityIssuesJson,
+        );
+        await migrator.addColumn(
+          evidenceMedia,
+          evidenceMedia.qualityCheckVersion,
+        );
+        await migrator.addColumn(evidenceMedia, evidenceMedia.storageState);
+        // Version 3 evidence rows predate capture sessions and were already
+        // treated as accepted local evidence, not unfinished previews.
+        await customStatement(
+          "UPDATE evidence_media SET storage_state = 'ready' "
+          'WHERE capture_session_id IS NULL',
         );
       }
     },

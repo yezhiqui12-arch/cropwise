@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wormwise/data/services/atomic_plant_save_service.dart';
 import 'package:wormwise/screens/station1/plant_observation_step.dart';
 import 'package:wormwise/screens/station1/station_location_step.dart';
 import 'package:wormwise/services/phone_location_service.dart';
@@ -64,17 +65,19 @@ void main() {
         ),
       );
 
-      await tester.tap(find.text('Yes, assess this plant'));
+      await tester.tap(find.byKey(const Key('assessable_yes')));
       await tester.pump();
-      await _tapVisible(tester, find.text('3 newest leaves'));
+      await _tapVisible(tester, find.byKey(const Key('leaves_inspected_3')));
       await _tapVisible(
         tester,
         find.byKey(const Key('fresh_windowpanes_field')),
       );
+      await _tapVisible(tester, find.byKey(const Key('visible_larva_no')));
       await _tapVisible(
         tester,
         find.byKey(const Key('egg_mass_not_collected')),
       );
+      await _tapVisible(tester, find.byKey(const Key('old_damage_no')));
       await _tapVisible(tester, find.byKey(const Key('possible_non_faw_yes')));
       await _tapVisible(
         tester,
@@ -99,6 +102,63 @@ void main() {
         ),
         findsOneWidget,
       );
+    },
+  );
+
+  testWidgets(
+    'fresh signs require an explicit answer and preserve explicit all-false raw values',
+    (tester) async {
+      VegetativePlantSave? saved;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: PlantObservationStep(
+              position: 1,
+              savedCount: 0,
+              stationId: 'station-1',
+              actorPersonId: 'evaluator-1',
+              existing: null,
+              isSaving: false,
+              onSave: (input) async => saved = input,
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.byKey(const Key('assessable_yes')));
+      await tester.pump();
+      await _tapVisible(tester, find.byKey(const Key('leaves_inspected_3')));
+      await tester.tap(find.byKey(const Key('save_plant_button')));
+      await tester.pump();
+      expect(
+        find.text(
+          'Select each fresh feeding sign observed, or explicitly select no listed fresh signs.',
+        ),
+        findsOneWidget,
+      );
+      expect(saved, isNull);
+
+      await _tapVisible(tester, find.byKey(const Key('no_fresh_signs_field')));
+      await _tapVisible(tester, find.byKey(const Key('visible_larva_no')));
+      expect(find.byKey(const Key('larval_size_field')), findsNothing);
+      await _tapVisible(
+        tester,
+        find.byKey(const Key('egg_mass_not_collected')),
+      );
+      await _tapVisible(tester, find.byKey(const Key('old_damage_no')));
+      await _tapVisible(tester, find.byKey(const Key('possible_non_faw_no')));
+      await _tapVisible(tester, find.byKey(const Key('uncertain_evidence_no')));
+      await _tapVisible(tester, find.byKey(const Key('plant_status_negative')));
+      await tester.tap(find.byKey(const Key('save_plant_button')));
+      await tester.pump();
+
+      expect(saved, isNotNull);
+      expect(saved!.smallFreshWindowpanes, isFalse);
+      expect(saved!.scraping, isFalse);
+      expect(saved!.cuttingOrTearing, isFalse);
+      expect(saved!.freshFrass, isFalse);
+      expect(saved!.whorlFeedingSign, isFalse);
+      expect(saved!.larvaVisible, isFalse);
     },
   );
 
@@ -138,11 +198,13 @@ void main() {
 }
 
 Future<void> _tapVisible(WidgetTester tester, Finder finder) async {
-  await tester.scrollUntilVisible(
-    finder,
-    300,
-    scrollable: find.byType(Scrollable).first,
-  );
+  final scrollable = find.byType(Scrollable).first;
+  for (var attempt = 0; attempt < 20 && finder.evaluate().isEmpty; attempt++) {
+    await tester.drag(scrollable, const Offset(0, -300));
+    await tester.pump();
+  }
+  expect(finder, findsOneWidget);
+  await tester.ensureVisible(finder);
   await tester.pumpAndSettle();
   await tester.tap(finder);
   await tester.pump();

@@ -24,6 +24,7 @@ class LocalMutationRecorder {
     Map<String, Object?>? before,
     Map<String, Object?>? after,
     String? reason,
+    bool queueForSync = true,
   }) async {
     final now = DateTime.now().toUtc();
     await database
@@ -44,17 +45,19 @@ class LocalMutationRecorder {
           ),
         );
 
-    await database
-        .into(database.syncOutbox)
-        .insert(
-          SyncOutboxCompanion.insert(
-            id: LocalId.generate(),
-            entityType: entityType,
-            entityId: entityId,
-            operation: operation,
-            payloadJson: Value(after == null ? null : jsonEncode(after)),
-            status: const Value(DatabaseCodes.queued),
-          ),
-        );
+    if (queueForSync) {
+      await database
+          .into(database.syncOutbox)
+          .insert(
+            SyncOutboxCompanion.insert(
+              id: LocalId.generate(),
+              entityType: entityType,
+              entityId: entityId,
+              operation: operation,
+              payloadJson: Value(after == null ? null : jsonEncode(after)),
+              status: const Value(DatabaseCodes.queued),
+            ),
+          );
+    }
   }
 }

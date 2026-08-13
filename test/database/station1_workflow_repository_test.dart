@@ -1,13 +1,19 @@
+import 'dart:io';
+
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as image_lib;
 import 'package:wormwise/data/local/app_database.dart';
 import 'package:wormwise/data/local/database_codes.dart';
 import 'package:wormwise/data/repositories/assessment_repository.dart';
+import 'package:wormwise/data/repositories/evidence_capture_repository.dart';
 import 'package:wormwise/data/repositories/field_repository.dart';
 import 'package:wormwise/data/repositories/people_repository.dart';
 import 'package:wormwise/data/repositories/station1_workflow_repository.dart';
 import 'package:wormwise/data/services/atomic_plant_save_service.dart';
 import 'package:wormwise/providers/station1_workflow_provider.dart';
+import 'package:wormwise/services/evidence_capture_coordinator.dart';
+import 'package:wormwise/services/evidence_storage_service.dart';
 
 const _polygon =
     '{"type":"Polygon","coordinates":[[[121.0,17.0],[121.01,17.0],'
@@ -179,6 +185,77 @@ void main() {
       );
     },
   );
+
+  test('restart recovers unfinished Plant 1 camera preview', () async {
+    final fixture = await _createFixture(database);
+    final repository = Station1WorkflowRepository(database);
+    final evidenceRepository = EvidenceCaptureRepository(database);
+    final root = await Directory.systemTemp.createTemp(
+      'wormwise-resume-camera-',
+    );
+    addTearDown(() async {
+      if (await root.exists()) await root.delete(recursive: true);
+    });
+    final evidence = EvidenceCaptureCoordinator(
+      repository: evidenceRepository,
+      storage: EvidenceStorageService(rootDirectory: () async => root),
+    );
+    Station1WorkflowProvider buildProvider() => Station1WorkflowProvider(
+      assessmentId: fixture.assessment.id,
+      workflowRepository: repository,
+      assessmentRepository: AssessmentRepository(database),
+      plantSaveService: AtomicPlantSaveService(
+        database,
+        evidenceRepository: evidenceRepository,
+      ),
+      evidenceCoordinator: evidence,
+    );
+
+    final first = buildProvider();
+    await first.initialize();
+    await first.prepareBlockOne();
+    await first.saveStationUnavailable(
+      reason: DatabaseCodes.stationNoCurrentFix,
+    );
+    expect(first.state, Station1ViewState.stationContextEvidence);
+    await first.waiveEvidence(
+      viewType: DatabaseCodes.evidenceViewStationContext,
+      reasonCode: DatabaseCodes.evidenceFallbackNoCamera,
+    );
+    await first.continueAfterStationContext();
+    await first.beginTenConsecutivePlants();
+
+    final source = File('${root.path}${Platform.pathSeparator}unfinished.jpg');
+    final image = image_lib.Image(width: 64, height: 48);
+    await source.writeAsBytes(image_lib.encodeJpg(image), flush: true);
+    await first.stageEvidence(
+      viewType: DatabaseCodes.evidenceViewWhorlOverview,
+      sourcePath: source.path,
+    );
+    expect(
+      first.currentEvidence!
+          .mediaForView(DatabaseCodes.evidenceViewWhorlOverview)!
+          .storageState,
+      DatabaseCodes.evidenceStorageStaged,
+    );
+
+    final resumed = buildProvider();
+    await resumed.initialize();
+    expect(resumed.state, Station1ViewState.resumeCheck);
+    await resumed.submitResumeCheck(
+      condition: ResumeCondition.unchanged,
+      safeToContinue: true,
+    );
+
+    expect(resumed.state, Station1ViewState.plantEntry);
+    expect(resumed.currentPlantPosition, 1);
+    expect(
+      resumed.currentEvidence!
+          .mediaForView(DatabaseCodes.evidenceViewWhorlOverview)!
+          .storageState,
+      DatabaseCodes.evidenceStorageStaged,
+    );
+  });
 
   test(
     'treatment on resume safety-blocks without changing saved plants',

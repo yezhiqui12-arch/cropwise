@@ -45,6 +45,16 @@ class PlantSelectionStep extends StatelessWidget {
           text:
               'For every assessable plant, inspect the newest three or four leaves emerging from the whorl.',
         ),
+        const _Instruction(
+          number: '4',
+          text:
+              'Gently expose the newest leaves and whorl before the overview photo. Inspect the full-resolution preview, then use or retake it.',
+        ),
+        const _Instruction(
+          number: '5',
+          text:
+              'Take a close-up only when a recorded sign or organism needs detail. If photography fails, document manual fallback and continue the physical assessment.',
+        ),
         const SizedBox(height: 24),
         ConstrainedBox(
           constraints: const BoxConstraints(minHeight: 56),
