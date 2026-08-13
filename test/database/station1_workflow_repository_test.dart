@@ -247,7 +247,7 @@ void main() {
       safeToContinue: true,
     );
 
-    expect(resumed.state, Station1ViewState.plantEntry);
+    expect(resumed.state, Station1ViewState.plantCapture);
     expect(resumed.currentPlantPosition, 1);
     expect(
       resumed.currentEvidence!
@@ -256,6 +256,85 @@ void main() {
       DatabaseCodes.evidenceStorageStaged,
     );
   });
+
+  test(
+    'capture-first completes all ten image sessions before manual confirmation',
+    () async {
+      final fixture = await _createFixture(database);
+      final repository = Station1WorkflowRepository(database);
+      final evidenceRepository = EvidenceCaptureRepository(database);
+      final root = await Directory.systemTemp.createTemp(
+        'wormwise-capture-first-',
+      );
+      addTearDown(() async {
+        if (await root.exists()) await root.delete(recursive: true);
+      });
+      final evidence = EvidenceCaptureCoordinator(
+        repository: evidenceRepository,
+        storage: EvidenceStorageService(rootDirectory: () async => root),
+      );
+      final provider = Station1WorkflowProvider(
+        assessmentId: fixture.assessment.id,
+        workflowRepository: repository,
+        assessmentRepository: AssessmentRepository(database),
+        plantSaveService: AtomicPlantSaveService(
+          database,
+          evidenceRepository: evidenceRepository,
+        ),
+        evidenceCoordinator: evidence,
+      );
+
+      await provider.initialize();
+      await provider.prepareBlockOne();
+      await provider.saveStationUnavailable(
+        reason: DatabaseCodes.stationNoCurrentFix,
+      );
+      await provider.waiveEvidence(
+        viewType: DatabaseCodes.evidenceViewStationContext,
+        reasonCode: DatabaseCodes.evidenceFallbackNoCamera,
+      );
+      await provider.continueAfterStationContext();
+      await provider.beginTenConsecutivePlants();
+      expect(provider.state, Station1ViewState.plantCapture);
+
+      for (var position = 1; position <= 10; position++) {
+        expect(provider.currentPlantPosition, position);
+        await provider.waiveEvidence(
+          viewType: DatabaseCodes.evidenceViewWhorlOverview,
+          reasonCode: DatabaseCodes.evidenceFallbackNoCamera,
+        );
+        await provider.waiveEvidence(
+          viewType: DatabaseCodes.evidenceViewCloseUp,
+          reasonCode: DatabaseCodes.evidenceFallbackNoCamera,
+        );
+        await provider.completeCurrentPlantCapture(
+          const Duration(seconds: 20),
+          3,
+        );
+      }
+
+      expect(provider.state, Station1ViewState.stationReview);
+      expect(provider.capturedPlantCount, 10);
+      expect(provider.savedPlantCount, 0);
+      expect(await database.select(database.plantObservations).get(), isEmpty);
+
+      await provider.editPlant(1);
+      expect(provider.state, Station1ViewState.plantEntry);
+      await provider.savePlant(
+        _plantInput(
+          stationId: provider.snapshot!.station!.id,
+          position: 1,
+          status: DatabaseCodes.plantCurrentPositive,
+          possibleNonFaw: false,
+          uncertain: false,
+          actorPersonId: fixture.assessment.evaluatorPersonId,
+          evidenceSessionId: provider.currentEvidence!.session.id,
+        ),
+      );
+      expect(provider.state, Station1ViewState.stationReview);
+      expect(provider.savedPlantCount, 1);
+    },
+  );
 
   test(
     'treatment on resume safety-blocks without changing saved plants',
@@ -406,6 +485,8 @@ VegetativePlantSave _plantInput({
   required String status,
   required bool possibleNonFaw,
   required bool uncertain,
+  String? actorPersonId,
+  String? evidenceSessionId,
 }) {
   return VegetativePlantSave(
     stationId: stationId,
@@ -424,5 +505,14 @@ VegetativePlantSave _plantInput({
     oldDamagePresent: true,
     possibleNonFawEvidence: possibleNonFaw,
     uncertainEvidence: uncertain,
+    actorPersonId: actorPersonId,
+    evidenceCaptureSessionId: evidenceSessionId,
+    requiredEvidenceViewTypes: evidenceSessionId == null
+        ? const {}
+        : const {
+            DatabaseCodes.evidenceViewWhorlOverview,
+            DatabaseCodes.evidenceViewCloseUp,
+          },
+    requireCameraPhaseAEvidence: evidenceSessionId != null,
   );
 }

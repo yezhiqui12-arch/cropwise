@@ -21763,11 +21763,10 @@ class $EvidenceMediaTable extends EvidenceMedia
     requiredDuringInsert: false,
     defaultValue: const Constant(DatabaseCodes.localOnly),
   );
-  static const VerificationMeta _isOriginalMeta = const VerificationMeta(
-    'isOriginal',
-  );
+  static const VerificationMeta _isCanonicalEvidenceMeta =
+      const VerificationMeta('isCanonicalEvidence');
   @override
-  late final GeneratedColumn<bool> isOriginal = GeneratedColumn<bool>(
+  late final GeneratedColumn<bool> isCanonicalEvidence = GeneratedColumn<bool>(
     'is_original',
     aliasedName,
     false,
@@ -21815,7 +21814,7 @@ class $EvidenceMediaTable extends EvidenceMedia
     qualityCheckVersion,
     storageState,
     uploadState,
-    isOriginal,
+    isCanonicalEvidence,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -22099,8 +22098,11 @@ class $EvidenceMediaTable extends EvidenceMedia
     }
     if (data.containsKey('is_original')) {
       context.handle(
-        _isOriginalMeta,
-        isOriginal.isAcceptableOrUnknown(data['is_original']!, _isOriginalMeta),
+        _isCanonicalEvidenceMeta,
+        isCanonicalEvidence.isAcceptableOrUnknown(
+          data['is_original']!,
+          _isCanonicalEvidenceMeta,
+        ),
       );
     }
     return context;
@@ -22252,7 +22254,7 @@ class $EvidenceMediaTable extends EvidenceMedia
         DriftSqlType.string,
         data['${effectivePrefix}upload_state'],
       )!,
-      isOriginal: attachedDatabase.typeMapping.read(
+      isCanonicalEvidence: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_original'],
       )!,
@@ -22302,7 +22304,13 @@ class EvidenceMediaRecord extends DataClass
   final String? qualityCheckVersion;
   final String storageState;
   final String uploadState;
-  final bool isOriginal;
+
+  /// The immutable 2048-pixel evidence representation accepted by WormWise.
+  ///
+  /// The legacy SQL name is retained so existing schema-v4 databases do not
+  /// need a destructive table rebuild. This flag does not mean that the file
+  /// is the untouched camera-source image.
+  final bool isCanonicalEvidence;
   const EvidenceMediaRecord({
     required this.id,
     required this.createdAt,
@@ -22339,7 +22347,7 @@ class EvidenceMediaRecord extends DataClass
     this.qualityCheckVersion,
     required this.storageState,
     required this.uploadState,
-    required this.isOriginal,
+    required this.isCanonicalEvidence,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -22427,7 +22435,7 @@ class EvidenceMediaRecord extends DataClass
     }
     map['storage_state'] = Variable<String>(storageState);
     map['upload_state'] = Variable<String>(uploadState);
-    map['is_original'] = Variable<bool>(isOriginal);
+    map['is_original'] = Variable<bool>(isCanonicalEvidence);
     return map;
   }
 
@@ -22515,7 +22523,7 @@ class EvidenceMediaRecord extends DataClass
           : Value(qualityCheckVersion),
       storageState: Value(storageState),
       uploadState: Value(uploadState),
-      isOriginal: Value(isOriginal),
+      isCanonicalEvidence: Value(isCanonicalEvidence),
     );
   }
 
@@ -22570,7 +22578,9 @@ class EvidenceMediaRecord extends DataClass
       ),
       storageState: serializer.fromJson<String>(json['storageState']),
       uploadState: serializer.fromJson<String>(json['uploadState']),
-      isOriginal: serializer.fromJson<bool>(json['isOriginal']),
+      isCanonicalEvidence: serializer.fromJson<bool>(
+        json['isCanonicalEvidence'],
+      ),
     );
   }
   @override
@@ -22614,7 +22624,7 @@ class EvidenceMediaRecord extends DataClass
       'qualityCheckVersion': serializer.toJson<String?>(qualityCheckVersion),
       'storageState': serializer.toJson<String>(storageState),
       'uploadState': serializer.toJson<String>(uploadState),
-      'isOriginal': serializer.toJson<bool>(isOriginal),
+      'isCanonicalEvidence': serializer.toJson<bool>(isCanonicalEvidence),
     };
   }
 
@@ -22654,7 +22664,7 @@ class EvidenceMediaRecord extends DataClass
     Value<String?> qualityCheckVersion = const Value.absent(),
     String? storageState,
     String? uploadState,
-    bool? isOriginal,
+    bool? isCanonicalEvidence,
   }) => EvidenceMediaRecord(
     id: id ?? this.id,
     createdAt: createdAt ?? this.createdAt,
@@ -22711,7 +22721,7 @@ class EvidenceMediaRecord extends DataClass
         : this.qualityCheckVersion,
     storageState: storageState ?? this.storageState,
     uploadState: uploadState ?? this.uploadState,
-    isOriginal: isOriginal ?? this.isOriginal,
+    isCanonicalEvidence: isCanonicalEvidence ?? this.isCanonicalEvidence,
   );
   EvidenceMediaRecord copyWithCompanion(EvidenceMediaCompanion data) {
     return EvidenceMediaRecord(
@@ -22786,9 +22796,9 @@ class EvidenceMediaRecord extends DataClass
       uploadState: data.uploadState.present
           ? data.uploadState.value
           : this.uploadState,
-      isOriginal: data.isOriginal.present
-          ? data.isOriginal.value
-          : this.isOriginal,
+      isCanonicalEvidence: data.isCanonicalEvidence.present
+          ? data.isCanonicalEvidence.value
+          : this.isCanonicalEvidence,
     );
   }
 
@@ -22830,7 +22840,7 @@ class EvidenceMediaRecord extends DataClass
           ..write('qualityCheckVersion: $qualityCheckVersion, ')
           ..write('storageState: $storageState, ')
           ..write('uploadState: $uploadState, ')
-          ..write('isOriginal: $isOriginal')
+          ..write('isCanonicalEvidence: $isCanonicalEvidence')
           ..write(')'))
         .toString();
   }
@@ -22872,7 +22882,7 @@ class EvidenceMediaRecord extends DataClass
     qualityCheckVersion,
     storageState,
     uploadState,
-    isOriginal,
+    isCanonicalEvidence,
   ]);
   @override
   bool operator ==(Object other) =>
@@ -22913,7 +22923,7 @@ class EvidenceMediaRecord extends DataClass
           other.qualityCheckVersion == this.qualityCheckVersion &&
           other.storageState == this.storageState &&
           other.uploadState == this.uploadState &&
-          other.isOriginal == this.isOriginal);
+          other.isCanonicalEvidence == this.isCanonicalEvidence);
 }
 
 class EvidenceMediaCompanion extends UpdateCompanion<EvidenceMediaRecord> {
@@ -22952,7 +22962,7 @@ class EvidenceMediaCompanion extends UpdateCompanion<EvidenceMediaRecord> {
   final Value<String?> qualityCheckVersion;
   final Value<String> storageState;
   final Value<String> uploadState;
-  final Value<bool> isOriginal;
+  final Value<bool> isCanonicalEvidence;
   final Value<int> rowid;
   const EvidenceMediaCompanion({
     this.id = const Value.absent(),
@@ -22990,7 +23000,7 @@ class EvidenceMediaCompanion extends UpdateCompanion<EvidenceMediaRecord> {
     this.qualityCheckVersion = const Value.absent(),
     this.storageState = const Value.absent(),
     this.uploadState = const Value.absent(),
-    this.isOriginal = const Value.absent(),
+    this.isCanonicalEvidence = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   EvidenceMediaCompanion.insert({
@@ -23029,7 +23039,7 @@ class EvidenceMediaCompanion extends UpdateCompanion<EvidenceMediaRecord> {
     this.qualityCheckVersion = const Value.absent(),
     this.storageState = const Value.absent(),
     this.uploadState = const Value.absent(),
-    this.isOriginal = const Value.absent(),
+    this.isCanonicalEvidence = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        assessmentId = Value(assessmentId),
@@ -23072,7 +23082,7 @@ class EvidenceMediaCompanion extends UpdateCompanion<EvidenceMediaRecord> {
     Expression<String>? qualityCheckVersion,
     Expression<String>? storageState,
     Expression<String>? uploadState,
-    Expression<bool>? isOriginal,
+    Expression<bool>? isCanonicalEvidence,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -23114,7 +23124,7 @@ class EvidenceMediaCompanion extends UpdateCompanion<EvidenceMediaRecord> {
         'quality_check_version': qualityCheckVersion,
       if (storageState != null) 'storage_state': storageState,
       if (uploadState != null) 'upload_state': uploadState,
-      if (isOriginal != null) 'is_original': isOriginal,
+      if (isCanonicalEvidence != null) 'is_original': isCanonicalEvidence,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -23155,7 +23165,7 @@ class EvidenceMediaCompanion extends UpdateCompanion<EvidenceMediaRecord> {
     Value<String?>? qualityCheckVersion,
     Value<String>? storageState,
     Value<String>? uploadState,
-    Value<bool>? isOriginal,
+    Value<bool>? isCanonicalEvidence,
     Value<int>? rowid,
   }) {
     return EvidenceMediaCompanion(
@@ -23195,7 +23205,7 @@ class EvidenceMediaCompanion extends UpdateCompanion<EvidenceMediaRecord> {
       qualityCheckVersion: qualityCheckVersion ?? this.qualityCheckVersion,
       storageState: storageState ?? this.storageState,
       uploadState: uploadState ?? this.uploadState,
-      isOriginal: isOriginal ?? this.isOriginal,
+      isCanonicalEvidence: isCanonicalEvidence ?? this.isCanonicalEvidence,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -23312,8 +23322,8 @@ class EvidenceMediaCompanion extends UpdateCompanion<EvidenceMediaRecord> {
     if (uploadState.present) {
       map['upload_state'] = Variable<String>(uploadState.value);
     }
-    if (isOriginal.present) {
-      map['is_original'] = Variable<bool>(isOriginal.value);
+    if (isCanonicalEvidence.present) {
+      map['is_original'] = Variable<bool>(isCanonicalEvidence.value);
     }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
@@ -23359,7 +23369,7 @@ class EvidenceMediaCompanion extends UpdateCompanion<EvidenceMediaRecord> {
           ..write('qualityCheckVersion: $qualityCheckVersion, ')
           ..write('storageState: $storageState, ')
           ..write('uploadState: $uploadState, ')
-          ..write('isOriginal: $isOriginal, ')
+          ..write('isCanonicalEvidence: $isCanonicalEvidence, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -42817,7 +42827,7 @@ typedef $$EvidenceMediaTableCreateCompanionBuilder =
       Value<String?> qualityCheckVersion,
       Value<String> storageState,
       Value<String> uploadState,
-      Value<bool> isOriginal,
+      Value<bool> isCanonicalEvidence,
       Value<int> rowid,
     });
 typedef $$EvidenceMediaTableUpdateCompanionBuilder =
@@ -42857,7 +42867,7 @@ typedef $$EvidenceMediaTableUpdateCompanionBuilder =
       Value<String?> qualityCheckVersion,
       Value<String> storageState,
       Value<String> uploadState,
-      Value<bool> isOriginal,
+      Value<bool> isCanonicalEvidence,
       Value<int> rowid,
     });
 
@@ -43170,8 +43180,8 @@ class $$EvidenceMediaTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<bool> get isOriginal => $composableBuilder(
-    column: $table.isOriginal,
+  ColumnFilters<bool> get isCanonicalEvidence => $composableBuilder(
+    column: $table.isCanonicalEvidence,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -43506,8 +43516,8 @@ class $$EvidenceMediaTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<bool> get isOriginal => $composableBuilder(
-    column: $table.isOriginal,
+  ColumnOrderings<bool> get isCanonicalEvidence => $composableBuilder(
+    column: $table.isCanonicalEvidence,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -43811,8 +43821,8 @@ class $$EvidenceMediaTableAnnotationComposer
     builder: (column) => column,
   );
 
-  GeneratedColumn<bool> get isOriginal => $composableBuilder(
-    column: $table.isOriginal,
+  GeneratedColumn<bool> get isCanonicalEvidence => $composableBuilder(
+    column: $table.isCanonicalEvidence,
     builder: (column) => column,
   );
 
@@ -44077,7 +44087,7 @@ class $$EvidenceMediaTableTableManager
                 Value<String?> qualityCheckVersion = const Value.absent(),
                 Value<String> storageState = const Value.absent(),
                 Value<String> uploadState = const Value.absent(),
-                Value<bool> isOriginal = const Value.absent(),
+                Value<bool> isCanonicalEvidence = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => EvidenceMediaCompanion(
                 id: id,
@@ -44115,7 +44125,7 @@ class $$EvidenceMediaTableTableManager
                 qualityCheckVersion: qualityCheckVersion,
                 storageState: storageState,
                 uploadState: uploadState,
-                isOriginal: isOriginal,
+                isCanonicalEvidence: isCanonicalEvidence,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -44155,7 +44165,7 @@ class $$EvidenceMediaTableTableManager
                 Value<String?> qualityCheckVersion = const Value.absent(),
                 Value<String> storageState = const Value.absent(),
                 Value<String> uploadState = const Value.absent(),
-                Value<bool> isOriginal = const Value.absent(),
+                Value<bool> isCanonicalEvidence = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => EvidenceMediaCompanion.insert(
                 id: id,
@@ -44193,7 +44203,7 @@ class $$EvidenceMediaTableTableManager
                 qualityCheckVersion: qualityCheckVersion,
                 storageState: storageState,
                 uploadState: uploadState,
-                isOriginal: isOriginal,
+                isCanonicalEvidence: isCanonicalEvidence,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

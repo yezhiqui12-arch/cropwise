@@ -36,12 +36,24 @@ class StationReviewStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final station = snapshot.station!;
+    final savedByPosition = {
+      for (final item in snapshot.plants) item.plant.sequenceNumber: item,
+    };
+    final pendingPositions = [
+      for (var position = 1; position <= 10; position++)
+        if (!savedByPosition.containsKey(position)) position,
+    ];
+    final confirmedPositions = [
+      for (var position = 1; position <= 10; position++)
+        if (savedByPosition.containsKey(position)) position,
+    ];
+    final manualComplete = pendingPositions.isEmpty;
     return ListView(
       key: const Key('station_review_step'),
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 30),
       children: [
-        const Text(
-          'BLOCK 1 · STATION 1 · 10 OF 10 PLANTS SAVED',
+        Text(
+          'BLOCK 1 · STATION 1 · ${snapshot.plants.length} OF 10 MANUALLY CONFIRMED',
           style: TextStyle(
             color: Color(0xFF176B3A),
             fontSize: 12,
@@ -51,7 +63,7 @@ class StationReviewStep extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         const Text(
-          'Review Station 1',
+          'Station Evidence Review',
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 10),
@@ -62,6 +74,8 @@ class StationReviewStep extends StatelessWidget {
           style: const TextStyle(height: 1.4),
         ),
         const SizedBox(height: 16),
+        const _AnalysisUnavailableBanner(),
+        const SizedBox(height: 12),
         if (resolveEvidenceFile != null)
           _ReviewEvidence(
             label: 'Station context',
@@ -74,28 +88,42 @@ class StationReviewStep extends StatelessWidget {
             onOpenEvidence: onOpenEvidence,
           ),
         if (resolveEvidenceFile != null) const SizedBox(height: 12),
-        for (final item in snapshot.plants)
-          _PlantReviewCard(
-            item: item,
-            evidence: _bundleForPlant(
-              evidenceBundles,
-              item.plant.sequenceNumber,
+        if (pendingPositions.isNotEmpty) ...[
+          const _ReviewSectionLabel('NEEDS MANUAL CONFIRMATION'),
+          for (final position in pendingPositions)
+            _PendingPlantReviewCard(
+              position: position,
+              evidence: _bundleForPlant(evidenceBundles, position),
+              resolveEvidenceFile: resolveEvidenceFile,
+              evidenceThumbnailBuilder: evidenceThumbnailBuilder,
+              onOpenEvidence: onOpenEvidence,
+              onEdit: onEdit,
             ),
-            resolveEvidenceFile: resolveEvidenceFile,
-            evidenceThumbnailBuilder: evidenceThumbnailBuilder,
-            onOpenEvidence: onOpenEvidence,
-            onEdit: onEdit,
-          ),
+        ],
+        if (confirmedPositions.isNotEmpty) ...[
+          const _ReviewSectionLabel('EVALUATOR CONFIRMED'),
+          for (final position in confirmedPositions)
+            _PlantReviewCard(
+              item: savedByPosition[position]!,
+              evidence: _bundleForPlant(evidenceBundles, position),
+              resolveEvidenceFile: resolveEvidenceFile,
+              evidenceThumbnailBuilder: evidenceThumbnailBuilder,
+              onOpenEvidence: onOpenEvidence,
+              onEdit: onEdit,
+            ),
+        ],
         const SizedBox(height: 8),
         _PilotWorkloadCard(metrics: pilotWorkloadMetrics),
         const SizedBox(height: 18),
-        const Card(
+        Card(
           elevation: 0,
           color: Color(0xFFEAF6EE),
           child: Padding(
             padding: EdgeInsets.all(16),
             child: Text(
-              'Confirm only after checking all ten saved positions. Editing any plant later will require a new review confirmation.',
+              manualComplete
+                  ? 'All ten positions have evaluator-confirmed observations. Editing any plant later requires a new Station 1 review.'
+                  : 'Complete each plant separately. Photographs and unavailable automated analysis do not count as manual confirmation.',
               style: TextStyle(height: 1.4, fontWeight: FontWeight.w600),
             ),
           ),
@@ -105,19 +133,198 @@ class StationReviewStep extends StatelessWidget {
           constraints: const BoxConstraints(minHeight: 56),
           child: FilledButton.icon(
             key: const Key('confirm_station_review_button'),
-            onPressed: isSaving ? null : onConfirm,
+            onPressed: isSaving || !manualComplete ? null : onConfirm,
             icon: const Icon(Icons.check_circle_outline),
             label: isSaving
                 ? const SizedBox.square(
                     dimension: 22,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('Confirm Station 1 review'),
+                : const Text('Complete Station 1 review'),
           ),
         ),
       ],
     );
   }
+}
+
+class _AnalysisUnavailableBanner extends StatelessWidget {
+  const _AnalysisUnavailableBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      key: const Key('analysis_unavailable_banner'),
+      elevation: 0,
+      color: const Color(0xFFFFF5D9),
+      child: ListTile(
+        leading: const Icon(Icons.info_outline),
+        title: const Text(
+          'Automated analysis unavailable',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: const Text(
+          'Confirm every plant manually. No image result has been generated.',
+        ),
+        trailing: IconButton(
+          key: const Key('analysis_unavailable_help'),
+          tooltip: 'Why manual confirmation is required',
+          onPressed: () => showModalBottomSheet<void>(
+            context: context,
+            builder: (context) => const SafeArea(
+              child: Padding(
+                padding: EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Why manual confirmation is required',
+                      style: TextStyle(
+                        fontSize: 21,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 12),
+                    Text(
+                      'WormWise does not yet have a validated image model. Photos support inspection and later review, but they do not establish plant observations or a FAW diagnosis. Complete the approved structured observations for each plant.',
+                      style: TextStyle(height: 1.45),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          icon: const Icon(Icons.help_outline),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReviewSectionLabel extends StatelessWidget {
+  const _ReviewSectionLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(2, 12, 2, 8),
+    child: Text(
+      text,
+      style: const TextStyle(
+        color: Color(0xFF176B3A),
+        fontSize: 12,
+        fontWeight: FontWeight.bold,
+        letterSpacing: 0.5,
+      ),
+    ),
+  );
+}
+
+class _PendingPlantReviewCard extends StatelessWidget {
+  const _PendingPlantReviewCard({
+    required this.position,
+    required this.onEdit,
+    this.evidence,
+    this.resolveEvidenceFile,
+    this.evidenceThumbnailBuilder,
+    this.onOpenEvidence,
+  });
+
+  final int position;
+  final ValueChanged<int> onEdit;
+  final EvidenceCaptureBundle? evidence;
+  final Future<File> Function(String localUri)? resolveEvidenceFile;
+  final Widget Function(EvidenceMediaRecord media)? evidenceThumbnailBuilder;
+  final Future<void> Function(EvidenceMediaRecord media, String scopeLabel)?
+  onOpenEvidence;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      key: Key('pending_manual_plant_$position'),
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 10),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Plant $position',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const _StatusPill(
+                  label: 'Manual confirmation required',
+                  icon: Icons.edit_note,
+                ),
+              ],
+            ),
+            if (resolveEvidenceFile != null) ...[
+              const SizedBox(height: 10),
+              _ReviewEvidence(
+                label: 'Plant $position evidence',
+                bundle: evidence,
+                resolveEvidenceFile: resolveEvidenceFile!,
+                thumbnailBuilder: evidenceThumbnailBuilder,
+                onOpenEvidence: onOpenEvidence,
+              ),
+            ],
+            const SizedBox(height: 10),
+            const Text(
+              'Automated analysis unavailable. Review the photos and record the required observations.',
+              style: TextStyle(height: 1.35),
+            ),
+            const SizedBox(height: 10),
+            ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 52),
+              child: FilledButton.icon(
+                key: Key('manual_confirm_plant_${position}_button'),
+                onPressed: () => onEdit(position),
+                icon: const Icon(Icons.fact_check_outlined),
+                label: const Text('Open manual confirmation'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({required this.label, required this.icon});
+
+  final String label;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    constraints: const BoxConstraints(maxWidth: 180),
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+    decoration: BoxDecoration(
+      color: const Color(0xFFFFF5D9),
+      borderRadius: BorderRadius.circular(18),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 17),
+        const SizedBox(width: 5),
+        Flexible(
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _PlantReviewCard extends StatelessWidget {
@@ -342,7 +549,7 @@ class _ReviewEvidenceThumbnailState extends State<_ReviewEvidenceThumbnail> {
     return Semantics(
       button: widget.onOpenEvidence != null,
       label:
-          '${widget.scopeLabel}, ${_viewLabel(widget.media.viewType)}. Open original evidence photo.',
+          '${widget.scopeLabel}, ${_viewLabel(widget.media.viewType)}. Open canonical evidence photo.',
       child: InkWell(
         key: Key('review_open_evidence_${widget.media.id}'),
         onTap: widget.onOpenEvidence == null
@@ -393,6 +600,14 @@ class _PilotWorkloadCard extends StatelessWidget {
               '${metrics.acceptedImageCount} accepted images · '
               '${metrics.retakeCount} retakes · '
               '${metrics.manualFallbackCount} manual fallbacks',
+              style: const TextStyle(height: 1.35),
+            ),
+            Text(
+              '${metrics.manualFormUseCount} of 10 plant manual forms saved',
+              style: const TextStyle(height: 1.35),
+            ),
+            Text(
+              '${metrics.guidedTapCount} guided capture taps recorded',
               style: const TextStyle(height: 1.35),
             ),
             Text(
@@ -456,6 +671,7 @@ String _viewLabel(String? viewType) => switch (viewType) {
   DatabaseCodes.evidenceViewStationContext => 'Context',
   DatabaseCodes.evidenceViewWhorlOverview => 'Whorl overview',
   DatabaseCodes.evidenceViewCloseUp => 'Close-up',
+  DatabaseCodes.evidenceViewDiagnosticDetail => 'Extra detail',
   _ => 'Evidence',
 };
 

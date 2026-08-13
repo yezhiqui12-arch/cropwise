@@ -24,6 +24,7 @@ enum Station1ViewState {
   stationLocation,
   stationContextEvidence,
   plantSelection,
+  plantCapture,
   plantEntry,
   stationReview,
   stationComplete,
@@ -61,6 +62,7 @@ class Station1WorkflowProvider extends ChangeNotifier {
   EvidenceCaptureBundle? _currentEvidence;
   List<EvidenceCaptureBundle> _stationEvidenceBundles = const [];
   PilotWorkloadMetrics _pilotWorkloadMetrics = PilotWorkloadMetrics.empty;
+  Map<int, int> _capturedLeavesInspected = const {};
   int? _currentPlantPosition;
   Object? _error;
   bool _isSaving = false;
@@ -79,6 +81,17 @@ class Station1WorkflowProvider extends ChangeNotifier {
   Object? get error => _error;
   bool get isSaving => _isSaving;
   int get savedPlantCount => _snapshot?.plants.length ?? 0;
+  int? capturedLeavesInspectedFor(int position) =>
+      _capturedLeavesInspected[position];
+  int get capturedPlantCount {
+    final snapshot = _snapshot;
+    if (snapshot == null) return 0;
+    var count = 0;
+    for (var position = 1; position <= 10; position++) {
+      if (_isCaptureSatisfied(snapshot, position)) count++;
+    }
+    return count;
+  }
 
   Station1PlantRecord? get currentPlant {
     final position = _currentPlantPosition;
@@ -200,7 +213,81 @@ class Station1WorkflowProvider extends ChangeNotifier {
     }
     _currentPlantPosition = snapshot!.nextMissingPlantPosition;
     await _loadCurrentEvidence();
-    _setState(Station1ViewState.plantEntry);
+    _setState(
+      _evidence == null
+          ? Station1ViewState.plantEntry
+          : Station1ViewState.plantCapture,
+    );
+  }
+
+  Future<void> completeCurrentPlantCapture(
+    Duration activeDuration,
+    int newestLeavesInspectedCount,
+  ) async {
+    final bundle = _currentEvidence;
+    if (bundle == null) throw StateError('Plant evidence is unavailable.');
+    await _perform(() async {
+      await _ensureAssessmentActive();
+      await _requireEvidenceCoordinator().completePlantCapture(
+        session: bundle.session,
+        actorPersonId: _requireAssessment().evaluatorPersonId,
+        activeDuration: activeDuration,
+        newestLeavesInspectedCount: newestLeavesInspectedCount,
+      );
+      await _loadSnapshot(askForResume: false);
+    });
+  }
+
+  Future<void> recordCurrentPlantInspection(int newestLeavesInspectedCount) {
+    final bundle = _currentEvidence;
+    if (bundle == null) throw StateError('Plant evidence is unavailable.');
+    return _perform(() async {
+      await _requireEvidenceCoordinator().recordPlantCaptureInspection(
+        session: bundle.session,
+        actorPersonId: _requireAssessment().evaluatorPersonId,
+        newestLeavesInspectedCount: newestLeavesInspectedCount,
+      );
+      await _refreshPilotWorkloadMetrics();
+    });
+  }
+
+  Future<void> saveCaptureNotAssessable({
+    required String reason,
+    required Duration activeDuration,
+  }) async {
+    final snapshot = _snapshot;
+    final position = _currentPlantPosition;
+    final evidence = _currentEvidence;
+    if (snapshot?.station == null || position == null || evidence == null) {
+      throw StateError('The active plant position is unavailable.');
+    }
+    await savePlant(
+      VegetativePlantSave(
+        stationId: snapshot!.station!.id,
+        plantPosition: position,
+        plantStatus: DatabaseCodes.plantNotAssessable,
+        assessable: false,
+        notAssessableReason: reason,
+        newestLeavesInspectedCount: null,
+        smallFreshWindowpanes: false,
+        scraping: false,
+        cuttingOrTearing: false,
+        freshFrass: false,
+        whorlFeedingSign: false,
+        larvaVisible: false,
+        larvalSize: 'none_seen',
+        eggMassVisible: null,
+        oldDamagePresent: false,
+        possibleNonFawEvidence: null,
+        uncertainEvidence: null,
+        actorPersonId: _requireAssessment().evaluatorPersonId,
+        evidenceCaptureSessionId: evidence.session.id,
+        requiredEvidenceViewTypes: const {},
+        requireCameraPhaseAEvidence: true,
+        pilotActiveDurationMs: activeDuration.inMilliseconds,
+        manualFormUsed: false,
+      ),
+    );
   }
 
   Future<void> editPlant(int position) async {
@@ -411,26 +498,13 @@ class Station1WorkflowProvider extends ChangeNotifier {
           'Plant ${plant.plant.sequenceNumber} needs a whorl overview or documented manual fallback.',
         );
       }
-      if (_plantNeedsCloseUp(plant) &&
-          !bundle.isViewSatisfied(DatabaseCodes.evidenceViewCloseUp)) {
+      if (!bundle.isViewSatisfied(DatabaseCodes.evidenceViewCloseUp)) {
         throw StateError(
           'Plant ${plant.plant.sequenceNumber} needs its evidence close-up or documented manual fallback.',
         );
       }
     }
   }
-
-  bool _plantNeedsCloseUp(Station1PlantRecord plant) =>
-      plant.vegetative.smallFreshWindowpanes ||
-      plant.vegetative.scraping ||
-      plant.vegetative.cuttingOrTearing ||
-      plant.vegetative.freshFrass ||
-      plant.vegetative.whorlFeedingSign ||
-      plant.vegetative.larvaVisible ||
-      plant.vegetative.eggMassVisible == true ||
-      plant.plant.oldDamagePresent ||
-      plant.plant.possibleNonFawEvidence == true ||
-      plant.plant.uncertainEvidence == true;
 
   void retry() => initialize();
 
@@ -449,9 +523,14 @@ class Station1WorkflowProvider extends ChangeNotifier {
       _pilotWorkloadMetrics = await _evidence.loadPilotWorkloadMetrics(
         station.id,
       );
+      _capturedLeavesInspected =
+          (await _evidence.repository.loadPilotWorkloadAuditSummary(
+            station.id,
+          )).inspectedLeavesByPlant;
     }
     final target = _targetFor(_snapshot!);
-    if (target == Station1ViewState.plantEntry) {
+    if (target == Station1ViewState.plantEntry ||
+        target == Station1ViewState.plantCapture) {
       await _loadCurrentEvidence();
     }
     if (askForResume && target != Station1ViewState.stationComplete) {
@@ -474,23 +553,51 @@ class Station1WorkflowProvider extends ChangeNotifier {
       return Station1ViewState.stationContextEvidence;
     }
     if (snapshot.reviewIsCurrent) return Station1ViewState.stationComplete;
-    if (snapshot.plants.isEmpty) {
-      for (final bundle in _stationEvidenceBundles) {
-        if (bundle.session.scopeType == DatabaseCodes.evidenceScopePlant &&
-            bundle.session.plantPosition != null &&
-            bundle.session.plantObservationId == null) {
-          _currentPlantPosition = bundle.session.plantPosition;
-          return Station1ViewState.plantEntry;
-        }
+    if (_evidence == null) {
+      if (snapshot.plants.isEmpty) return Station1ViewState.plantSelection;
+      if (snapshot.plants.length < 10) {
+        _currentPlantPosition = snapshot.nextMissingPlantPosition;
+        return Station1ViewState.plantEntry;
       }
-      return Station1ViewState.plantSelection;
+      _currentPlantPosition = null;
+      return Station1ViewState.stationReview;
     }
-    if (snapshot.plants.length < 10) {
-      _currentPlantPosition = snapshot.nextMissingPlantPosition;
-      return Station1ViewState.plantEntry;
+    for (var position = 1; position <= 10; position++) {
+      if (!_isCaptureSatisfied(snapshot, position)) {
+        _currentPlantPosition = position;
+        final hasStartedPlantCapture = _stationEvidenceBundles.any(
+          (bundle) =>
+              bundle.session.scopeType == DatabaseCodes.evidenceScopePlant,
+        );
+        return !hasStartedPlantCapture && snapshot.plants.isEmpty
+            ? Station1ViewState.plantSelection
+            : Station1ViewState.plantCapture;
+      }
     }
     _currentPlantPosition = null;
     return Station1ViewState.stationReview;
+  }
+
+  bool _isCaptureSatisfied(Station1Snapshot snapshot, int position) {
+    Station1PlantRecord? saved;
+    for (final plant in snapshot.plants) {
+      if (plant.plant.sequenceNumber == position) {
+        saved = plant;
+        break;
+      }
+    }
+    if (saved != null && !saved.plant.assessable) return true;
+    EvidenceCaptureBundle? bundle;
+    for (final candidate in _stationEvidenceBundles) {
+      if (candidate.session.scopeType == DatabaseCodes.evidenceScopePlant &&
+          candidate.session.plantPosition == position) {
+        bundle = candidate;
+        break;
+      }
+    }
+    if (bundle == null || bundle.session.completedAt == null) return false;
+    return bundle.isViewSatisfied(DatabaseCodes.evidenceViewWhorlOverview) &&
+        bundle.isViewSatisfied(DatabaseCodes.evidenceViewCloseUp);
   }
 
   Future<void> _loadCurrentEvidence() async {

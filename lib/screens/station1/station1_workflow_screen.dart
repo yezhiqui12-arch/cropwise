@@ -9,6 +9,7 @@ import '../../services/assessment_protocol_selector.dart';
 import '../../services/phone_location_service.dart';
 import '../../theme/app_colors.dart';
 import 'plant_observation_step.dart';
+import 'continuous_plant_capture_step.dart';
 import 'evidence_capture_panel.dart';
 import 'evidence_photo_viewer.dart';
 import 'guided_camera_screen.dart';
@@ -128,15 +129,21 @@ class Station1WorkflowScreen extends StatelessWidget {
               bundle: workflow.stationContextEvidence!,
               isSaving: workflow.isSaving,
               resolveFile: workflow.resolveEvidenceFile,
-              onCapture: () => _captureEvidence(
-                context,
-                workflow,
-                DatabaseCodes.evidenceViewStationContext,
-              ),
-              onInspect: (media) => _inspectEvidence(context, workflow, media),
+              onCapture: () async {
+                await _captureEvidence(
+                  context,
+                  workflow,
+                  DatabaseCodes.evidenceViewStationContext,
+                );
+              },
+              onInspect: (media) async {
+                await _inspectEvidence(context, workflow, media);
+              },
               onAccept: (media) =>
                   _run(context, () => workflow.acceptEvidence(media)),
-              onRetake: (media) => _retakeEvidence(context, workflow, media),
+              onRetake: (media) async {
+                await _retakeEvidence(context, workflow, media);
+              },
               onRemove: (media) =>
                   _run(context, () => workflow.removeEvidence(media)),
               onManualFallback: (reason, note) => _run(
@@ -152,6 +159,49 @@ class Station1WorkflowScreen extends StatelessWidget {
           Station1ViewState.plantSelection => PlantSelectionStep(
             onBegin: () => _run(context, workflow.beginTenConsecutivePlants),
           ),
+          Station1ViewState.plantCapture => ContinuousPlantCaptureStep(
+            key: ValueKey('capture_plant_${workflow.currentPlantPosition}'),
+            position: workflow.currentPlantPosition!,
+            capturedPlantCount: workflow.capturedPlantCount,
+            initialLeavesInspectedCount: workflow.capturedLeavesInspectedFor(
+              workflow.currentPlantPosition!,
+            ),
+            bundle: workflow.currentEvidence!,
+            isSaving: workflow.isSaving,
+            resolveFile: workflow.resolveEvidenceFile,
+            onCapture: (viewType) =>
+                _captureEvidence(context, workflow, viewType),
+            onInspect: (media) => _inspectEvidence(context, workflow, media),
+            onAccept: (media) =>
+                _tryRun(context, () => workflow.acceptEvidence(media)),
+            onRetake: (media) => _retakeEvidence(context, workflow, media),
+            onRemove: (media) =>
+                _run(context, () => workflow.removeEvidence(media)),
+            onManualFallback: (viewType, reason, note) => _tryRun(
+              context,
+              () => workflow.waiveEvidence(
+                viewType: viewType,
+                reasonCode: reason,
+                note: note,
+              ),
+            ),
+            onLeavesInspected: workflow.recordCurrentPlantInspection,
+            onCompletePlant: (activeDuration, newestLeavesInspectedCount) =>
+                _run(
+                  context,
+                  () => workflow.completeCurrentPlantCapture(
+                    activeDuration,
+                    newestLeavesInspectedCount,
+                  ),
+                ),
+            onCannotAssess: (reason, activeDuration) => _run(
+              context,
+              () => workflow.saveCaptureNotAssessable(
+                reason: reason,
+                activeDuration: activeDuration,
+              ),
+            ),
+          ),
           Station1ViewState.plantEntry => PlantObservationStep(
             key: ValueKey('plant_${workflow.currentPlantPosition}'),
             position: workflow.currentPlantPosition!,
@@ -159,6 +209,9 @@ class Station1WorkflowScreen extends StatelessWidget {
             stationId: workflow.snapshot!.station!.id,
             actorPersonId: workflow.assessment!.evaluatorPersonId,
             existing: workflow.currentPlant,
+            initialLeavesInspectedCount: workflow.capturedLeavesInspectedFor(
+              workflow.currentPlantPosition!,
+            ),
             isSaving: workflow.isSaving,
             onSave: workflow.savePlant,
             onCancelEdit: workflow.savedPlantCount == 10
@@ -166,14 +219,17 @@ class Station1WorkflowScreen extends StatelessWidget {
                 : null,
             evidence: workflow.currentEvidence,
             resolveEvidenceFile: workflow.resolveEvidenceFile,
-            onCaptureEvidence: (viewType) =>
-                _captureEvidence(context, workflow, viewType),
-            onInspectEvidence: (media) =>
-                _inspectEvidence(context, workflow, media),
+            onCaptureEvidence: (viewType) async {
+              await _captureEvidence(context, workflow, viewType);
+            },
+            onInspectEvidence: (media) async {
+              await _inspectEvidence(context, workflow, media);
+            },
             onAcceptEvidence: (media) =>
                 _run(context, () => workflow.acceptEvidence(media)),
-            onRetakeEvidence: (media) =>
-                _retakeEvidence(context, workflow, media),
+            onRetakeEvidence: (media) async {
+              await _retakeEvidence(context, workflow, media);
+            },
             onRemoveEvidence: (media) =>
                 _run(context, () => workflow.removeEvidence(media)),
             onManualFallback: (viewType, reason, note) => _run(
@@ -248,7 +304,24 @@ class Station1WorkflowScreen extends StatelessWidget {
     }
   }
 
-  Future<void> _captureEvidence(
+  static Future<bool> _tryRun(
+    BuildContext context,
+    Future<void> Function() action,
+  ) async {
+    try {
+      await action();
+      return true;
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(_friendlyError(error))));
+      }
+      return false;
+    }
+  }
+
+  Future<String?> _captureEvidence(
     BuildContext context,
     Station1WorkflowProvider workflow,
     String viewType,
@@ -260,9 +333,14 @@ class Station1WorkflowScreen extends StatelessWidget {
         'Frame the maize row and immediate Station 1 surroundings. Avoid people and identifying documents.',
       ),
       DatabaseCodes.evidenceViewCloseUp => (
-        'Evidence close-up',
-        'Conditional close-up',
-        'Frame the specific visible sign or organism closely enough for a useful record.',
+        'Whorl detail',
+        'Required closer view',
+        'Move closer to the whorl interior or inspected feeding surface. This is required even when no sign is visible.',
+      ),
+      DatabaseCodes.evidenceViewDiagnosticDetail => (
+        'Extra evidence detail',
+        'Conditional detail',
+        'Frame the larva, egg mass, ambiguous feature, or other sign that needs its own detail view.',
       ),
       _ => (
         'Whorl overview',
@@ -281,32 +359,32 @@ class Station1WorkflowScreen extends StatelessWidget {
         ),
       ),
     );
-    if (!context.mounted || result == null) return;
+    if (!context.mounted || result == null) return null;
     if (result.sourcePath != null) {
-      await _run(
+      final staged = await _tryRun(
         context,
         () => workflow.stageEvidence(
           viewType: viewType,
           sourcePath: result.sourcePath!,
         ),
       );
-      if (!context.mounted) return;
+      if (!staged || !context.mounted) return null;
       final bundle = viewType == DatabaseCodes.evidenceViewStationContext
           ? workflow.stationContextEvidence
           : workflow.currentEvidence;
       final media = bundle?.mediaForView(viewType);
       if (media != null &&
           media.storageState == DatabaseCodes.evidenceStorageStaged) {
-        await _inspectEvidence(context, workflow, media);
+        return _inspectEvidence(context, workflow, media);
       }
-      return;
+      return null;
     }
     final fallback = await showEvidenceFallbackDialog(
       context,
       suggestedReasonCode: result.fallbackReasonCode,
     );
-    if (!context.mounted || fallback == null) return;
-    await _run(
+    if (!context.mounted || fallback == null) return null;
+    final saved = await _tryRun(
       context,
       () => workflow.waiveEvidence(
         viewType: viewType,
@@ -314,9 +392,10 @@ class Station1WorkflowScreen extends StatelessWidget {
         note: fallback.note,
       ),
     );
+    return saved ? viewType : null;
   }
 
-  Future<void> _inspectEvidence(
+  Future<String?> _inspectEvidence(
     BuildContext context,
     Station1WorkflowProvider workflow,
     EvidenceMediaRecord media,
@@ -338,50 +417,83 @@ class Station1WorkflowScreen extends StatelessWidget {
           allowAddCloseUp:
               media.viewType == DatabaseCodes.evidenceViewWhorlOverview &&
               bundle?.mediaForView(DatabaseCodes.evidenceViewCloseUp) == null,
+          allowAddDiagnosticDetail:
+              media.viewType == DatabaseCodes.evidenceViewCloseUp &&
+              bundle?.mediaForView(
+                    DatabaseCodes.evidenceViewDiagnosticDetail,
+                  ) ==
+                  null,
         ),
       ),
     );
-    if (!context.mounted || action == null) return;
+    if (!context.mounted || action == null) return null;
     switch (action) {
       case EvidencePhotoAction.usePhoto:
-        await _run(context, () => workflow.acceptEvidence(media));
-        return;
+        final accepted = await _tryRun(
+          context,
+          () => workflow.acceptEvidence(media),
+        );
+        return accepted ? media.viewType : null;
       case EvidencePhotoAction.retake:
-        await _retakeEvidence(context, workflow, media);
-        return;
+        return _retakeEvidence(context, workflow, media);
       case EvidencePhotoAction.addCloseUp:
         if (media.storageState == DatabaseCodes.evidenceStorageStaged) {
-          await _run(context, () => workflow.acceptEvidence(media));
+          final accepted = await _tryRun(
+            context,
+            () => workflow.acceptEvidence(media),
+          );
+          if (!accepted) return null;
         }
         if (context.mounted) {
-          await _captureEvidence(
+          return _captureEvidence(
             context,
             workflow,
             DatabaseCodes.evidenceViewCloseUp,
           );
         }
-        return;
+        return null;
+      case EvidencePhotoAction.addDiagnosticDetail:
+        if (media.storageState == DatabaseCodes.evidenceStorageStaged) {
+          final accepted = await _tryRun(
+            context,
+            () => workflow.acceptEvidence(media),
+          );
+          if (!accepted) return null;
+        }
+        if (context.mounted) {
+          return _captureEvidence(
+            context,
+            workflow,
+            DatabaseCodes.evidenceViewDiagnosticDetail,
+          );
+        }
+        return null;
       case EvidencePhotoAction.remove:
         final confirmed = await _confirmEvidenceRemoval(context, retake: false);
-        if (!context.mounted) return;
+        if (!context.mounted) return null;
         if (confirmed) {
           await _run(context, () => workflow.removeEvidence(media));
         }
-        return;
+        return null;
     }
   }
 
-  Future<void> _retakeEvidence(
+  Future<String?> _retakeEvidence(
     BuildContext context,
     Station1WorkflowProvider workflow,
     EvidenceMediaRecord media,
   ) async {
     final confirmed = await _confirmEvidenceRemoval(context, retake: true);
-    if (!context.mounted || !confirmed) return;
-    await _run(context, () => workflow.removeEvidence(media, retake: true));
+    if (!context.mounted || !confirmed) return null;
+    final removed = await _tryRun(
+      context,
+      () => workflow.removeEvidence(media, retake: true),
+    );
+    if (!removed) return null;
     if (context.mounted) {
-      await _captureEvidence(context, workflow, media.viewType!);
+      return _captureEvidence(context, workflow, media.viewType!);
     }
+    return null;
   }
 
   Future<bool> _confirmEvidenceRemoval(

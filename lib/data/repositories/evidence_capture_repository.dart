@@ -42,10 +42,16 @@ class PilotWorkloadAuditSummary {
   const PilotWorkloadAuditSummary({
     required this.activeTimeByPlant,
     required this.retakeCount,
+    required this.manualFormUseCount,
+    required this.inspectedLeavesByPlant,
+    required this.guidedTapCount,
   });
 
   final Map<int, Duration> activeTimeByPlant;
   final int retakeCount;
+  final int manualFormUseCount;
+  final Map<int, int> inspectedLeavesByPlant;
+  final int guidedTapCount;
 }
 
 class EvidenceCaptureRepository {
@@ -66,6 +72,7 @@ class EvidenceCaptureRepository {
     scopeKey: DatabaseCodes.evidenceScopeStationContext,
     plantPosition: null,
     actorPersonId: actorPersonId,
+    requirementsVersion: 'camera_phase_a_v1',
   );
 
   Future<EvidenceCaptureSessionRecord> ensurePlantSession({
@@ -88,6 +95,7 @@ class EvidenceCaptureRepository {
       scopeKey: 'plant_${plantPosition.toString().padLeft(2, '0')}',
       plantPosition: plantPosition,
       actorPersonId: actorPersonId,
+      requirementsVersion: 'capture_first_station1_v1',
     );
   }
 
@@ -98,6 +106,7 @@ class EvidenceCaptureRepository {
     required String scopeKey,
     required int? plantPosition,
     required String actorPersonId,
+    required String requirementsVersion,
   }) {
     return database.transaction(() async {
       await _validateStationAssessment(
@@ -120,6 +129,33 @@ class EvidenceCaptureRepository {
             'The existing evidence session has the wrong scope.',
           );
         }
+        if (existing.requirementsVersion != requirementsVersion) {
+          final now = DateTime.now().toUtc();
+          await (database.update(
+            database.evidenceCaptureSessions,
+          )..where((row) => row.id.equals(existing.id))).write(
+            EvidenceCaptureSessionsCompanion(
+              requirementsVersion: Value(requirementsVersion),
+              collectionStatus: const Value(
+                DatabaseCodes.evidenceSessionInProgress,
+              ),
+              completedAt: const Value(null),
+              updatedAt: Value(now),
+            ),
+          );
+          await _mutations.record(
+            entityType: 'evidence_capture_sessions',
+            entityId: existing.id,
+            action: 'capture_requirements_updated',
+            actorPersonId: actorPersonId,
+            before: {'requirements_version': existing.requirementsVersion},
+            after: {'requirements_version': requirementsVersion},
+            queueForSync: false,
+          );
+          return (database.select(
+            database.evidenceCaptureSessions,
+          )..where((row) => row.id.equals(existing.id))).getSingle();
+        }
         return existing;
       }
 
@@ -134,6 +170,7 @@ class EvidenceCaptureRepository {
               scopeType: scopeType,
               scopeKey: scopeKey,
               plantPosition: Value(plantPosition),
+              requirementsVersion: Value(requirementsVersion),
             ),
           );
       await _mutations.record(
@@ -147,7 +184,7 @@ class EvidenceCaptureRepository {
           'scope_type': scopeType,
           'scope_key': scopeKey,
           'plant_position': plantPosition,
-          'requirements_version': 'camera_phase_a_v1',
+          'requirements_version': requirementsVersion,
         },
         queueForSync: false,
       );
@@ -191,13 +228,18 @@ class EvidenceCaptureRepository {
     String stationId,
   ) async {
     final audits =
-        await (database.select(database.auditLogs)..where(
-              (row) =>
-                  row.entityType.equals('evidence_capture_sessions') |
-                  row.entityType.equals('evidence_media'),
-            ))
+        await (database.select(database.auditLogs)
+              ..where(
+                (row) =>
+                    row.entityType.equals('evidence_capture_sessions') |
+                    row.entityType.equals('evidence_media'),
+              )
+              ..orderBy([(row) => OrderingTerm.asc(row.occurredAt)]))
             .get();
     final activeMilliseconds = <int, int>{};
+    final manualFormPlants = <int>{};
+    final inspectedLeaves = <int, int>{};
+    var guidedTapCount = 0;
     var retakes = 0;
     for (final audit in audits) {
       if (audit.afterJson == null) continue;
@@ -208,7 +250,17 @@ class EvidenceCaptureRepository {
         continue;
       }
       if (after['station_id'] != stationId) continue;
-      if (audit.action == 'attached_to_plant') {
+      guidedTapCount += switch (audit.action) {
+        'capture_staged' => 2,
+        'evaluator_accepted' => 1,
+        'required_view_waived' => 3,
+        'deletion_requested' => 2,
+        'plant_capture_completed' =>
+          2 + (after['conditional_detail_used'] == true ? 1 : 0),
+        _ => 0,
+      };
+      if (audit.action == 'attached_to_plant' ||
+          audit.action == 'plant_capture_completed') {
         final position = after['plant_position'];
         final duration = after['pilot_active_duration_ms'];
         if (position is int && duration is int && duration >= 0) {
@@ -218,6 +270,23 @@ class EvidenceCaptureRepository {
             ifAbsent: () => duration,
           );
         }
+      }
+      if (audit.action == 'attached_to_plant' &&
+          after['manual_form_used'] == true &&
+          after['plant_position'] is int) {
+        manualFormPlants.add(after['plant_position'] as int);
+      }
+      if (audit.action == 'plant_capture_completed' &&
+          after['plant_position'] is int &&
+          after['newest_leaves_inspected_count'] is int) {
+        inspectedLeaves[after['plant_position'] as int] =
+            after['newest_leaves_inspected_count'] as int;
+      }
+      if (audit.action == 'plant_capture_inspection_confirmed' &&
+          after['plant_position'] is int &&
+          after['newest_leaves_inspected_count'] is int) {
+        inspectedLeaves[after['plant_position'] as int] =
+            after['newest_leaves_inspected_count'] as int;
       }
       if (audit.action == 'deletion_requested' &&
           after['removal_intent'] == 'retake') {
@@ -230,6 +299,9 @@ class EvidenceCaptureRepository {
           entry.key: Duration(milliseconds: entry.value),
       },
       retakeCount: retakes,
+      manualFormUseCount: manualFormPlants.length,
+      inspectedLeavesByPlant: inspectedLeaves,
+      guidedTapCount: guidedTapCount,
     );
   }
 
@@ -298,6 +370,7 @@ class EvidenceCaptureRepository {
               id: mediaId,
               assessmentId: session.assessmentId,
               stationId: Value(session.stationId),
+              plantObservationId: Value(session.plantObservationId),
               captureSessionId: Value(session.id),
               mediaType: 'image',
               viewType: Value(viewType),
@@ -365,6 +438,7 @@ class EvidenceCaptureRepository {
         actorPersonId: actorPersonId,
         before: {'storage_state': media.storageState},
         after: {
+          'station_id': media.stationId,
           'storage_state': DatabaseCodes.evidenceStorageReady,
           'sha256_checksum': media.sha256Checksum,
           'view_type': media.viewType,
@@ -442,6 +516,8 @@ class EvidenceCaptureRepository {
         action: 'required_view_waived',
         actorPersonId: actorPersonId,
         after: {
+          'station_id': session.stationId,
+          'plant_position': session.plantPosition,
           'view_type': viewType,
           'reason_code': reasonCode,
           'note': note,
@@ -562,6 +638,112 @@ class EvidenceCaptureRepository {
     });
   }
 
+  Future<void> completePlantCapture({
+    required EvidenceCaptureSessionRecord session,
+    required String actorPersonId,
+    required int pilotActiveDurationMs,
+    required int newestLeavesInspectedCount,
+  }) async {
+    if (pilotActiveDurationMs < 0) {
+      throw ArgumentError.value(
+        pilotActiveDurationMs,
+        'pilotActiveDurationMs',
+        'Capture duration cannot be negative',
+      );
+    }
+    if (newestLeavesInspectedCount != 3 && newestLeavesInspectedCount != 4) {
+      throw ArgumentError.value(
+        newestLeavesInspectedCount,
+        'newestLeavesInspectedCount',
+        'Capture completion requires inspection of 3 or 4 newest leaves',
+      );
+    }
+    final bundle = await loadBundle(session.id);
+    if (bundle.session.scopeType != DatabaseCodes.evidenceScopePlant ||
+        bundle.session.plantPosition == null) {
+      throw StateError('This is not a plant evidence session.');
+    }
+    const requiredViews = {
+      DatabaseCodes.evidenceViewWhorlOverview,
+      DatabaseCodes.evidenceViewCloseUp,
+    };
+    for (final viewType in requiredViews) {
+      if (!bundle.isViewSatisfied(viewType)) {
+        throw StateError(
+          'Accept the required $viewType image or document manual fallback.',
+        );
+      }
+    }
+
+    await database.transaction(() async {
+      final fallback = bundle.waivedViewTypes
+          .intersection(requiredViews)
+          .isNotEmpty;
+      final now = DateTime.now().toUtc();
+      await (database.update(
+        database.evidenceCaptureSessions,
+      )..where((row) => row.id.equals(session.id))).write(
+        EvidenceCaptureSessionsCompanion(
+          collectionStatus: Value(
+            fallback
+                ? DatabaseCodes.evidenceSessionManualFallback
+                : DatabaseCodes.evidenceSessionComplete,
+          ),
+          completedAt: Value(now),
+          updatedAt: Value(now),
+        ),
+      );
+      await _mutations.record(
+        entityType: 'evidence_capture_sessions',
+        entityId: session.id,
+        action: 'plant_capture_completed',
+        actorPersonId: actorPersonId,
+        after: {
+          'station_id': session.stationId,
+          'plant_position': session.plantPosition,
+          'required_view_types': requiredViews.toList()..sort(),
+          'waived_view_types': bundle.waivedViewTypes.toList()..sort(),
+          'pilot_active_duration_ms': pilotActiveDurationMs,
+          'newest_leaves_inspected_count': newestLeavesInspectedCount,
+          'conditional_detail_used': bundle.isViewSatisfied(
+            DatabaseCodes.evidenceViewDiagnosticDetail,
+          ),
+        },
+        queueForSync: false,
+      );
+    });
+  }
+
+  Future<void> recordPlantCaptureInspection({
+    required EvidenceCaptureSessionRecord session,
+    required String actorPersonId,
+    required int newestLeavesInspectedCount,
+  }) async {
+    if (session.scopeType != DatabaseCodes.evidenceScopePlant ||
+        session.plantPosition == null) {
+      throw StateError('This is not a plant evidence session.');
+    }
+    if (newestLeavesInspectedCount != 3 && newestLeavesInspectedCount != 4) {
+      throw ArgumentError.value(
+        newestLeavesInspectedCount,
+        'newestLeavesInspectedCount',
+        'Plant capture requires inspection of 3 or 4 newest leaves',
+      );
+    }
+    await _mutations.record(
+      entityType: 'evidence_capture_sessions',
+      entityId: session.id,
+      action: 'plant_capture_inspection_confirmed',
+      actorPersonId: actorPersonId,
+      after: {
+        'station_id': session.stationId,
+        'plant_position': session.plantPosition,
+        'newest_leaves_inspected_count': newestLeavesInspectedCount,
+      },
+      queueForSync: false,
+    );
+  }
+
   /// Runs inside the plant save transaction. File promotion happens earlier;
   /// a rollback therefore leaves evidence safely scoped to station + position.
   Future<void> attachPlantEvidenceInCurrentTransaction({
@@ -572,6 +754,7 @@ class EvidenceCaptureRepository {
     required Set<String> requiredViewTypes,
     required String actorPersonId,
     required int pilotActiveDurationMs,
+    required bool manualFormUsed,
   }) async {
     final bundle = await loadBundle(sessionId);
     final session = bundle.session;
@@ -628,6 +811,7 @@ class EvidenceCaptureRepository {
         'required_view_types': requiredViewTypes.toList()..sort(),
         'waived_view_types': bundle.waivedViewTypes.toList()..sort(),
         'pilot_active_duration_ms': pilotActiveDurationMs,
+        'manual_form_used': manualFormUsed,
       },
       queueForSync: false,
     );
@@ -659,6 +843,7 @@ class EvidenceCaptureRepository {
         ? const {
             DatabaseCodes.evidenceViewWhorlOverview,
             DatabaseCodes.evidenceViewCloseUp,
+            DatabaseCodes.evidenceViewDiagnosticDetail,
           }
         : const <String>{};
     if (!allowed.contains(viewType)) {

@@ -5,7 +5,13 @@ import 'package:flutter/material.dart';
 import '../../data/local/app_database.dart';
 import '../../data/local/database_codes.dart';
 
-enum EvidencePhotoAction { usePhoto, retake, addCloseUp, remove }
+enum EvidencePhotoAction {
+  usePhoto,
+  retake,
+  addCloseUp,
+  addDiagnosticDetail,
+  remove,
+}
 
 class EvidencePhotoViewer extends StatefulWidget {
   const EvidencePhotoViewer({
@@ -15,6 +21,7 @@ class EvidencePhotoViewer extends StatefulWidget {
     required this.resolveFile,
     this.allowActions = false,
     this.allowAddCloseUp = false,
+    this.allowAddDiagnosticDetail = false,
     this.transformationController,
   });
 
@@ -23,6 +30,7 @@ class EvidencePhotoViewer extends StatefulWidget {
   final Future<File> Function(String localUri) resolveFile;
   final bool allowActions;
   final bool allowAddCloseUp;
+  final bool allowAddDiagnosticDetail;
   final TransformationController? transformationController;
 
   @override
@@ -54,7 +62,7 @@ class _EvidencePhotoViewerState extends State<EvidencePhotoViewer> {
     final staged =
         widget.media.storageState == DatabaseCodes.evidenceStorageStaged;
     return Scaffold(
-      appBar: AppBar(title: const Text('Inspect evidence photo')),
+      appBar: AppBar(title: const Text('Inspect canonical evidence')),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -98,7 +106,7 @@ class _EvidencePhotoViewerState extends State<EvidencePhotoViewer> {
                     if (!snapshot.hasData || !snapshot.data!.existsSync()) {
                       return const Center(
                         child: Text(
-                          'Original evidence is unavailable.',
+                          'Canonical evidence is unavailable.',
                           style: TextStyle(color: Colors.white),
                         ),
                       );
@@ -106,17 +114,18 @@ class _EvidencePhotoViewerState extends State<EvidencePhotoViewer> {
                     return InteractiveViewer(
                       key: const Key('evidence_interactive_viewer'),
                       transformationController: _transformationController,
-                      minScale: 0.8,
-                      maxScale: 6,
-                      boundaryMargin: const EdgeInsets.all(80),
+                      minScale: 1,
+                      maxScale: 5,
+                      boundaryMargin: EdgeInsets.zero,
+                      clipBehavior: Clip.hardEdge,
                       child: Center(
                         child: Image.file(
                           snapshot.data!,
-                          key: const Key('evidence_original_image'),
+                          key: const Key('evidence_canonical_image'),
                           fit: BoxFit.contain,
                           filterQuality: FilterQuality.high,
                           errorBuilder: (_, _, _) => const Text(
-                            'Original evidence could not be decoded.',
+                            'Canonical evidence could not be decoded.',
                             style: TextStyle(color: Colors.white),
                           ),
                         ),
@@ -156,6 +165,13 @@ class _EvidencePhotoViewerState extends State<EvidencePhotoViewer> {
                           icon: Icons.add_a_photo_outlined,
                           label: 'Add close-up',
                           action: EvidencePhotoAction.addCloseUp,
+                        ),
+                      if (widget.allowAddDiagnosticDetail)
+                        _ViewerButton(
+                          key: const Key('viewer_add_diagnostic_detail'),
+                          icon: Icons.add_a_photo_outlined,
+                          label: 'Add extra detail',
+                          action: EvidencePhotoAction.addDiagnosticDetail,
                         ),
                       _ViewerButton(
                         key: const Key('viewer_remove'),
@@ -210,6 +226,7 @@ class _ViewerButton extends StatelessWidget {
 String evidenceViewLabel(String? viewType) => switch (viewType) {
   DatabaseCodes.evidenceViewStationContext => 'Station-context view',
   DatabaseCodes.evidenceViewWhorlOverview => 'Whorl and newest-leaves overview',
-  DatabaseCodes.evidenceViewCloseUp => 'Evidence close-up',
+  DatabaseCodes.evidenceViewCloseUp => 'Required closer whorl view',
+  DatabaseCodes.evidenceViewDiagnosticDetail => 'Conditional evidence detail',
   _ => 'Evidence view',
 };

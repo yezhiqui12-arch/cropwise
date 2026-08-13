@@ -98,6 +98,7 @@ abstract final class DatabaseCodes {
   static const evidenceViewStationContext = 'station_context';
   static const evidenceViewWhorlOverview = 'whorl_newest_leaves_overview';
   static const evidenceViewCloseUp = 'evidence_close_up';
+  static const evidenceViewDiagnosticDetail = 'diagnostic_detail';
   static const evidenceSessionInProgress = 'in_progress';
   static const evidenceSessionComplete = 'complete';
   static const evidenceSessionManualFallback = 'manual_fallback';

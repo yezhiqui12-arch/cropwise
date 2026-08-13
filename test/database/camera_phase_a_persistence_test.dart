@@ -172,6 +172,147 @@ void main() {
         expect(metrics.acceptedImageCount, 1);
         expect(metrics.retakeCount, 0);
         expect(metrics.storageBytes, greaterThan(0));
+
+        await (database.update(
+          database.evidenceCaptureSessions,
+        )..where((row) => row.id.equals(first.id))).write(
+          const EvidenceCaptureSessionsCompanion(
+            requirementsVersion: Value('camera_phase_a_v1'),
+          ),
+        );
+        final upgraded = await evidenceRepository.ensurePlantSession(
+          assessmentId: fixture.assessment.id,
+          stationId: fixture.station.id,
+          plantPosition: 1,
+          actorPersonId: fixture.evaluatorId,
+        );
+        final upgradedBundle = await coordinator.stageCapture(
+          session: upgraded,
+          viewType: DatabaseCodes.evidenceViewCloseUp,
+          sourcePath: (await _writeTestJpeg(root, 'upgraded-close.jpg')).path,
+          actorPersonId: fixture.evaluatorId,
+        );
+        expect(
+          upgradedBundle
+              .mediaForView(DatabaseCodes.evidenceViewCloseUp)!
+              .plantObservationId,
+          saved.plant.id,
+        );
+      },
+    );
+
+    test(
+      'capture-first completion requires two views and preserves conditional detail association',
+      () async {
+        final session = await evidenceRepository.ensurePlantSession(
+          assessmentId: fixture.assessment.id,
+          stationId: fixture.station.id,
+          plantPosition: 1,
+          actorPersonId: fixture.evaluatorId,
+        );
+        expect(session.requirementsVersion, 'capture_first_station1_v1');
+
+        await coordinator.recordPlantCaptureInspection(
+          session: session,
+          actorPersonId: fixture.evaluatorId,
+          newestLeavesInspectedCount: 3,
+        );
+        await coordinator.recordPlantCaptureInspection(
+          session: session,
+          actorPersonId: fixture.evaluatorId,
+          newestLeavesInspectedCount: 4,
+        );
+        final restartedRepository = EvidenceCaptureRepository(database);
+        final recoveredInspection = await restartedRepository
+            .loadPilotWorkloadAuditSummary(fixture.station.id);
+        expect(recoveredInspection.inspectedLeavesByPlant[1], 4);
+
+        var bundle = await coordinator.stageCapture(
+          session: session,
+          viewType: DatabaseCodes.evidenceViewWhorlOverview,
+          sourcePath: (await _writeTestJpeg(root, 'overview.jpg')).path,
+          actorPersonId: fixture.evaluatorId,
+        );
+        bundle = await coordinator.accept(
+          media: bundle.mediaForView(DatabaseCodes.evidenceViewWhorlOverview)!,
+          actorPersonId: fixture.evaluatorId,
+        );
+        await expectLater(
+          coordinator.completePlantCapture(
+            session: bundle.session,
+            actorPersonId: fixture.evaluatorId,
+            activeDuration: const Duration(seconds: 12),
+            newestLeavesInspectedCount: 3,
+          ),
+          throwsStateError,
+        );
+
+        bundle = await coordinator.stageCapture(
+          session: bundle.session,
+          viewType: DatabaseCodes.evidenceViewCloseUp,
+          sourcePath: (await _writeTestJpeg(root, 'whorl-detail.jpg')).path,
+          actorPersonId: fixture.evaluatorId,
+        );
+        bundle = await coordinator.accept(
+          media: bundle.mediaForView(DatabaseCodes.evidenceViewCloseUp)!,
+          actorPersonId: fixture.evaluatorId,
+        );
+        bundle = await coordinator.stageCapture(
+          session: bundle.session,
+          viewType: DatabaseCodes.evidenceViewDiagnosticDetail,
+          sourcePath: (await _writeTestJpeg(root, 'extra-detail.jpg')).path,
+          actorPersonId: fixture.evaluatorId,
+        );
+        bundle = await coordinator.accept(
+          media: bundle.mediaForView(
+            DatabaseCodes.evidenceViewDiagnosticDetail,
+          )!,
+          actorPersonId: fixture.evaluatorId,
+        );
+
+        await coordinator.completePlantCapture(
+          session: bundle.session,
+          actorPersonId: fixture.evaluatorId,
+          activeDuration: const Duration(seconds: 31),
+          newestLeavesInspectedCount: 3,
+        );
+        final captured = await evidenceRepository.loadBundle(session.id);
+        expect(
+          captured.session.collectionStatus,
+          DatabaseCodes.evidenceSessionComplete,
+        );
+        expect(captured.session.plantObservationId, isNull);
+
+        final saved =
+            await AtomicPlantSaveService(
+              database,
+              evidenceRepository: evidenceRepository,
+            ).saveVegetativePlant(
+              _plantInput(
+                stationId: fixture.station.id,
+                position: 1,
+                actorPersonId: fixture.evaluatorId,
+                evidenceSessionId: session.id,
+                requiredViews: const {
+                  DatabaseCodes.evidenceViewWhorlOverview,
+                  DatabaseCodes.evidenceViewCloseUp,
+                },
+                pilotActiveDurationMs: 9000,
+              ),
+            );
+        final attached = await evidenceRepository.loadBundle(session.id);
+        expect(attached.media, hasLength(3));
+        for (final media in attached.media) {
+          expect(media.plantObservationId, saved.plant.id);
+          expect(media.isCanonicalEvidence, isTrue);
+        }
+        final metrics = await coordinator.loadPilotWorkloadMetrics(
+          fixture.station.id,
+        );
+        expect(metrics.acceptedImageCount, 3);
+        expect(metrics.manualFormUseCount, 1);
+        expect(metrics.guidedTapCount, 12);
+        expect(metrics.activeTimeByPlant[1], const Duration(seconds: 40));
       },
     );
 

@@ -9,18 +9,20 @@ import 'package:wormwise/screens/station1/evidence_photo_viewer.dart';
 
 void main() {
   testWidgets(
-    'staged original supports pinch zoom, clear labels, and capture actions',
+    'staged canonical evidence supports constrained zoom and capture actions',
     (tester) async {
       tester.view.physicalSize = const Size(390, 844);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
       late Directory root;
-      late File original;
+      late File canonicalEvidence;
       await tester.runAsync(() async {
         root = await Directory.systemTemp.createTemp('evidence_viewer_');
-        original = File('${root.path}${Platform.pathSeparator}plant_1.png');
-        await original.writeAsBytes(base64Decode(_onePixelPng));
+        canonicalEvidence = File(
+          '${root.path}${Platform.pathSeparator}plant_1.png',
+        );
+        await canonicalEvidence.writeAsBytes(base64Decode(_onePixelPng));
       });
       addTearDown(() => root.delete(recursive: true));
       final controller = TransformationController();
@@ -40,13 +42,14 @@ void main() {
                     MaterialPageRoute(
                       builder: (_) => EvidencePhotoViewer(
                         media: _media(
-                          localUri: original.path,
+                          localUri: canonicalEvidence.path,
                           storageState: DatabaseCodes.evidenceStorageStaged,
                         ),
                         scopeLabel: 'Plant 1',
                         resolveFile: (path) async => File(path),
                         allowActions: true,
                         allowAddCloseUp: true,
+                        allowAddDiagnosticDetail: true,
                         transformationController: controller,
                       ),
                     ),
@@ -63,13 +66,22 @@ void main() {
 
       expect(find.text('Plant 1'), findsOneWidget);
       expect(find.text('Whorl and newest-leaves overview'), findsOneWidget);
-      expect(find.byKey(const Key('evidence_original_image')), findsOneWidget);
+      expect(find.byKey(const Key('evidence_canonical_image')), findsOneWidget);
       expect(find.byKey(const Key('viewer_use_photo')), findsOneWidget);
       expect(find.byKey(const Key('viewer_retake')), findsOneWidget);
       expect(find.byKey(const Key('viewer_add_close_up')), findsOneWidget);
+      expect(
+        find.byKey(const Key('viewer_add_diagnostic_detail')),
+        findsOneWidget,
+      );
       expect(find.byKey(const Key('viewer_remove')), findsOneWidget);
 
       final viewer = find.byKey(const Key('evidence_interactive_viewer'));
+      final interactiveViewer = tester.widget<InteractiveViewer>(viewer);
+      expect(interactiveViewer.minScale, 1);
+      expect(interactiveViewer.maxScale, 5);
+      expect(interactiveViewer.boundaryMargin, EdgeInsets.zero);
+      expect(interactiveViewer.clipBehavior, Clip.hardEdge);
       final center = tester.getCenter(viewer);
       final first = await tester.startGesture(center - const Offset(25, 0));
       final second = await tester.startGesture(center + const Offset(25, 0));
@@ -116,7 +128,7 @@ EvidenceMediaRecord _media({
     heightPx: 1,
     storageState: storageState,
     uploadState: DatabaseCodes.localOnly,
-    isOriginal: true,
+    isCanonicalEvidence: true,
   );
 }
 

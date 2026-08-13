@@ -48,12 +48,17 @@ class PlantSelectionStep extends StatelessWidget {
         const _Instruction(
           number: '4',
           text:
-              'Gently expose the newest leaves and whorl before the overview photo. Inspect the full-resolution preview, then use or retake it.',
+              'Gently expose the newest leaves and whorl. Take one overview and one closer whorl view for every assessable plant.',
         ),
         const _Instruction(
           number: '5',
           text:
-              'Take a close-up only when a recorded sign or organism needs detail. If photography fails, document manual fallback and continue the physical assessment.',
+              'Add a third image only when a larva, egg mass, unclear feature, or other evidence needs detail.',
+        ),
+        const _Instruction(
+          number: '6',
+          text:
+              'WormWise has no validated image model. After Plant 10, confirm every plant manually from Station Review.',
         ),
         const SizedBox(height: 24),
         ConstrainedBox(

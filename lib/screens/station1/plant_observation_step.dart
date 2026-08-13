@@ -19,6 +19,7 @@ class PlantObservationStep extends StatefulWidget {
     required this.existing,
     required this.isSaving,
     required this.onSave,
+    this.initialLeavesInspectedCount,
     this.onCancelEdit,
     this.evidence,
     this.resolveEvidenceFile,
@@ -37,6 +38,7 @@ class PlantObservationStep extends StatefulWidget {
   final Station1PlantRecord? existing;
   final bool isSaving;
   final Future<void> Function(VegetativePlantSave input) onSave;
+  final int? initialLeavesInspectedCount;
   final VoidCallback? onCancelEdit;
   final EvidenceCaptureBundle? evidence;
   final Future<File> Function(String localUri)? resolveEvidenceFile;
@@ -85,6 +87,7 @@ class _PlantObservationStepState extends State<PlantObservationStep>
       text: existing?.plant.notAssessableReason,
     );
     _notes = TextEditingController(text: existing?.plant.evaluatorNotes);
+    _leavesInspected = widget.initialLeavesInspectedCount;
     if (existing != null) {
       _assessable = existing.plant.assessable;
       _leavesInspected = existing.vegetative.newestLeavesInspectedCount;
@@ -577,9 +580,9 @@ class _PlantObservationStepState extends State<PlantObservationStep>
       actorPersonId: widget.actorPersonId,
       evidenceCaptureSessionId: widget.evidence?.session.id,
       requiredEvidenceViewTypes: assessable && widget.evidence != null
-          ? {
+          ? const {
               DatabaseCodes.evidenceViewWhorlOverview,
-              if (_needsCloseUp) DatabaseCodes.evidenceViewCloseUp,
+              DatabaseCodes.evidenceViewCloseUp,
             }
           : const {},
       requireCameraPhaseAEvidence: widget.evidence != null,
@@ -614,6 +617,10 @@ class _PlantObservationStepState extends State<PlantObservationStep>
         !evidence.isViewSatisfied(DatabaseCodes.evidenceViewWhorlOverview)) {
       return 'Use the whorl/newest-leaves overview or document manual fallback.';
     }
+    if (evidence != null &&
+        !evidence.isViewSatisfied(DatabaseCodes.evidenceViewCloseUp)) {
+      return 'Use the required closer whorl view or document manual fallback.';
+    }
     if (!_freshSignsAnswered) {
       return 'Select each fresh feeding sign observed, or explicitly select no listed fresh signs.';
     }
@@ -630,11 +637,6 @@ class _PlantObservationStepState extends State<PlantObservationStep>
     }
     if (_uncertain == null) {
       return 'Answer whether uncertain evidence is present.';
-    }
-    if (evidence != null &&
-        _needsCloseUp &&
-        !evidence.isViewSatisfied(DatabaseCodes.evidenceViewCloseUp)) {
-      return 'Use the evidence close-up or document manual fallback.';
     }
     if (_plantStatus == null) {
       return 'Confirm the primary interpretation. WormWise will not select it automatically.';

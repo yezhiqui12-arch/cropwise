@@ -12,6 +12,8 @@ class PilotWorkloadMetrics {
     required this.retakeCount,
     required this.acceptedImageCount,
     required this.manualFallbackCount,
+    this.manualFormUseCount = 0,
+    this.guidedTapCount = 0,
     required this.storageBytes,
   });
 
@@ -19,6 +21,8 @@ class PilotWorkloadMetrics {
   final int retakeCount;
   final int acceptedImageCount;
   final int manualFallbackCount;
+  final int manualFormUseCount;
+  final int guidedTapCount;
   final int storageBytes;
 
   static const empty = PilotWorkloadMetrics(
@@ -26,6 +30,8 @@ class PilotWorkloadMetrics {
     retakeCount: 0,
     acceptedImageCount: 0,
     manualFallbackCount: 0,
+    manualFormUseCount: 0,
+    guidedTapCount: 0,
     storageBytes: 0,
   );
 }
@@ -187,6 +193,28 @@ class EvidenceCaptureCoordinator {
     actorPersonId: actorPersonId,
   );
 
+  Future<void> completePlantCapture({
+    required EvidenceCaptureSessionRecord session,
+    required String actorPersonId,
+    required Duration activeDuration,
+    required int newestLeavesInspectedCount,
+  }) => _repository.completePlantCapture(
+    session: session,
+    actorPersonId: actorPersonId,
+    pilotActiveDurationMs: activeDuration.inMilliseconds,
+    newestLeavesInspectedCount: newestLeavesInspectedCount,
+  );
+
+  Future<void> recordPlantCaptureInspection({
+    required EvidenceCaptureSessionRecord session,
+    required String actorPersonId,
+    required int newestLeavesInspectedCount,
+  }) => _repository.recordPlantCaptureInspection(
+    session: session,
+    actorPersonId: actorPersonId,
+    newestLeavesInspectedCount: newestLeavesInspectedCount,
+  );
+
   Future<File> resolve(String localUri) => _storage.resolve(localUri);
 
   Future<PilotWorkloadMetrics> loadPilotWorkloadMetrics(
@@ -219,6 +247,8 @@ class EvidenceCaptureCoordinator {
       retakeCount: audit.retakeCount,
       acceptedImageCount: accepted,
       manualFallbackCount: fallbacks,
+      manualFormUseCount: audit.manualFormUseCount,
+      guidedTapCount: audit.guidedTapCount,
       storageBytes: storageBytes,
     );
   }

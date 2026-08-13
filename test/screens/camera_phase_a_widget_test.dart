@@ -246,7 +246,7 @@ void main() {
   );
 
   testWidgets(
-    'plant thumbnail opens original and closing preserves unsaved answers',
+    'plant thumbnail opens canonical image and preserves unsaved answers',
     (tester) async {
       late Directory root;
       late File original;
@@ -306,7 +306,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(inspect);
       await tester.pumpAndSettle();
-      expect(find.byKey(const Key('evidence_original_image')), findsOneWidget);
+      expect(find.byKey(const Key('evidence_canonical_image')), findsOneWidget);
 
       await tester.pageBack();
       await tester.pumpAndSettle();
@@ -470,7 +470,7 @@ EvidenceCaptureBundle _readyStationBundle() {
         heightPx: 24,
         storageState: DatabaseCodes.evidenceStorageReady,
         uploadState: DatabaseCodes.localOnly,
-        isOriginal: true,
+        isCanonicalEvidence: true,
       ),
     ],
   );
@@ -505,7 +505,7 @@ EvidenceCaptureBundle _readyPlantBundle(String path) {
         heightPx: 1,
         storageState: DatabaseCodes.evidenceStorageReady,
         uploadState: DatabaseCodes.localOnly,
-        isOriginal: true,
+        isCanonicalEvidence: true,
       ),
     ],
   );

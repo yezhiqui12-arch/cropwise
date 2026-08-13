@@ -474,7 +474,14 @@ class EvidenceMedia extends SyncableTable {
       text().withDefault(const Constant(DatabaseCodes.evidenceStorageStaged))();
   TextColumn get uploadState =>
       text().withDefault(const Constant(DatabaseCodes.localOnly))();
-  BoolColumn get isOriginal => boolean().withDefault(const Constant(true))();
+
+  /// The immutable 2048-pixel evidence representation accepted by WormWise.
+  ///
+  /// The legacy SQL name is retained so existing schema-v4 databases do not
+  /// need a destructive table rebuild. This flag does not mean that the file
+  /// is the untouched camera-source image.
+  BoolColumn get isCanonicalEvidence =>
+      boolean().named('is_original').withDefault(const Constant(true))();
 }
 
 @DataClassName('MetricResultRecord')

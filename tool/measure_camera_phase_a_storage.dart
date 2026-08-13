@@ -6,7 +6,7 @@ import 'package:wormwise/services/evidence_storage_service.dart';
 
 void main() {
   test(
-    'measures Station 1 context plus ten overview images',
+    'measures capture-first Station 1 context plus twenty required plant images',
     () async {
       final root = await Directory.systemTemp.createTemp(
         'wormwise-ten-plant-measurement-',
@@ -28,14 +28,20 @@ void main() {
       var mainBytes = 0;
       var thumbnailBytes = 0;
 
-      for (var index = 0; index < 11; index++) {
+      for (var index = 0; index < 21; index++) {
         final source = File(
           '${root.path}${Platform.pathSeparator}source_$index.jpg',
         );
         await source.writeAsBytes(phoneJpeg, flush: true);
+        final plantPosition = index == 0 ? null : ((index - 1) ~/ 2) + 1;
+        final view = index == 0
+            ? 'context'
+            : index.isOdd
+            ? 'overview'
+            : 'whorl_detail';
         final scopeKey = index == 0
             ? 'station_context'
-            : 'plant_${index.toString().padLeft(2, '0')}';
+            : 'plant_${plantPosition!.toString().padLeft(2, '0')}_$view';
         final staged = await storage.stageCapturedFile(
           sourcePath: source.path,
           assessmentId: 'measurement-assessment',
@@ -56,10 +62,10 @@ void main() {
       final totalBytes = mainBytes + thumbnailBytes;
       // ignore: avoid_print
       print(
-        'CAMERA_PHASE_A_10_PLANT_MEASUREMENT '
+        'CAPTURE_FIRST_10_PLANT_MEASUREMENT '
         'fixture=2304x1728_high_detail input=${phoneJpeg.length}B_each '
         'main=${mainBytes}B thumbnails=${thumbnailBytes}B '
-        'total=${totalBytes}B images=11',
+        'total=${totalBytes}B images=21',
       );
       // ignore: avoid_print
       print(

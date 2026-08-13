@@ -34,6 +34,7 @@ class VegetativePlantSave {
     this.requiredEvidenceViewTypes = const {},
     this.requireCameraPhaseAEvidence = false,
     this.pilotActiveDurationMs = 0,
+    this.manualFormUsed = true,
   });
 
   final String stationId;
@@ -62,6 +63,7 @@ class VegetativePlantSave {
   final Set<String> requiredEvidenceViewTypes;
   final bool requireCameraPhaseAEvidence;
   final int pilotActiveDurationMs;
+  final bool manualFormUsed;
 }
 
 class SavedVegetativePlant {
@@ -244,6 +246,7 @@ class AtomicPlantSaveService {
           requiredViewTypes: input.requiredEvidenceViewTypes,
           actorPersonId: input.actorPersonId ?? '',
           pilotActiveDurationMs: input.pilotActiveDurationMs,
+          manualFormUsed: input.manualFormUsed,
         );
       }
 

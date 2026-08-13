@@ -228,7 +228,7 @@ class _EvidencePreviewState extends State<_EvidencePreview> {
         }
         return Semantics(
           button: true,
-          label: 'Open original evidence photo',
+          label: 'Open canonical evidence photo',
           child: InkWell(
             key: Key('inspect_evidence_${widget.media.viewType}'),
             onTap: widget.onInspect,
@@ -263,7 +263,7 @@ class _EvidencePreviewState extends State<_EvidencePreview> {
                     children: [
                       Icon(Icons.zoom_in, size: 18),
                       SizedBox(width: 4),
-                      Flexible(child: Text('Tap to inspect original')),
+                      Flexible(child: Text('Tap to inspect evidence')),
                     ],
                   ),
                 ),
