@@ -42,7 +42,60 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(save, findsOneWidget);
+    expect(find.byKey(const Key('manual_confirmation_header')), findsOneWidget);
     expect(tester.getSize(save).height, greaterThanOrEqualTo(56));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('manual confirmation uses aligned outdoor-sized controls', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: PlantObservationStep(
+            position: 1,
+            savedCount: 2,
+            stationId: 'station-1',
+            actorPersonId: 'evaluator-1',
+            existing: null,
+            isSaving: false,
+            onSave: (_) async {},
+          ),
+        ),
+      ),
+    );
+
+    final assess = find.byKey(const Key('assessable_yes'));
+    final cannotAssess = find.byKey(const Key('assessable_no'));
+    expect(tester.getSize(assess).height, greaterThanOrEqualTo(56));
+    expect(tester.getSize(assess).width, tester.getSize(cannotAssess).width);
+    await tester.tap(assess);
+    await tester.pump();
+
+    final windowpanes = find.byKey(const Key('fresh_windowpanes_field'));
+    final scraping = find.byKey(const Key('fresh_scraping_field'));
+    final none = find.byKey(const Key('no_fresh_signs_field'));
+    await tester.scrollUntilVisible(
+      windowpanes,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    expect(
+      tester.getSize(windowpanes).width,
+      closeTo(tester.getSize(scraping).width, 0.1),
+    );
+    expect(
+      tester.getSize(none).width,
+      greaterThan(tester.getSize(windowpanes).width),
+    );
+    expect(tester.getSize(windowpanes).height, greaterThanOrEqualTo(56));
     expect(tester.takeException(), isNull);
   });
 

@@ -312,10 +312,13 @@ void main() {
       await tester.pumpAndSettle();
       await tester.drag(find.byType(Scrollable).first, const Offset(0, 1000));
       await tester.pumpAndSettle();
-      final assessableChip = tester.widget<ChoiceChip>(
-        find.byKey(const Key('assessable_yes')),
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('assessable_yes')),
+          matching: find.byIcon(Icons.check_circle),
+        ),
+        findsOneWidget,
       );
-      expect(assessableChip.selected, isTrue);
       expect(tester.takeException(), isNull);
     },
   );

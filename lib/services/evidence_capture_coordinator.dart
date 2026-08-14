@@ -67,12 +67,14 @@ class EvidenceCaptureCoordinator {
     required String stationId,
     required int plantPosition,
     required String actorPersonId,
+    String requirementsVersion = DatabaseCodes.evidencePolicyStation1TwoViewV1,
   }) async {
     final session = await _repository.ensurePlantSession(
       assessmentId: assessmentId,
       stationId: stationId,
       plantPosition: plantPosition,
       actorPersonId: actorPersonId,
+      requirementsVersion: requirementsVersion,
     );
     return _repository.loadBundle(session.id);
   }
@@ -198,11 +200,16 @@ class EvidenceCaptureCoordinator {
     required String actorPersonId,
     required Duration activeDuration,
     required int newestLeavesInspectedCount,
+    Set<String> requiredViewTypes = const {
+      DatabaseCodes.evidenceViewWhorlOverview,
+      DatabaseCodes.evidenceViewCloseUp,
+    },
   }) => _repository.completePlantCapture(
     session: session,
     actorPersonId: actorPersonId,
     pilotActiveDurationMs: activeDuration.inMilliseconds,
     newestLeavesInspectedCount: newestLeavesInspectedCount,
+    requiredViewTypes: requiredViewTypes,
   );
 
   Future<void> recordPlantCaptureInspection({

@@ -5,9 +5,10 @@ import 'package:drift/drift.dart';
 import '../local/app_database.dart';
 import '../local/database_codes.dart';
 import '../local/local_id.dart';
+import '../../services/station_evidence_policy.dart';
 import 'local_mutation_recorder.dart';
 
-class EvidenceCaptureBundle {
+class EvidenceCaptureBundle implements EvidenceCaptureBundleView {
   const EvidenceCaptureBundle({required this.session, required this.media});
 
   final EvidenceCaptureSessionRecord session;
@@ -34,6 +35,7 @@ class EvidenceCaptureBundle {
       mediaForView(viewType)?.storageState ==
       DatabaseCodes.evidenceStorageReady;
 
+  @override
   bool isViewSatisfied(String viewType) =>
       hasReadyView(viewType) || waivedViewTypes.contains(viewType);
 }
@@ -54,12 +56,117 @@ class PilotWorkloadAuditSummary {
   final int guidedTapCount;
 }
 
+class PlantEvidenceReview {
+  const PlantEvidenceReview({
+    required this.sessionId,
+    required this.plantPosition,
+    required this.status,
+    required this.isCurrent,
+  });
+
+  final String sessionId;
+  final int plantPosition;
+  final String status;
+  final bool isCurrent;
+}
+
 class EvidenceCaptureRepository {
   EvidenceCaptureRepository(this.database)
     : _mutations = LocalMutationRecorder(database);
 
   final AppDatabase database;
   final LocalMutationRecorder _mutations;
+
+  Future<void> recordPlantEvidenceReview({
+    required EvidenceCaptureBundle bundle,
+    required String status,
+    required String actorPersonId,
+  }) async {
+    if (bundle.session.scopeType != DatabaseCodes.evidenceScopePlant ||
+        bundle.session.plantPosition == null) {
+      throw StateError('Evidence review requires a plant capture session.');
+    }
+    if (!DatabaseCodes.evidenceReviewStatuses.contains(status)) {
+      throw ArgumentError.value(status, 'status', 'Unsupported review status');
+    }
+    await database.transaction(() async {
+      await _mutations.record(
+        entityType: 'evidence_capture_sessions',
+        entityId: bundle.session.id,
+        action: 'evidence_review_confirmed',
+        actorPersonId: actorPersonId,
+        after: {
+          'station_id': bundle.session.stationId,
+          'plant_position': bundle.session.plantPosition,
+          'status': status,
+          'evidence_fingerprint': evidenceFingerprint(bundle),
+        },
+        queueForSync: false,
+      );
+    });
+  }
+
+  Future<Map<int, PlantEvidenceReview>> loadPlantEvidenceReviews(
+    String stationId,
+  ) async {
+    final bundles = await loadStationBundles(stationId);
+    final result = <int, PlantEvidenceReview>{};
+    for (final bundle in bundles.where(
+      (item) => item.session.scopeType == DatabaseCodes.evidenceScopePlant,
+    )) {
+      final position = bundle.session.plantPosition;
+      if (position == null) continue;
+      final audit =
+          await (database.select(database.auditLogs)
+                ..where(
+                  (row) =>
+                      row.entityType.equals('evidence_capture_sessions') &
+                      row.entityId.equals(bundle.session.id) &
+                      row.action.equals('evidence_review_confirmed'),
+                )
+                ..orderBy([(row) => OrderingTerm.desc(row.occurredAt)])
+                ..limit(1))
+              .getSingleOrNull();
+      if (audit?.afterJson == null) continue;
+      try {
+        final decoded = jsonDecode(audit!.afterJson!) as Map<String, dynamic>;
+        final status = decoded['status'] as String?;
+        final fingerprint = decoded['evidence_fingerprint'] as String?;
+        if (status == null ||
+            !DatabaseCodes.evidenceReviewStatuses.contains(status)) {
+          continue;
+        }
+        result[position] = PlantEvidenceReview(
+          sessionId: bundle.session.id,
+          plantPosition: position,
+          status: status,
+          isCurrent: fingerprint == evidenceFingerprint(bundle),
+        );
+      } catch (_) {
+        continue;
+      }
+    }
+    return Map.unmodifiable(result);
+  }
+
+  String evidenceFingerprint(EvidenceCaptureBundle bundle) {
+    final media =
+        bundle.media
+            .map(
+              (item) =>
+                  '${item.id}:${item.viewType}:${item.sha256Checksum}:${item.storageState}:${item.deletedAt?.toIso8601String()}',
+            )
+            .toList()
+          ..sort();
+    final waived = bundle.waivedViewTypes.toList()..sort();
+    return jsonEncode({
+      'session_id': bundle.session.id,
+      'plant_observation_id': bundle.session.plantObservationId,
+      'requirements_version': bundle.session.requirementsVersion,
+      'waived': waived,
+      'media': media,
+    });
+  }
 
   Future<EvidenceCaptureSessionRecord> ensureStationContextSession({
     required String assessmentId,
@@ -80,6 +187,7 @@ class EvidenceCaptureRepository {
     required String stationId,
     required int plantPosition,
     required String actorPersonId,
+    String requirementsVersion = DatabaseCodes.evidencePolicyStation1TwoViewV1,
   }) {
     if (plantPosition < 1 || plantPosition > 10) {
       throw ArgumentError.value(
@@ -95,7 +203,7 @@ class EvidenceCaptureRepository {
       scopeKey: 'plant_${plantPosition.toString().padLeft(2, '0')}',
       plantPosition: plantPosition,
       actorPersonId: actorPersonId,
-      requirementsVersion: 'capture_first_station1_v1',
+      requirementsVersion: requirementsVersion,
     );
   }
 
@@ -129,7 +237,10 @@ class EvidenceCaptureRepository {
             'The existing evidence session has the wrong scope.',
           );
         }
-        if (existing.requirementsVersion != requirementsVersion) {
+        if (existing.requirementsVersion != requirementsVersion &&
+            existing.requirementsVersion == 'camera_phase_a_v1' &&
+            requirementsVersion ==
+                DatabaseCodes.evidencePolicyStation1TwoViewV1) {
           final now = DateTime.now().toUtc();
           await (database.update(
             database.evidenceCaptureSessions,
@@ -643,6 +754,10 @@ class EvidenceCaptureRepository {
     required String actorPersonId,
     required int pilotActiveDurationMs,
     required int newestLeavesInspectedCount,
+    Set<String> requiredViewTypes = const {
+      DatabaseCodes.evidenceViewWhorlOverview,
+      DatabaseCodes.evidenceViewCloseUp,
+    },
   }) async {
     if (pilotActiveDurationMs < 0) {
       throw ArgumentError.value(
@@ -663,11 +778,7 @@ class EvidenceCaptureRepository {
         bundle.session.plantPosition == null) {
       throw StateError('This is not a plant evidence session.');
     }
-    const requiredViews = {
-      DatabaseCodes.evidenceViewWhorlOverview,
-      DatabaseCodes.evidenceViewCloseUp,
-    };
-    for (final viewType in requiredViews) {
+    for (final viewType in requiredViewTypes) {
       if (!bundle.isViewSatisfied(viewType)) {
         throw StateError(
           'Accept the required $viewType image or document manual fallback.',
@@ -677,7 +788,7 @@ class EvidenceCaptureRepository {
 
     await database.transaction(() async {
       final fallback = bundle.waivedViewTypes
-          .intersection(requiredViews)
+          .intersection(requiredViewTypes)
           .isNotEmpty;
       final now = DateTime.now().toUtc();
       await (database.update(
@@ -701,7 +812,8 @@ class EvidenceCaptureRepository {
         after: {
           'station_id': session.stationId,
           'plant_position': session.plantPosition,
-          'required_view_types': requiredViews.toList()..sort(),
+          'requirements_version': session.requirementsVersion,
+          'required_view_types': requiredViewTypes.toList()..sort(),
           'waived_view_types': bundle.waivedViewTypes.toList()..sort(),
           'pilot_active_duration_ms': pilotActiveDurationMs,
           'newest_leaves_inspected_count': newestLeavesInspectedCount,

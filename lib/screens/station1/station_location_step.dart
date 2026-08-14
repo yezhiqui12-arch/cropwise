@@ -6,12 +6,14 @@ import '../../services/phone_location_service.dart';
 class StationLocationStep extends StatefulWidget {
   const StationLocationStep({
     super.key,
+    this.stationNumber = 1,
     required this.captureLocation,
     required this.isSaving,
     required this.onUseLocation,
     required this.onSaveUnavailable,
   });
 
+  final int stationNumber;
   final Future<AveragedPhoneLocation> Function() captureLocation;
   final bool isSaving;
   final Future<void> Function(AveragedPhoneLocation location) onUseLocation;
@@ -52,14 +54,14 @@ class _StationLocationStepState extends State<StationLocationStep> {
           ),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Record Station 1',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        Text(
+          'Record Station ${widget.stationNumber}',
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 10),
-        const Text(
-          'Stand at the Station 1 observation point. WormWise will average several phone readings when available.',
-          style: TextStyle(height: 1.45),
+        Text(
+          'Stand at the Station ${widget.stationNumber} observation point. WormWise will average several phone readings when available.',
+          style: const TextStyle(height: 1.45),
         ),
         const SizedBox(height: 16),
         if (_location != null) _LocationResult(location: _location!),

@@ -113,6 +113,20 @@ abstract final class DatabaseCodes {
   static const evidenceCaptureSourceCamera = 'camera';
   static const evidenceQualityEvaluatorConfirmed = 'evaluator_confirmed';
 
+  // Versioned station evidence policies. Older versions remain readable so
+  // accepted evidence is never deleted or silently reclassified.
+  static const evidencePolicyStation1TwoViewV1 = 'capture_first_station1_v1';
+  static const evidencePolicyHumanWorkloadSafeV1 = 'human_workload_safe_v1';
+  static const evidencePolicyCameraFirstOverviewConditionalV1 =
+      'camera_first_overview_conditional_v1';
+
+  static const evidenceReviewSufficient = 'sufficient';
+  static const evidenceReviewInsufficient = 'insufficient';
+  static const evidenceReviewStatuses = {
+    evidenceReviewSufficient,
+    evidenceReviewInsufficient,
+  };
+
   static const evidenceFallbackPermissionDenied = 'permission_denied';
   static const evidenceFallbackPermissionBlocked = 'permission_blocked';
   static const evidenceFallbackNoCamera = 'no_camera_hardware';

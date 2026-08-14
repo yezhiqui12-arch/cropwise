@@ -28,6 +28,10 @@ enum Station1ViewState {
   plantEntry,
   stationReview,
   stationComplete,
+  betweenStations,
+  blockReview,
+  betweenBlocks,
+  samplingComplete,
   pausedConditions,
   error,
 }

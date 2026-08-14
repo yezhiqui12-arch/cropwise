@@ -3,10 +3,12 @@ import 'package:provider/provider.dart';
 
 import '../../data/local/database_codes.dart';
 import '../../providers/assessment_workspace_provider.dart';
+import '../../providers/app_data_mode.dart';
 import '../../providers/field_workspace_provider.dart';
 import '../../theme/app_colors.dart';
 import '../assessment_session_screen.dart';
 import '../assessment_setup_screen.dart';
+import '../debug_test_mode_shell.dart';
 
 class ScanLandingScreen extends StatelessWidget {
   const ScanLandingScreen({
@@ -23,8 +25,24 @@ class ScanLandingScreen extends StatelessWidget {
     final fields = context.watch<FieldWorkspaceProvider>();
     final assessments = context.watch<AssessmentWorkspaceProvider>();
 
+    final mode =
+        context.watch<AppDataMode?>() ?? const AppDataMode.production();
     return Scaffold(
-      appBar: AppBar(title: const Text('Scan')),
+      appBar: AppBar(
+        title: Text(mode.isTestMode ? 'Scan · TEST DATA' : 'Scan'),
+        actions: [
+          if (mode.canEnterTestMode)
+            IconButton(
+              key: const Key('open_test_mode_button'),
+              tooltip: 'Open isolated test mode',
+              onPressed: () => Navigator.push<void>(
+                context,
+                MaterialPageRoute(builder: (_) => const DebugTestModeShell()),
+              ),
+              icon: const Icon(Icons.science_outlined),
+            ),
+        ],
+      ),
       body: SafeArea(child: _buildContent(context, fields, assessments)),
     );
   }

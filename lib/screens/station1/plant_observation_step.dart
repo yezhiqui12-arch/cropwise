@@ -7,18 +7,24 @@ import '../../data/local/database_codes.dart';
 import '../../data/repositories/evidence_capture_repository.dart';
 import '../../data/repositories/station1_workflow_repository.dart';
 import '../../data/services/atomic_plant_save_service.dart';
+import '../../services/station_evidence_policy.dart';
 import 'evidence_capture_panel.dart';
 
 class PlantObservationStep extends StatefulWidget {
   const PlantObservationStep({
     super.key,
     required this.position,
+    this.blockNumber = 1,
+    this.stationNumber = 1,
+    this.evidencePolicy = StationEvidencePolicy.station1TwoView,
     required this.savedCount,
     required this.stationId,
     required this.actorPersonId,
     required this.existing,
     required this.isSaving,
     required this.onSave,
+    this.onSaveReviewed,
+    this.initialEvidenceReviewStatus,
     this.initialLeavesInspectedCount,
     this.onCancelEdit,
     this.evidence,
@@ -32,12 +38,18 @@ class PlantObservationStep extends StatefulWidget {
   });
 
   final int position;
+  final int blockNumber;
+  final int stationNumber;
+  final StationEvidencePolicy evidencePolicy;
   final int savedCount;
   final String stationId;
   final String actorPersonId;
   final Station1PlantRecord? existing;
   final bool isSaving;
   final Future<void> Function(VegetativePlantSave input) onSave;
+  final Future<void> Function(VegetativePlantSave input, String reviewStatus)?
+  onSaveReviewed;
+  final String? initialEvidenceReviewStatus;
   final int? initialLeavesInspectedCount;
   final VoidCallback? onCancelEdit;
   final EvidenceCaptureBundle? evidence;
@@ -72,6 +84,7 @@ class _PlantObservationStepState extends State<PlantObservationStep>
   bool? _possibleNonFaw;
   bool? _uncertain;
   String? _plantStatus;
+  String? _evidenceReviewStatus;
   String? _validationMessage;
   late final TextEditingController _notAssessableReason;
   late final TextEditingController _notes;
@@ -83,6 +96,7 @@ class _PlantObservationStepState extends State<PlantObservationStep>
     WidgetsBinding.instance.addObserver(this);
     _activeTimer.start();
     final existing = widget.existing;
+    _evidenceReviewStatus = widget.initialEvidenceReviewStatus;
     _notAssessableReason = TextEditingController(
       text: existing?.plant.notAssessableReason,
     );
@@ -139,31 +153,18 @@ class _PlantObservationStepState extends State<PlantObservationStep>
     final isAssessable = _assessable == true;
     return Column(
       children: [
+        _ManualConfirmationHeader(
+          blockNumber: widget.blockNumber,
+          stationNumber: widget.stationNumber,
+          position: widget.position,
+          confirmedCount: widget.savedCount,
+          editingExisting: widget.existing != null,
+        ),
         Expanded(
           child: ListView(
             key: const Key('plant_observation_step'),
-            padding: const EdgeInsets.fromLTRB(18, 16, 18, 24),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
             children: [
-              Text(
-                'BLOCK 1 · STATION 1 · ${widget.savedCount} OF 10 SAVED',
-                style: const TextStyle(
-                  color: Color(0xFF176B3A),
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                widget.existing == null
-                    ? 'Plant ${widget.position} of 10'
-                    : 'Edit Plant ${widget.position}',
-                style: const TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
               const _ReminderCard(),
               const SizedBox(height: 14),
               const _SectionTitle('Can this plant be assessed?'),
@@ -216,6 +217,36 @@ class _PlantObservationStepState extends State<PlantObservationStep>
                         ),
                   ),
                   const SizedBox(height: 14),
+                  const _SectionTitle('Evidence review'),
+                  _CompactChoices<String>(
+                    keyBase: 'evidence_review',
+                    value: _evidenceReviewStatus,
+                    choices: const {
+                      DatabaseCodes.evidenceReviewSufficient:
+                          'Sufficient to confirm',
+                      DatabaseCodes.evidenceReviewInsufficient: 'Insufficient',
+                    },
+                    onChanged: (value) => setState(() {
+                      _evidenceReviewStatus = value;
+                      _validationMessage = null;
+                    }),
+                  ),
+                  if (_evidenceReviewStatus ==
+                      DatabaseCodes.evidenceReviewInsufficient) ...[
+                    const SizedBox(height: 8),
+                    const Card(
+                      elevation: 0,
+                      color: Color(0xFFFFF3CD),
+                      child: Padding(
+                        padding: EdgeInsets.all(12),
+                        child: Text(
+                          'Add a close-up or use documented fallback if photography is unavailable. Leave observations unanswered when the accepted evidence cannot support them.',
+                          style: TextStyle(height: 1.35),
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 14),
                 ],
                 const _SectionTitle('Physical inspection'),
                 const Text(
@@ -237,10 +268,8 @@ class _PlantObservationStepState extends State<PlantObservationStep>
                   style: TextStyle(height: 1.35),
                 ),
                 const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
+                _FreshSignsGrid(
+                  choices: [
                     _SignChip(
                       key: const Key('fresh_windowpanes_field'),
                       label: 'Small fresh windowpanes',
@@ -276,13 +305,13 @@ class _PlantObservationStepState extends State<PlantObservationStep>
                       onSelected: (value) =>
                           _setFreshSign(_FreshSign.whorlFeeding, value),
                     ),
-                    _SignChip(
-                      key: const Key('no_fresh_signs_field'),
-                      label: 'No listed fresh feeding signs observed',
-                      selected: _noFreshSigns,
-                      onSelected: _setNoFreshSigns,
-                    ),
                   ],
+                  noneChoice: _SignChip(
+                    key: const Key('no_fresh_signs_field'),
+                    label: 'No listed fresh feeding signs observed',
+                    selected: _noFreshSigns,
+                    onSelected: _setNoFreshSigns,
+                  ),
                 ),
                 const _ObservationHelp(),
                 const SizedBox(height: 14),
@@ -361,10 +390,42 @@ class _PlantObservationStepState extends State<PlantObservationStep>
                   onChanged: (value) => setState(() => _uncertain = value),
                 ),
                 const _InterpretationHelp(),
+                if (widget.evidence != null &&
+                    widget.evidencePolicy ==
+                        StationEvidencePolicy.humanWorkloadSafe &&
+                    _requiresSupportingOverview) ...[
+                  const SizedBox(height: 14),
+                  EvidenceCapturePanel(
+                    title: 'Supporting plant overview',
+                    scopeLabel: 'Plant ${widget.position}',
+                    instruction:
+                        'Capture the whorl and newest leaves to support the recorded current, possible, or uncertain evidence.',
+                    viewType: DatabaseCodes.evidenceViewWhorlOverview,
+                    bundle: widget.evidence!,
+                    resolveFile: widget.resolveEvidenceFile!,
+                    onCapture: () => widget.onCaptureEvidence!(
+                      DatabaseCodes.evidenceViewWhorlOverview,
+                    ),
+                    onInspect: widget.onInspectEvidence!,
+                    onAccept: widget.onAcceptEvidence!,
+                    onRetake: widget.onRetakeEvidence!,
+                    onRemove: widget.onRemoveEvidence!,
+                    onManualFallback: (reason, note) =>
+                        widget.onManualFallback!(
+                          DatabaseCodes.evidenceViewWhorlOverview,
+                          reason,
+                          note,
+                        ),
+                  ),
+                ],
                 if (widget.evidence != null && _needsCloseUp) ...[
                   const SizedBox(height: 14),
                   EvidenceCapturePanel(
-                    title: 'Evidence close-up',
+                    title:
+                        widget.evidencePolicy ==
+                            StationEvidencePolicy.station1TwoView
+                        ? 'Evidence close-up'
+                        : 'Optional evidence close-up',
                     scopeLabel: 'Plant ${widget.position}',
                     instruction:
                         'Photograph the specific sign or organism that needs detail.',
@@ -409,6 +470,7 @@ class _PlantObservationStepState extends State<PlantObservationStep>
                 _CompactChoices<String>(
                   keyBase: 'plant_status',
                   value: _plantStatus,
+                  maxColumns: 1,
                   choices: const {
                     DatabaseCodes.plantNegative: 'No current FAW evidence',
                     DatabaseCodes.plantCurrentPositive:
@@ -479,7 +541,7 @@ class _PlantObservationStepState extends State<PlantObservationStep>
                 if (widget.onCancelEdit != null)
                   TextButton(
                     onPressed: widget.isSaving ? null : widget.onCancelEdit,
-                    child: const Text('Cancel edit'),
+                    child: const Text('Back to Station Review'),
                   ),
               ],
             ),
@@ -500,10 +562,18 @@ class _PlantObservationStepState extends State<PlantObservationStep>
       (_possibleNonFaw == true && _uncertain == true);
 
   bool get _needsCloseUp =>
+      _evidenceReviewStatus == DatabaseCodes.evidenceReviewInsufficient ||
       _hasFreshEvidence ||
       _larvaVisible == true ||
       _eggMassResponse == 'yes' ||
       _oldDamage == true ||
+      _possibleNonFaw == true ||
+      _uncertain == true;
+
+  bool get _requiresSupportingOverview =>
+      _hasFreshEvidence ||
+      _larvaVisible == true ||
+      _eggMassResponse == 'yes' ||
       _possibleNonFaw == true ||
       _uncertain == true;
 
@@ -580,17 +650,29 @@ class _PlantObservationStepState extends State<PlantObservationStep>
       actorPersonId: widget.actorPersonId,
       evidenceCaptureSessionId: widget.evidence?.session.id,
       requiredEvidenceViewTypes: assessable && widget.evidence != null
-          ? const {
-              DatabaseCodes.evidenceViewWhorlOverview,
-              DatabaseCodes.evidenceViewCloseUp,
-            }
+          ? widget.evidencePolicy == StationEvidencePolicy.station1TwoView
+                ? const {
+                    DatabaseCodes.evidenceViewWhorlOverview,
+                    DatabaseCodes.evidenceViewCloseUp,
+                  }
+                : widget.evidencePolicy ==
+                      StationEvidencePolicy.cameraFirstOverviewConditional
+                ? const {DatabaseCodes.evidenceViewWhorlOverview}
+                : _requiresSupportingOverview
+                ? const {DatabaseCodes.evidenceViewWhorlOverview}
+                : const {}
           : const {},
       requireCameraPhaseAEvidence: widget.evidence != null,
       pilotActiveDurationMs: _activeTimer.elapsedMilliseconds,
     );
 
     try {
-      await widget.onSave(input);
+      final reviewedSave = widget.onSaveReviewed;
+      if (reviewedSave != null && widget.evidence != null) {
+        await reviewedSave(input, _evidenceReviewStatus!);
+      } else {
+        await widget.onSave(input);
+      }
     } catch (error) {
       _activeTimer.start();
       if (!mounted) return;
@@ -613,11 +695,25 @@ class _PlantObservationStepState extends State<PlantObservationStep>
       return 'Confirm inspection of the newest three or four leaves.';
     }
     final evidence = widget.evidence;
-    if (evidence != null &&
-        !evidence.isViewSatisfied(DatabaseCodes.evidenceViewWhorlOverview)) {
-      return 'Use the whorl/newest-leaves overview or document manual fallback.';
+    if (evidence != null && _evidenceReviewStatus == null) {
+      return 'Choose whether the accepted evidence is sufficient.';
     }
     if (evidence != null &&
+        _evidenceReviewStatus == DatabaseCodes.evidenceReviewInsufficient) {
+      return 'Resolve insufficient evidence before confirming observations.';
+    }
+    final overviewRequired =
+        widget.evidencePolicy == StationEvidencePolicy.station1TwoView ||
+        widget.evidencePolicy ==
+            StationEvidencePolicy.cameraFirstOverviewConditional ||
+        _requiresSupportingOverview;
+    if (evidence != null &&
+        overviewRequired &&
+        !evidence.isViewSatisfied(DatabaseCodes.evidenceViewWhorlOverview)) {
+      return 'Use the required supporting overview or document manual fallback.';
+    }
+    if (evidence != null &&
+        widget.evidencePolicy == StationEvidencePolicy.station1TwoView &&
         !evidence.isViewSatisfied(DatabaseCodes.evidenceViewCloseUp)) {
       return 'Use the required closer whorl view or document manual fallback.';
     }
@@ -647,23 +743,77 @@ class _PlantObservationStepState extends State<PlantObservationStep>
 
 enum _FreshSign { windowpanes, scraping, cutting, frass, whorlFeeding }
 
-class _ReminderCard extends StatelessWidget {
-  const _ReminderCard();
+class _ManualConfirmationHeader extends StatelessWidget {
+  const _ManualConfirmationHeader({
+    required this.blockNumber,
+    required this.stationNumber,
+    required this.position,
+    required this.confirmedCount,
+    required this.editingExisting,
+  });
+
+  final int blockNumber;
+  final int stationNumber;
+  final int position;
+  final int confirmedCount;
+  final bool editingExisting;
 
   @override
   Widget build(BuildContext context) {
-    return const Card(
-      elevation: 0,
-      color: Color(0xFFEAF6EE),
+    return Material(
+      key: const Key('manual_confirmation_header'),
+      color: const Color(0xFFF3F8F4),
       child: Padding(
-        padding: EdgeInsets.all(12),
-        child: Text(
-          'Inspect this next consecutive plant: expose the whorl, check the newest 3 or 4 leaves, record what you see, then confirm your interpretation.',
-          style: TextStyle(height: 1.35, fontWeight: FontWeight.w600),
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              editingExisting
+                  ? 'Review or correct Plant $position'
+                  : 'Manual confirmation · Plant $position of 10',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              'Block $blockNumber · Station $stationNumber · $confirmedCount of 10 confirmed',
+              style: const TextStyle(fontSize: 13),
+            ),
+            const SizedBox(height: 6),
+            LinearProgressIndicator(value: confirmedCount / 10),
+          ],
         ),
       ),
     );
   }
+}
+
+class _ReminderCard extends StatelessWidget {
+  const _ReminderCard();
+
+  @override
+  Widget build(BuildContext context) => const DecoratedBox(
+    decoration: BoxDecoration(
+      color: Color(0xFFEAF6EE),
+      borderRadius: BorderRadius.all(Radius.circular(12)),
+    ),
+    child: Padding(
+      padding: EdgeInsets.all(12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.visibility_outlined, size: 22, color: Color(0xFF176B3A)),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Expose the whorl and inspect the newest 3 or 4 leaves. Confirm only what you can observe.',
+              style: TextStyle(height: 1.35, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _SectionTitle extends StatelessWidget {
@@ -673,10 +823,14 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 8),
+    padding: const EdgeInsets.only(bottom: 8, left: 2),
     child: Text(
       text,
-      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      style: const TextStyle(
+        color: Color(0xFF176B3A),
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+      ),
     ),
   );
 }
@@ -694,16 +848,52 @@ class _SignChip extends StatelessWidget {
   final ValueChanged<bool> onSelected;
 
   @override
-  Widget build(BuildContext context) => ConstrainedBox(
-    constraints: const BoxConstraints(minHeight: 56),
-    child: FilterChip(
-      selected: selected,
-      label: Text(label),
-      onSelected: onSelected,
-      showCheckmark: true,
-      materialTapTargetSize: MaterialTapTargetSize.padded,
-    ),
+  Widget build(BuildContext context) => _SelectionTile(
+    selected: selected,
+    label: label,
+    onTap: () => onSelected(!selected),
   );
+}
+
+class _FreshSignsGrid extends StatelessWidget {
+  const _FreshSignsGrid({required this.choices, required this.noneChoice});
+
+  final List<Widget> choices;
+  final Widget noneChoice;
+
+  @override
+  Widget build(BuildContext context) {
+    final textScale = MediaQuery.textScalerOf(context).scale(16) / 16;
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: Color(0xFFF7F9F6),
+        borderRadius: BorderRadius.all(Radius.circular(14)),
+        border: Border.fromBorderSide(BorderSide(color: Color(0xFFD7E1D7))),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final columns = textScale >= 1.45 || constraints.maxWidth < 320
+                ? 1
+                : 2;
+            final itemWidth = columns == 1
+                ? constraints.maxWidth
+                : (constraints.maxWidth - 8) / 2;
+            return Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final choice in choices)
+                  SizedBox(width: itemWidth, child: choice),
+                SizedBox(width: constraints.maxWidth, child: noneChoice),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
 }
 
 class _CompactChoices<T> extends StatelessWidget {
@@ -713,6 +903,7 @@ class _CompactChoices<T> extends StatelessWidget {
     required this.choices,
     required this.onChanged,
     this.label,
+    this.maxColumns = 2,
   });
 
   final String keyBase;
@@ -720,34 +911,127 @@ class _CompactChoices<T> extends StatelessWidget {
   final T? value;
   final Map<T, String> choices;
   final ValueChanged<T> onChanged;
+  final int maxColumns;
 
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      if (label != null) ...[
-        Text(label!, style: const TextStyle(fontWeight: FontWeight.w600)),
-        const SizedBox(height: 6),
-      ],
-      Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          for (final entry in choices.entries)
-            ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 56),
-              child: ChoiceChip(
-                key: Key('${keyBase}_${_choiceKey(entry.key)}'),
-                selected: value == entry.key,
-                label: Text(entry.value),
-                onSelected: (_) => onChanged(entry.key),
-                materialTapTargetSize: MaterialTapTargetSize.padded,
+  Widget build(BuildContext context) {
+    final textScale = MediaQuery.textScalerOf(context).scale(16) / 16;
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: Color(0xFFF7F9F6),
+        borderRadius: BorderRadius.all(Radius.circular(14)),
+        border: Border.fromBorderSide(BorderSide(color: Color(0xFFD7E1D7))),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (label != null) ...[
+              Text(label!, style: const TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+            ],
+            LayoutBuilder(
+              builder: (context, constraints) {
+                var columns = choices.length < maxColumns
+                    ? choices.length
+                    : maxColumns;
+                if (textScale >= 1.45 || constraints.maxWidth < 280) {
+                  columns = 1;
+                }
+                final itemWidth = columns == 1
+                    ? constraints.maxWidth
+                    : (constraints.maxWidth - (8 * (columns - 1))) / columns;
+                return Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final entry in choices.entries)
+                      SizedBox(
+                        width: itemWidth,
+                        child: _SelectionTile(
+                          key: Key('${keyBase}_${_choiceKey(entry.key)}'),
+                          selected: value == entry.key,
+                          label: entry.value,
+                          onTap: () => onChanged(entry.key),
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SelectionTile extends StatelessWidget {
+  const _SelectionTile({
+    super.key,
+    required this.selected,
+    required this.label,
+    required this.onTap,
+  });
+
+  final bool selected;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: Material(
+        color: selected ? const Color(0xFFDCEFD7) : Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+            color: selected ? const Color(0xFF2D7D46) : const Color(0xFFB9C6B9),
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 56),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+              child: Row(
+                children: [
+                  Icon(
+                    selected
+                        ? Icons.check_circle
+                        : Icons.radio_button_unchecked,
+                    size: 22,
+                    color: selected
+                        ? const Color(0xFF176B3A)
+                        : const Color(0xFF66736A),
+                  ),
+                  const SizedBox(width: 9),
+                  Expanded(
+                    child: Text(
+                      label,
+                      textAlign: TextAlign.left,
+                      style: TextStyle(
+                        fontWeight: selected
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                        height: 1.2,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-        ],
+          ),
+        ),
       ),
-    ],
-  );
+    );
+  }
 }
 
 String _choiceKey(Object? value) => switch (value) {

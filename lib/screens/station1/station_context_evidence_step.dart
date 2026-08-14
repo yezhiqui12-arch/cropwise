@@ -10,6 +10,8 @@ import 'evidence_capture_panel.dart';
 class StationContextEvidenceStep extends StatelessWidget {
   const StationContextEvidenceStep({
     super.key,
+    this.blockNumber = 1,
+    this.stationNumber = 1,
     required this.bundle,
     required this.isSaving,
     required this.resolveFile,
@@ -22,6 +24,8 @@ class StationContextEvidenceStep extends StatelessWidget {
     required this.onContinue,
   });
 
+  final int blockNumber;
+  final int stationNumber;
   final EvidenceCaptureBundle bundle;
   final bool isSaving;
   final Future<File> Function(String localUri) resolveFile;
@@ -42,9 +46,9 @@ class StationContextEvidenceStep extends StatelessWidget {
       key: const Key('station_context_evidence_step'),
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 30),
       children: [
-        const Text(
-          'BLOCK 1 · STATION 1 · CONTEXT',
-          style: TextStyle(
+        Text(
+          'BLOCK $blockNumber · STATION $stationNumber · CONTEXT',
+          style: const TextStyle(
             color: Color(0xFF176B3A),
             fontSize: 12,
             fontWeight: FontWeight.bold,
@@ -76,9 +80,9 @@ class StationContextEvidenceStep extends StatelessWidget {
         const SizedBox(height: 12),
         EvidenceCapturePanel(
           title: 'Station-context image',
-          scopeLabel: 'Block 1 · Station 1',
+          scopeLabel: 'Block $blockNumber · Station $stationNumber',
           instruction:
-              'Frame enough of the row and surrounding crop to document conditions at Station 1.',
+              'Frame enough of the row and surrounding crop to document conditions at Station $stationNumber.',
           viewType: DatabaseCodes.evidenceViewStationContext,
           bundle: bundle,
           resolveFile: resolveFile,

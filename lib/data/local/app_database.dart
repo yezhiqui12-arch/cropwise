@@ -584,6 +584,17 @@ class AppPreferences extends Table {
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
+  AppDatabase.debugTest()
+    : super(
+        driftDatabase(
+          name: 'wormwise_debug_test_data',
+          web: DriftWebOptions(
+            sqlite3Wasm: Uri.parse('sqlite3.wasm'),
+            driftWorker: Uri.parse('drift_worker.js'),
+          ),
+        ),
+      );
+
   @override
   int get schemaVersion => 4;
 

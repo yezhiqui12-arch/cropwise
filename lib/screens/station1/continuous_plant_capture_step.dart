@@ -5,11 +5,15 @@ import 'package:flutter/material.dart';
 import '../../data/local/app_database.dart';
 import '../../data/local/database_codes.dart';
 import '../../data/repositories/evidence_capture_repository.dart';
+import '../../services/station_evidence_policy.dart';
 import 'evidence_capture_panel.dart';
 
 class ContinuousPlantCaptureStep extends StatefulWidget {
   const ContinuousPlantCaptureStep({
     super.key,
+    this.blockNumber = 1,
+    this.stationNumber = 1,
+    this.evidencePolicy = StationEvidencePolicy.station1TwoView,
     required this.position,
     required this.capturedPlantCount,
     required this.initialLeavesInspectedCount,
@@ -27,6 +31,9 @@ class ContinuousPlantCaptureStep extends StatefulWidget {
     required this.onCannotAssess,
   });
 
+  final int blockNumber;
+  final int stationNumber;
+  final StationEvidencePolicy evidencePolicy;
   final int position;
   final int capturedPlantCount;
   final int? initialLeavesInspectedCount;
@@ -74,7 +81,9 @@ class _ContinuousPlantCaptureStepState extends State<ContinuousPlantCaptureStep>
     if (_captureStarted) _assessable = true;
     _leavesInspected = widget.initialLeavesInspectedCount;
     _detailRequested = widget.bundle.isViewSatisfied(
-      DatabaseCodes.evidenceViewDiagnosticDetail,
+      widget.evidencePolicy == StationEvidencePolicy.station1TwoView
+          ? DatabaseCodes.evidenceViewDiagnosticDetail
+          : DatabaseCodes.evidenceViewCloseUp,
     );
   }
 
@@ -88,7 +97,9 @@ class _ContinuousPlantCaptureStepState extends State<ContinuousPlantCaptureStep>
       _assessable = _captureStarted ? true : null;
       _leavesInspected = widget.initialLeavesInspectedCount;
       _detailRequested = widget.bundle.isViewSatisfied(
-        DatabaseCodes.evidenceViewDiagnosticDetail,
+        widget.evidencePolicy == StationEvidencePolicy.station1TwoView
+            ? DatabaseCodes.evidenceViewDiagnosticDetail
+            : DatabaseCodes.evidenceViewCloseUp,
       );
       _validationMessage = null;
     }
@@ -112,6 +123,8 @@ class _ContinuousPlantCaptureStepState extends State<ContinuousPlantCaptureStep>
 
   @override
   Widget build(BuildContext context) {
+    final usesLegacyTwoView =
+        widget.evidencePolicy == StationEvidencePolicy.station1TwoView;
     final overviewReady = widget.bundle.isViewSatisfied(
       DatabaseCodes.evidenceViewWhorlOverview,
     );
@@ -119,14 +132,18 @@ class _ContinuousPlantCaptureStepState extends State<ContinuousPlantCaptureStep>
       DatabaseCodes.evidenceViewCloseUp,
     );
     final detailReady = widget.bundle.isViewSatisfied(
-      DatabaseCodes.evidenceViewDiagnosticDetail,
+      usesLegacyTwoView
+          ? DatabaseCodes.evidenceViewDiagnosticDetail
+          : DatabaseCodes.evidenceViewCloseUp,
     );
     final currentView = !overviewReady
         ? DatabaseCodes.evidenceViewWhorlOverview
-        : !closeReady
+        : usesLegacyTwoView && !closeReady
         ? DatabaseCodes.evidenceViewCloseUp
         : _detailRequested && !detailReady
-        ? DatabaseCodes.evidenceViewDiagnosticDetail
+        ? usesLegacyTwoView
+              ? DatabaseCodes.evidenceViewDiagnosticDetail
+              : DatabaseCodes.evidenceViewCloseUp
         : null;
     final currentViewNumber = !overviewReady
         ? 1
@@ -137,10 +154,14 @@ class _ContinuousPlantCaptureStepState extends State<ContinuousPlantCaptureStep>
     return Column(
       children: [
         _CaptureProgressHeader(
+          blockNumber: widget.blockNumber,
+          stationNumber: widget.stationNumber,
           position: widget.position,
           capturedPlantCount: widget.capturedPlantCount,
           currentViewNumber: currentViewNumber,
-          requiredViewsComplete: overviewReady && closeReady,
+          requiredViewsComplete:
+              overviewReady && (!usesLegacyTwoView || closeReady),
+          requiredViewCount: usesLegacyTwoView ? 2 : 1,
           onHelp: () => _showHelp(context),
         ),
         Expanded(
@@ -160,7 +181,10 @@ class _ContinuousPlantCaptureStepState extends State<ContinuousPlantCaptureStep>
                 if (currentView != null)
                   _buildEvidencePanel(currentView)
                 else
-                  _buildRequiredViewsComplete(detailReady),
+                  _buildRequiredViewsComplete(
+                    detailReady,
+                    usesLegacyTwoView: usesLegacyTwoView,
+                  ),
               ],
               if (_validationMessage != null) ...[
                 const SizedBox(height: 12),
@@ -266,8 +290,10 @@ class _ContinuousPlantCaptureStepState extends State<ContinuousPlantCaptureStep>
         'Frame the whole whorl and newest three or four leaves.',
       ),
       DatabaseCodes.evidenceViewCloseUp => (
-        'Required view 2 · Whorl detail',
-        'Move closer to the whorl interior or inspected feeding surface.',
+        widget.evidencePolicy == StationEvidencePolicy.station1TwoView
+            ? 'Required view 2 · Whorl detail'
+            : 'Conditional close-up',
+        'Move closer when damage, a larva, egg mass, non-FAW evidence, uncertainty, or inadequate overview detail needs it.',
       ),
       _ => (
         'Conditional view · Extra detail',
@@ -290,7 +316,8 @@ class _ContinuousPlantCaptureStepState extends State<ContinuousPlantCaptureStep>
                   style: TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
-            if (viewType == DatabaseCodes.evidenceViewCloseUp)
+            if (viewType == DatabaseCodes.evidenceViewCloseUp &&
+                widget.evidencePolicy == StationEvidencePolicy.station1TwoView)
               CheckboxListTile(
                 key: const Key('conditional_detail_requested'),
                 contentPadding: EdgeInsets.zero,
@@ -326,10 +353,15 @@ class _ContinuousPlantCaptureStepState extends State<ContinuousPlantCaptureStep>
     );
   }
 
-  Widget _buildRequiredViewsComplete(bool detailReady) {
+  Widget _buildRequiredViewsComplete(
+    bool detailReady, {
+    required bool usesLegacyTwoView,
+  }) {
     if (_detailRequested && detailReady) {
       return _FinishCaptureCard(
-        message: 'The two required views and conditional detail are accepted.',
+        message: usesLegacyTwoView
+            ? 'The two required views and conditional detail are accepted.'
+            : 'The required overview and conditional close-up are accepted.',
         actionLabel: 'Finish Plant ${widget.position}',
         actionKey: const Key('finish_plant_capture'),
         isSaving: widget.isSaving,
@@ -345,23 +377,25 @@ class _ContinuousPlantCaptureStepState extends State<ContinuousPlantCaptureStep>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Both required views accepted',
+            Text(
+              usesLegacyTwoView
+                  ? 'Both required views accepted'
+                  : 'Required overview accepted',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 6),
             const Text(
-              'Add one extra detail only for a larva, egg mass, ambiguous feature, or something the required views do not show clearly.',
+              'Add a close-up only when damage, a larva, egg mass, non-FAW evidence, uncertainty, or inadequate overview detail needs it.',
               style: TextStyle(height: 1.35),
             ),
             const SizedBox(height: 12),
             OutlinedButton.icon(
-              key: const Key('add_conditional_detail'),
+              key: const Key('add_conditional_close_up'),
               onPressed: widget.isSaving
                   ? null
                   : () => setState(() => _detailRequested = true),
               icon: const Icon(Icons.add_a_photo_outlined),
-              label: const Text('Add conditional detail'),
+              label: const Text('Add close-up'),
             ),
             const SizedBox(height: 8),
             ConstrainedBox(
@@ -430,6 +464,14 @@ class _ContinuousPlantCaptureStepState extends State<ContinuousPlantCaptureStep>
 
   Future<void> _advanceAfterAcceptedView(String? viewType) async {
     if (!mounted || viewType == null) return;
+    if (widget.evidencePolicy ==
+        StationEvidencePolicy.cameraFirstOverviewConditional) {
+      if (viewType == DatabaseCodes.evidenceViewWhorlOverview ||
+          viewType == DatabaseCodes.evidenceViewCloseUp) {
+        await _completePlant();
+      }
+      return;
+    }
     final completesPlant =
         viewType == DatabaseCodes.evidenceViewDiagnosticDetail ||
         (viewType == DatabaseCodes.evidenceViewCloseUp && !_detailRequested);
@@ -517,14 +559,14 @@ class _ContinuousPlantCaptureStepState extends State<ContinuousPlantCaptureStep>
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      builder: (context) => const SafeArea(
+      builder: (context) => SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Station 1 capture help',
+                'Station ${widget.stationNumber} capture help',
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 12),
@@ -534,7 +576,9 @@ class _ContinuousPlantCaptureStepState extends State<ContinuousPlantCaptureStep>
               ),
               SizedBox(height: 10),
               Text(
-                'Gently expose the whorl. Inspect the newest three or four emerging leaves, then take an overview and a closer whorl view. Stop if photography would be unsafe.',
+                widget.evidencePolicy == StationEvidencePolicy.station1TwoView
+                    ? 'Gently expose the whorl. Inspect the newest three or four emerging leaves, then take the two views required by this older Station 1 evidence record.'
+                    : 'Gently expose the whorl. Inspect the newest three or four emerging leaves, then take one guided overview. Add a close-up only when relevant evidence or inadequate overview detail needs it. Stop if photography would be unsafe.',
                 style: TextStyle(height: 1.45),
               ),
               SizedBox(height: 10),
@@ -552,17 +596,23 @@ class _ContinuousPlantCaptureStepState extends State<ContinuousPlantCaptureStep>
 
 class _CaptureProgressHeader extends StatelessWidget {
   const _CaptureProgressHeader({
+    required this.blockNumber,
+    required this.stationNumber,
     required this.position,
     required this.capturedPlantCount,
     required this.currentViewNumber,
     required this.requiredViewsComplete,
+    required this.requiredViewCount,
     required this.onHelp,
   });
 
+  final int blockNumber;
+  final int stationNumber;
   final int position;
   final int capturedPlantCount;
   final int currentViewNumber;
   final bool requiredViewsComplete;
+  final int requiredViewCount;
   final VoidCallback onHelp;
 
   @override
@@ -578,7 +628,7 @@ class _CaptureProgressHeader extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Block 1 · Station 1 · Plant $position/10',
+                    'Block $blockNumber · Station $stationNumber · Plant $position/10',
                     key: const Key('capture_plant_progress'),
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
@@ -586,7 +636,7 @@ class _CaptureProgressHeader extends StatelessWidget {
                   Text(
                     requiredViewsComplete
                         ? '$capturedPlantCount of 10 plants captured · Required views ready'
-                        : '$capturedPlantCount of 10 plants captured · Required view $currentViewNumber of 2',
+                        : '$capturedPlantCount of 10 plants captured · Required view $currentViewNumber of $requiredViewCount',
                     style: const TextStyle(fontSize: 13),
                   ),
                   const SizedBox(height: 6),
