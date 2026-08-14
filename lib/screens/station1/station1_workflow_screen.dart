@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:latlong2/latlong.dart' show LatLng;
 import 'package:provider/provider.dart';
 
 import '../../providers/five_station_workflow_provider.dart';
@@ -10,7 +13,12 @@ import '../../data/repositories/scouting_workflow_repository.dart';
 import '../../services/evidence_camera_service.dart';
 import '../../services/assessment_protocol_selector.dart';
 import '../../services/phone_location_service.dart';
+import '../../services/scouting_route_generator.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/offline_scouting_route_map.dart';
+import '../scan/route_preparation_step.dart';
+import '../scan/station_route_guidance_step.dart';
+import '../scan/station_target_adjustment_step.dart';
 import 'plant_observation_step.dart';
 import 'continuous_plant_capture_step.dart';
 import 'evidence_capture_panel.dart';
@@ -27,6 +35,7 @@ class Station1WorkflowScreen extends StatelessWidget {
     super.key,
     required this.fieldName,
     required this.captureLocation,
+    required this.watchLocation,
     this.cameraFactory = const PluginEvidenceCameraFactory(),
     this.testMode = false,
     this.debugFeaturesEnabled = kDebugMode,
@@ -34,6 +43,7 @@ class Station1WorkflowScreen extends StatelessWidget {
 
   final String fieldName;
   final Future<AveragedPhoneLocation> Function() captureLocation;
+  final Future<Stream<PhoneLocationReading>> Function() watchLocation;
   final EvidenceCameraFactory cameraFactory;
   final bool testMode;
   final bool debugFeaturesEnabled;
@@ -172,6 +182,41 @@ class Station1WorkflowScreen extends StatelessWidget {
                     isSaving: workflow.isSaving,
                     onSubmit: workflow.submitResumeCheck,
                   ),
+                  Station1ViewState.routePreparation => RoutePreparationStep(
+                    blockNumber: workflow.blockNumber,
+                    boundary: workflow.blockBoundary,
+                    plan: workflow.routePlan!,
+                    completedStationLocations:
+                        workflow.completedStationLocations,
+                    captureLocation: captureLocation,
+                    isSaving: workflow.isSaving,
+                    onSavePreparation: workflow.saveRoutePreparation,
+                    onGenerate: workflow.generateRoute,
+                  ),
+                  Station1ViewState.stationTravel => StationRouteGuidanceStep(
+                    blockNumber: workflow.blockNumber,
+                    stationNumber: workflow.stationNumber,
+                    boundary: workflow.blockBoundary,
+                    plan: workflow.routePlan!,
+                    completedStationLocations:
+                        workflow.completedStationLocations,
+                    watchLocation: watchLocation,
+                    isSaving: workflow.isSaving,
+                    onConfirmReached: workflow.confirmReachedActiveStation,
+                    onAdjustTarget: workflow.beginTargetAdjustment,
+                    onEditRoute: workflow.editRoutePreparation,
+                  ),
+                  Station1ViewState.targetAdjustment =>
+                    StationTargetAdjustmentStep(
+                      boundary: workflow.blockBoundary,
+                      plan: workflow.routePlan!,
+                      completedStationLocations:
+                          workflow.completedStationLocations,
+                      isSaving: workflow.isSaving,
+                      onSaveDraft: workflow.saveTargetAdjustmentDraft,
+                      onApply: workflow.applyTargetAdjustment,
+                      onCancel: workflow.cancelTargetAdjustment,
+                    ),
                   Station1ViewState.stationLocation => StationLocationStep(
                     stationNumber: workflow.stationNumber,
                     captureLocation: captureLocation,
@@ -366,6 +411,10 @@ class Station1WorkflowScreen extends StatelessWidget {
                   Station1ViewState.betweenStations => _BetweenStationsStep(
                     blockNumber: workflow.blockNumber,
                     completedStation: workflow.stationNumber,
+                    boundary: workflow.blockBoundary,
+                    plan: workflow.routePlan,
+                    completedStationLocations:
+                        workflow.completedStationLocations,
                     isSaving: workflow.isSaving,
                     onContinue: () =>
                         _run(context, workflow.continueToNextStation),
@@ -388,7 +437,7 @@ class Station1WorkflowScreen extends StatelessWidget {
                     message:
                         'The previous block is sampling complete. Continue with the next confirmed assessment block.',
                     supporting:
-                        'Route guidance is not included in Increment A. Use the approved field plan; WormWise will record the next station location.',
+                        'Each block has its own saved approximate route preparation. Continue to prepare or follow that block’s guidance.',
                     actionLabel: 'Continue to next block',
                     onAction: () => _run(context, workflow.continueToNextBlock),
                   ),
@@ -399,7 +448,7 @@ class Station1WorkflowScreen extends StatelessWidget {
                     message:
                         'Stations 1–5 and all ten plant positions per station are saved and reviewed for every required block.',
                     supporting:
-                        'No assessment result or treatment recommendation has been calculated. Field route guidance remains incomplete until Increment B.',
+                        'No assessment result or treatment recommendation has been calculated. Route guidance remains an editable approximate field aid, not proof of protocol compliance.',
                     actionLabel: 'Return to Scan',
                     onAction: () => Navigator.pop(context),
                   ),
@@ -846,12 +895,18 @@ class _BetweenStationsStep extends StatelessWidget {
   const _BetweenStationsStep({
     required this.blockNumber,
     required this.completedStation,
+    required this.boundary,
+    required this.plan,
+    required this.completedStationLocations,
     required this.isSaving,
     required this.onContinue,
   });
 
   final int blockNumber;
   final int completedStation;
+  final List<LatLng> boundary;
+  final ScoutingRoutePlan? plan;
+  final Map<int, LatLng> completedStationLocations;
   final bool isSaving;
   final VoidCallback onContinue;
 
@@ -872,18 +927,22 @@ class _BetweenStationsStep extends StatelessWidget {
           style: const TextStyle(height: 1.45),
         ),
         const SizedBox(height: 16),
-        const _InfoCard(
-          icon: Icons.route_outlined,
-          title: 'Field route guidance is not available yet',
-          message:
-              'Increment A records progression only. Follow the approved field plan to the next station. W/ladder target generation and field orientation remain Increment B.',
-        ),
+        if (plan?.isReady == true) ...[
+          OfflineScoutingRouteMap(
+            boundary: boundary,
+            plan: plan!,
+            activeStation: nextStation,
+            completedStationLocations: completedStationLocations,
+            height: 280,
+          ),
+          const SizedBox(height: 12),
+        ],
         const SizedBox(height: 12),
         const _InfoCard(
           icon: Icons.info_outline,
-          title: 'Do not treat this as complete field guidance',
+          title: 'Approximate guidance only',
           message:
-              'WormWise will record the next station GPS or an unavailable reason, but phone location does not prove exact sampling compliance.',
+              'The target is editable and the next screen shows live phone location. It is not turn-by-turn navigation, a confirmed walking path, or proof of sampling compliance.',
         ),
         const SizedBox(height: 24),
         _PrimaryButton(
@@ -1000,7 +1059,7 @@ class _BlockPreparationStep extends StatelessWidget {
         Text(
           areaHectares <= 1
               ? '$fieldName has a confirmed approximate outline of ${areaHectares.toStringAsFixed(2)} ha. A field up to one hectare is recorded as one block.'
-              : '$fieldName has a confirmed approximate outline of ${areaHectares.toStringAsFixed(2)} ha. Existing evaluator-confirmed block definitions are required. Increment A will not subdivide this field automatically.',
+              : '$fieldName has a confirmed approximate outline of ${areaHectares.toStringAsFixed(2)} ha. Existing evaluator-confirmed block definitions are required. WormWise will not subdivide this field automatically.',
           style: const TextStyle(height: 1.45),
         ),
         const SizedBox(height: 16),

@@ -5,6 +5,7 @@ import '../data/local/app_database.dart';
 import '../data/repositories/assessment_repository.dart';
 import '../data/repositories/evidence_capture_repository.dart';
 import '../data/repositories/scouting_workflow_repository.dart';
+import '../data/repositories/scouting_route_repository.dart';
 import '../data/services/atomic_plant_save_service.dart';
 import '../data/services/five_station_completion_service.dart';
 import '../providers/assessment_workspace_provider.dart';
@@ -55,6 +56,7 @@ class AssessmentSessionScreen extends StatelessWidget {
         ),
         evidenceCoordinator: evidenceCoordinator,
         completionService: FiveStationCompletionService(database),
+        routeRepository: ScoutingRouteRepository(database),
         testMode: dataMode.isTestMode,
         debugFeaturesEnabled: dataMode.debugFeaturesEnabled,
       )..initialize(),
@@ -62,6 +64,7 @@ class AssessmentSessionScreen extends StatelessWidget {
         fieldName: workspace.fieldWorkspace?.field.name ?? 'Selected field',
         captureLocation: () =>
             phoneLocation.captureAverage(maximumAcceptedAccuracyMeters: null),
+        watchLocation: phoneLocation.watchPosition,
         testMode: dataMode.isTestMode,
         debugFeaturesEnabled: dataMode.debugFeaturesEnabled,
       ),

@@ -1,24 +1,23 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:latlong2/latlong.dart' show LatLng;
 
 import '../data/local/app_database.dart';
 import '../data/local/database_codes.dart';
 import '../data/repositories/assessment_repository.dart';
 import '../data/repositories/evidence_capture_repository.dart';
 import '../data/repositories/scouting_workflow_repository.dart';
+import '../data/repositories/scouting_route_repository.dart';
 import '../data/services/atomic_plant_save_service.dart';
 import '../data/services/five_station_completion_service.dart';
 import '../services/evidence_capture_coordinator.dart';
 import '../services/phone_location_service.dart';
+import '../services/scouting_route_generator.dart';
 import '../services/station_evidence_policy.dart';
 import 'station1_workflow_provider.dart';
 
-/// Coordinates Increment A across every existing required block.
-///
-/// Route generation is deliberately absent. Between-station states explicitly
-/// disclose that field-orientation guidance remains unavailable until
-/// Increment B.
+/// Coordinates five-station capture and Scan-owned approximate route guidance.
 class FiveStationWorkflowProvider extends ChangeNotifier {
   FiveStationWorkflowProvider({
     required this.assessmentId,
@@ -26,6 +25,7 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
     required AssessmentRepository assessmentRepository,
     required AtomicPlantSaveService plantSaveService,
     required FiveStationCompletionService completionService,
+    ScoutingRouteRepository? routeRepository,
     EvidenceCaptureCoordinator? evidenceCoordinator,
     this.testMode = false,
     this.debugFeaturesEnabled = kDebugMode,
@@ -33,6 +33,7 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
        _assessments = assessmentRepository,
        _plantSaves = plantSaveService,
        _completion = completionService,
+       _routes = routeRepository,
        _evidence = evidenceCoordinator;
 
   final String assessmentId;
@@ -40,6 +41,7 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
   final AssessmentRepository _assessments;
   final AtomicPlantSaveService _plantSaves;
   final FiveStationCompletionService _completion;
+  final ScoutingRouteRepository? _routes;
   final EvidenceCaptureCoordinator? _evidence;
   final bool testMode;
   final bool debugFeaturesEnabled;
@@ -63,6 +65,8 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
   Object? _error;
   bool _isSaving = false;
   bool _returnToBlockReview = false;
+  bool _returnToRouteTravel = false;
+  ScoutingRoutePlan? _routePlan;
 
   Station1ViewState get state => _state;
   AssessmentRecord? get assessment => _assessment;
@@ -91,8 +95,21 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
 
   Object? get error => _error;
   bool get isSaving => _isSaving;
+  ScoutingRoutePlan? get routePlan => _routePlan;
+  List<LatLng> get blockBoundary => prepared == null
+      ? const []
+      : ScoutingRouteGenerator.parsePolygon(prepared!.block.geometryGeojson);
+  Map<int, LatLng> get completedStationLocations => {
+    for (final entry in _completedStationLocations().entries)
+      if (entry.value != null) entry.key: entry.value!,
+  };
   int get savedPlantCount => _snapshot?.plants.length ?? 0;
   bool get canNavigateBackWithinWorkflow => switch (_state) {
+    Station1ViewState.stationTravel ||
+    Station1ViewState.targetAdjustment => true,
+    Station1ViewState.routePreparation =>
+      _returnToRouteTravel && _routePlan?.isReady == true,
+    Station1ViewState.stationLocation => _routePlan?.isReady == true,
     Station1ViewState.plantEntry ||
     Station1ViewState.plantCapture ||
     Station1ViewState.stationReview ||
@@ -216,6 +233,7 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
         gpsAccuracyM: location.averageAccuracyMeters,
         capturedAt: location.capturedAt,
       );
+      await _clearArrivalConfirmation();
       await _loadSnapshot(askForResume: false);
     });
   }
@@ -233,7 +251,114 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
         notLocatedReason: reason,
         accessibilityNotes: note?.trim().isEmpty == true ? null : note?.trim(),
       );
+      await _clearArrivalConfirmation();
       await _loadSnapshot(askForResume: false);
+    });
+  }
+
+  Future<void> saveRoutePreparation(RoutePreparationData preparation) async {
+    final repository = _requireRouteRepository();
+    final plan = _requireRoutePlan();
+    await _perform(() async {
+      _routePlan = await repository.savePreparationDraft(
+        plan,
+        preparation,
+        actorPersonId: _requireAssessment().evaluatorPersonId,
+      );
+      _setState(Station1ViewState.routePreparation);
+    });
+  }
+
+  Future<void> generateRoute() async {
+    final repository = _requireRouteRepository();
+    final plan = _requireRoutePlan();
+    await _perform(() async {
+      final generated = ScoutingRouteGenerator.generate(
+        draft: plan,
+        boundary: blockBoundary,
+        completedStations: _completedStationLocations(),
+      );
+      _routePlan = await repository.saveGeneratedPlan(
+        generated,
+        actorPersonId: _requireAssessment().evaluatorPersonId,
+        recalculated: plan.targets.isNotEmpty,
+      );
+      _returnToRouteTravel = false;
+      _setState(Station1ViewState.stationTravel);
+    });
+  }
+
+  Future<void> editRoutePreparation() async {
+    if (_routePlan == null) return;
+    _returnToRouteTravel = true;
+    _setState(Station1ViewState.routePreparation);
+  }
+
+  Future<void> confirmReachedActiveStation() async {
+    final repository = _requireRouteRepository();
+    final plan = _requireRoutePlan();
+    await _perform(() async {
+      _routePlan = await repository.confirmStationArrival(
+        plan,
+        stationNumber: _stationNumber,
+        actorPersonId: _requireAssessment().evaluatorPersonId,
+      );
+      _setState(Station1ViewState.stationLocation);
+    });
+  }
+
+  Future<void> beginTargetAdjustment() async {
+    final repository = _requireRouteRepository();
+    final plan = _requireRoutePlan();
+    await _perform(() async {
+      _routePlan = await repository.beginTargetAdjustment(
+        plan,
+        stationNumber: _stationNumber,
+        actorPersonId: _requireAssessment().evaluatorPersonId,
+      );
+      _setState(Station1ViewState.targetAdjustment);
+    });
+  }
+
+  Future<void> saveTargetAdjustmentDraft({
+    required LatLng? candidate,
+    required String reason,
+  }) async {
+    final repository = _requireRouteRepository();
+    final plan = _requireRoutePlan();
+    await _perform(() async {
+      _routePlan = await repository.saveTargetAdjustmentDraft(
+        plan,
+        candidate: candidate,
+        reason: reason,
+        actorPersonId: _requireAssessment().evaluatorPersonId,
+      );
+      _setState(Station1ViewState.targetAdjustment);
+    });
+  }
+
+  Future<void> applyTargetAdjustment() async {
+    final repository = _requireRouteRepository();
+    final plan = _requireRoutePlan();
+    await _perform(() async {
+      _routePlan = await repository.applyTargetAdjustment(
+        plan,
+        boundary: blockBoundary,
+        actorPersonId: _requireAssessment().evaluatorPersonId,
+      );
+      _setState(Station1ViewState.stationTravel);
+    });
+  }
+
+  Future<void> cancelTargetAdjustment() async {
+    final repository = _requireRouteRepository();
+    final plan = _requireRoutePlan();
+    await _perform(() async {
+      _routePlan = await repository.cancelTargetAdjustment(
+        plan,
+        actorPersonId: _requireAssessment().evaluatorPersonId,
+      );
+      _setState(Station1ViewState.stationTravel);
     });
   }
 
@@ -347,6 +472,29 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
   Future<void> navigateBackWithinWorkflow() async {
     if (_isSaving) return;
     switch (_state) {
+      case Station1ViewState.routePreparation:
+        if (_returnToRouteTravel) {
+          _returnToRouteTravel = false;
+          _setState(Station1ViewState.stationTravel);
+        }
+        return;
+      case Station1ViewState.stationTravel:
+        if (_stationNumber > 1) {
+          _stationNumber--;
+          _snapshot = _blockSnapshot?.station(_stationNumber);
+          _setState(Station1ViewState.betweenStations);
+        } else {
+          _setState(Station1ViewState.routePreparation);
+        }
+        return;
+      case Station1ViewState.targetAdjustment:
+        await cancelTargetAdjustment();
+        return;
+      case Station1ViewState.stationLocation:
+        if (_routePlan?.isReady == true) {
+          _setState(Station1ViewState.stationTravel);
+        }
+        return;
       case Station1ViewState.plantEntry:
         _currentPlantPosition = null;
         _setState(Station1ViewState.stationReview);
@@ -860,6 +1008,12 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
   Future<void> _loadSnapshot({required bool askForResume}) async {
     _blockSnapshot = await _workflow.loadBlockSnapshot(_requirePrepared());
     _snapshot = _blockSnapshot!.station(_stationNumber);
+    if (_routes != null) {
+      _routePlan = await _routes.loadOrCreateDraft(
+        assessment: _requireAssessment(),
+        prepared: _requirePrepared(),
+      );
+    }
     _stationContextEvidence = null;
     _currentEvidence = null;
     _stationEvidenceBundles = const [];
@@ -903,7 +1057,25 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
   }
 
   Station1ViewState _targetFor(StationSnapshot snapshot) {
-    if (snapshot.station == null) return Station1ViewState.stationLocation;
+    if (snapshot.reviewIsCurrent) {
+      return _stationNumber < 5
+          ? Station1ViewState.betweenStations
+          : Station1ViewState.blockReview;
+    }
+    final route = _routePlan;
+    if (_routes != null) {
+      if (route?.pendingAdjustment != null) {
+        return Station1ViewState.targetAdjustment;
+      }
+      if (route?.isReady != true) return Station1ViewState.routePreparation;
+      if (snapshot.station == null) {
+        return route!.arrivalConfirmedStation == _stationNumber
+            ? Station1ViewState.stationLocation
+            : Station1ViewState.stationTravel;
+      }
+    } else if (snapshot.station == null) {
+      return Station1ViewState.stationLocation;
+    }
     if (_evidence != null &&
         (_stationContextEvidence?.session.completedAt == null ||
             !(_stationContextEvidence?.isViewSatisfied(
@@ -911,11 +1083,6 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
                 ) ??
                 false))) {
       return Station1ViewState.stationContextEvidence;
-    }
-    if (snapshot.reviewIsCurrent) {
-      return _stationNumber < 5
-          ? Station1ViewState.betweenStations
-          : Station1ViewState.blockReview;
     }
     if (_evidence == null) {
       if (snapshot.plants.isEmpty) return Station1ViewState.plantSelection;
@@ -1071,6 +1238,42 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
       (item) => item.run.status != DatabaseCodes.completed,
     );
     return index < 0 ? _preparedRuns.length - 1 : index;
+  }
+
+  Map<int, LatLng?> _completedStationLocations() {
+    final result = <int, LatLng?>{};
+    for (final station
+        in _blockSnapshot?.stations ?? const <StationSnapshot>[]) {
+      if (!station.reviewIsCurrent) continue;
+      final record = station.station;
+      result[station.stationNumber] =
+          record?.latitude == null || record?.longitude == null
+          ? null
+          : LatLng(record!.latitude!, record.longitude!);
+    }
+    return result;
+  }
+
+  Future<void> _clearArrivalConfirmation() async {
+    final repository = _routes;
+    final plan = _routePlan;
+    if (repository == null || plan?.arrivalConfirmedStation == null) return;
+    _routePlan = await repository.clearStationArrival(
+      plan!,
+      actorPersonId: _requireAssessment().evaluatorPersonId,
+    );
+  }
+
+  ScoutingRouteRepository _requireRouteRepository() {
+    final value = _routes;
+    if (value == null) throw StateError('Route guidance is unavailable.');
+    return value;
+  }
+
+  ScoutingRoutePlan _requireRoutePlan() {
+    final value = _routePlan;
+    if (value == null) throw StateError('Route preparation is unavailable.');
+    return value;
   }
 
   StationEvidencePolicy _policyForBundle(EvidenceCaptureBundle bundle) {
