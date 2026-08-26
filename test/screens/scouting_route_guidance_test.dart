@@ -39,6 +39,7 @@ void main() {
             boundary: boundary,
             plan: plan,
             completedStationLocations: const {},
+            completedStationNumbers: const {},
             watchLocation: () async => locations.stream,
             isSaving: false,
             onConfirmReached: () async => confirmations++,
@@ -92,6 +93,7 @@ void main() {
               boundary: boundary,
               plan: plan,
               completedStationLocations: const {},
+              completedStationNumbers: const {},
               captureLocation: () async => AveragedPhoneLocation(
                 latitude: 17.001,
                 longitude: 121.001,
@@ -127,10 +129,60 @@ void main() {
 
     expect(button, findsOneWidget);
     expect(tester.getSize(button).height, greaterThanOrEqualTo(56));
+    expect(find.byKey(const Key('use_phone_as_route_entrance')), findsNothing);
+    expect(find.byKey(const Key('place_route_entrance_on_map')), findsNothing);
+    expect(find.byKey(const Key('draw_row_direction')), findsNothing);
     expect(find.byType(TileLayer), findsNothing);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('unavailable phone location uses automatic outline fallback', (
+    tester,
+  ) async {
+    RoutePreparationData? saved;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: RoutePreparationStep(
+            blockNumber: 1,
+            boundary: boundary,
+            plan: _draftPlan(),
+            completedStationLocations: const {},
+            completedStationNumbers: const {},
+            captureLocation: () async => throw StateError('GPS unavailable'),
+            isSaving: false,
+            onSavePreparation: (value) async => saved = value,
+            onGenerate: () async {},
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(saved?.startSource, routeStartSourceFieldOutlineFallback);
+    expect(saved?.entrance, isNotNull);
+    expect(saved?.orientationSource, routeOrientationSourceFieldShape);
+    expect(
+      find.byKey(const Key('retry_automatic_route_location')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('place_route_entrance_on_map')), findsNothing);
+    expect(find.byKey(const Key('draw_row_direction')), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
 }
+
+ScoutingRoutePlan _draftPlan() => ScoutingRoutePlan(
+  assessmentId: 'assessment-1',
+  blockRunId: 'run-1',
+  blockId: 'block-1',
+  boundaryVersionId: 'boundary-1',
+  pattern: DatabaseCodes.patternLadder,
+  status: ScoutingRouteStatus.draft,
+  preparation: const RoutePreparationData(obstaclesReviewed: true),
+  updatedAt: DateTime.utc(2026, 8, 14),
+);
 
 ScoutingRoutePlan _readyPlan() => ScoutingRouteGenerator.generate(
   draft: ScoutingRoutePlan(
@@ -142,6 +194,7 @@ ScoutingRoutePlan _readyPlan() => ScoutingRouteGenerator.generate(
     status: ScoutingRouteStatus.draft,
     preparation: const RoutePreparationData(
       entrance: LatLng(17.0002, 121.0002),
+      rowBearingDegrees: 0,
       obstaclesReviewed: true,
       wCrossingConfirmed: true,
     ),

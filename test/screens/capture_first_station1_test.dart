@@ -40,14 +40,8 @@ void main() {
       );
 
       expect(find.textContaining('BLOCK 1 · STATION 3'), findsOneWidget);
-      final policyNotice = find.byKey(const Key('camera_first_policy_notice'));
-      await tester.scrollUntilVisible(
-        policyNotice,
-        180,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tester.pumpAndSettle();
-      expect(find.textContaining('Camera-first pilot'), findsOneWidget);
+      expect(find.textContaining('Inspect 10 plants'), findsOneWidget);
+      expect(find.byKey(const Key('camera_first_policy_notice')), findsNothing);
       final action = find.byKey(const Key('begin_ten_plants_button'));
       await tester.scrollUntilVisible(
         action,
@@ -55,14 +49,14 @@ void main() {
         scrollable: find.byType(Scrollable).first,
       );
       await tester.pumpAndSettle();
-      expect(find.textContaining('Use documented fallback'), findsOneWidget);
+      expect(find.textContaining('Keep every plant in order'), findsOneWidget);
       expect(tester.getSize(action).height, greaterThanOrEqualTo(56));
       expect(tester.takeException(), isNull);
     },
   );
 
   testWidgets(
-    'Station guidance explains one overview, conditional close-up, and honest no-model review',
+    'Station guidance is concise and keeps detailed policy out of capture',
     (tester) async {
       await tester.pumpWidget(
         MaterialApp(
@@ -76,28 +70,25 @@ void main() {
         ),
       );
 
-      expect(find.textContaining('ten consecutive plants'), findsOneWidget);
-      expect(find.textContaining('one guided overview'), findsOneWidget);
-      expect(find.textContaining('Add a close-up only when'), findsOneWidget);
+      expect(find.textContaining('Inspect 10 plants'), findsOneWidget);
+      expect(find.textContaining('same row'), findsOneWidget);
+      expect(find.textContaining('close-up'), findsOneWidget);
       await tester.scrollUntilVisible(
         find.byKey(const Key('begin_ten_plants_button')),
         250,
         scrollable: find.byType(Scrollable).first,
       );
       await tester.pumpAndSettle();
-      expect(find.textContaining('no validated image model'), findsOneWidget);
-      expect(
-        find.textContaining('confirm every plant manually'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('no validated image model'), findsNothing);
     },
   );
 
   testWidgets(
-    'continuous capture advances after one overview without a manual form',
+    'continuous capture waits for explicit continue after one overview',
     (tester) async {
       var bundle = _bundle();
       var completed = false;
+      int? recordedInspectionCount;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -113,13 +104,20 @@ void main() {
                   bundle: bundle,
                   isSaving: false,
                   resolveFile: (path) async => File(path),
-                  onCapture: (viewType) async => viewType,
+                  onCapture: (viewType) async {
+                    setState(() {
+                      bundle = _bundle(readyViews: {viewType});
+                    });
+                    return viewType;
+                  },
                   onInspect: (media) async => media.viewType,
                   onAccept: (_) async => true,
                   onRetake: (media) async => media.viewType,
                   onRemove: (_) async {},
                   onManualFallback: (_, _, _) async => true,
-                  onLeavesInspected: (_) async {},
+                  onLeavesInspected: (count) async {
+                    recordedInspectionCount = count;
+                  },
                   onCompletePlant: (_, _) async => completed = true,
                   onCannotAssess: (_, _) async {},
                 );
@@ -130,18 +128,16 @@ void main() {
       );
 
       expect(find.text('Required view 1 · Overview'), findsNothing);
-      await tester.tap(find.byKey(const Key('capture_assessable_yes')));
-      await tester.pump();
-      await tester.tap(find.byKey(const Key('capture_leaves_3')));
-      await tester.pump();
-      expect(
-        find.byKey(Key('capture_${DatabaseCodes.evidenceViewWhorlOverview}')),
-        findsOneWidget,
-      );
-      expect(find.byType(TextField), findsNothing);
-      await tester.tap(
-        find.byKey(Key('capture_${DatabaseCodes.evidenceViewWhorlOverview}')),
-      );
+      expect(find.byKey(const Key('capture_leaves_checked')), findsNothing);
+      expect(find.byKey(const Key('capture_leaves_3')), findsNothing);
+      expect(find.byKey(const Key('capture_leaves_4')), findsNothing);
+      await tester.pumpAndSettle();
+      expect(completed, isFalse);
+      expect(recordedInspectionCount, 3);
+      expect(find.byKey(const Key('add_conditional_close_up')), findsOneWidget);
+      final continueAction = find.byKey(const Key('next_plant_after_capture'));
+      expect(continueAction, findsOneWidget);
+      await tester.tap(continueAction);
       await tester.pump();
       expect(completed, isTrue);
       expect(find.byType(TextField), findsNothing);
@@ -186,17 +182,9 @@ void main() {
           ),
         ),
       );
-      final leaves = find.byKey(const Key('capture_leaves_4'));
-      expect(tester.widget<ChoiceChip>(leaves).selected, isTrue);
-      await tester.scrollUntilVisible(
-        leaves,
-        180,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tester.ensureVisible(leaves);
-      await tester.pumpAndSettle();
-      await tester.tap(leaves);
-      await tester.pump();
+      expect(find.byKey(const Key('capture_leaves_checked')), findsNothing);
+      expect(find.byKey(const Key('capture_leaves_3')), findsNothing);
+      expect(find.byKey(const Key('capture_leaves_4')), findsNothing);
       final next = find.byKey(const Key('next_plant_after_capture'));
       await tester.scrollUntilVisible(
         next,
@@ -249,33 +237,29 @@ void main() {
         ),
       );
 
-      expect(find.text('Automated analysis unavailable'), findsOneWidget);
+      expect(find.text('Confirm All'), findsNothing);
+      for (var position = 1; position <= 10; position++) {
+        expect(find.byKey(Key('review_position_$position')), findsOneWidget);
+      }
+      await tester.drag(
+        find.byKey(const Key('station_review_step')),
+        const Offset(0, -450),
+      );
+      await tester.pump();
+      expect(find.text('Image analysis is not available yet'), findsOneWidget);
       expect(
-        find.textContaining('No image result has been generated'),
+        find.textContaining('Manual confirmation is optional'),
         findsOneWidget,
       );
-      expect(find.text('Confirm All'), findsNothing);
-      final pendingPlant = find.byKey(const Key('pending_manual_plant_1'));
-      await tester.scrollUntilVisible(
-        pendingPlant,
-        250,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tester.pumpAndSettle();
-      expect(pendingPlant, findsOneWidget);
-      await tester.tap(find.byKey(const Key('manual_confirm_plant_1_button')));
+      final nextReview = find.byKey(const Key('review_next_plant_button'));
+      expect(nextReview, findsOneWidget);
+      expect(tester.getSize(nextReview).height, greaterThanOrEqualTo(56));
+      await tester.tap(nextReview);
       expect(openedPosition, 1);
-      final completeFinder = find.byKey(
-        const Key('confirm_station_review_button'),
+      expect(
+        find.byKey(const Key('confirm_station_review_button')),
+        findsNothing,
       );
-      await tester.scrollUntilVisible(
-        completeFinder,
-        500,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tester.pumpAndSettle();
-      final complete = tester.widget<FilledButton>(completeFinder);
-      expect(complete.onPressed, isNull);
       expect(
         find.byKey(const Key('complete_test_station_from_review_button')),
         findsNothing,
@@ -310,15 +294,17 @@ void main() {
         ),
       );
 
-      final shortcut = find.byKey(
-        const Key('complete_test_station_from_review_button'),
-      );
+      final testTools = find.byKey(const Key('test_data_station_bypass_card'));
       await tester.scrollUntilVisible(
-        shortcut,
+        testTools,
         500,
         scrollable: find.byType(Scrollable).first,
       );
+      await tester.tap(testTools);
       await tester.pumpAndSettle();
+      final shortcut = find.byKey(
+        const Key('complete_test_station_from_review_button'),
+      );
       expect(shortcut, findsOneWidget);
       expect(tester.getSize(shortcut).height, greaterThanOrEqualTo(56));
       await tester.tap(shortcut);
@@ -437,16 +423,12 @@ void main() {
     expect(find.text('Not reviewed'), findsOneWidget);
     expect(find.text('Insufficient'), findsOneWidget);
     expect(find.text('Sufficient'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('confirmed_plants_section')));
+    await tester.pumpAndSettle();
     expect(find.text('Not assessable'), findsWidgets);
     expect(find.text('Close-up'), findsWidgets);
-    expect(
-      find.textContaining('Structured observations incomplete'),
-      findsWidgets,
-    );
-    final complete = tester.widget<FilledButton>(
-      find.byKey(const Key('confirm_station_review_button')),
-    );
-    expect(complete.onPressed, isNull);
+    expect(find.textContaining('Needs confirmation'), findsWidgets);
+    expect(find.byKey(const Key('review_next_plant_button')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

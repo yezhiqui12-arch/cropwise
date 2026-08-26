@@ -11,6 +11,7 @@ import '../../data/local/app_database.dart';
 import '../../data/local/database_codes.dart';
 import '../../data/repositories/scouting_workflow_repository.dart';
 import '../../services/evidence_camera_service.dart';
+import '../../services/field_imagery_provider.dart';
 import '../../services/assessment_protocol_selector.dart';
 import '../../services/phone_location_service.dart';
 import '../../services/scouting_route_generator.dart';
@@ -19,8 +20,11 @@ import '../../widgets/offline_scouting_route_map.dart';
 import '../scan/route_preparation_step.dart';
 import '../scan/station_route_guidance_step.dart';
 import '../scan/station_target_adjustment_step.dart';
+import '../../data/services/atomic_ve_v2_save_service.dart';
+import '../growth_stage_correction_screen.dart';
+import '../ve_v2/ve_v2_pilot_steps.dart';
+import 'plant_capture_board_step.dart';
 import 'plant_observation_step.dart';
-import 'continuous_plant_capture_step.dart';
 import 'evidence_capture_panel.dart';
 import 'evidence_photo_viewer.dart';
 import 'guided_camera_screen.dart';
@@ -39,6 +43,7 @@ class Station1WorkflowScreen extends StatelessWidget {
     this.cameraFactory = const PluginEvidenceCameraFactory(),
     this.testMode = false,
     this.debugFeaturesEnabled = kDebugMode,
+    this.imageryProvider,
   });
 
   final String fieldName;
@@ -47,31 +52,23 @@ class Station1WorkflowScreen extends StatelessWidget {
   final EvidenceCameraFactory cameraFactory;
   final bool testMode;
   final bool debugFeaturesEnabled;
+  final FieldImageryProvider? imageryProvider;
 
   @override
   Widget build(BuildContext context) {
     final workflow = context.watch<FiveStationWorkflowProvider>();
     final showTestTools = kDebugMode && debugFeaturesEnabled && testMode;
 
-    final interceptBack =
-        workflow.isSaving || workflow.canNavigateBackWithinWorkflow;
-    return PopScope<void>(
-      canPop: !interceptBack,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop && !workflow.isSaving) {
-          _handleBack(context, workflow);
-        }
-      },
-      child: Scaffold(
+    return _StationWorkflowBackBoundary(
+      onSystemBack: () => _handleSystemBack(context, workflow),
+      builder: (exitRoute) => Scaffold(
         appBar: AppBar(
           leading: IconButton(
             key: const Key('station_workflow_back_button'),
-            tooltip: workflow.canNavigateBackWithinWorkflow
-                ? 'Back within station'
-                : 'Return to Scan',
+            tooltip: 'Return to Scan',
             onPressed: workflow.isSaving
                 ? null
-                : () => _handleBack(context, workflow),
+                : () => _exitToScan(context, workflow, exitRoute),
             icon: const Icon(Icons.arrow_back),
           ),
           title: Text(
@@ -93,6 +90,7 @@ class Station1WorkflowScreen extends StatelessWidget {
               if (showTestTools)
                 TestDataWorkflowActions(
                   stationNumber: workflow.stationNumber,
+                  isVeV2: workflow.isVeV2,
                   isSaving: workflow.isSaving,
                   onCompleteCurrent: () =>
                       _run(context, workflow.completeTestStation),
@@ -153,11 +151,21 @@ class Station1WorkflowScreen extends StatelessWidget {
                       workflow.assessment!.growthStage,
                     ),
                     message:
-                        'Before using the V3–V12 form, confirm this is the best current growth-stage estimate.',
+                        'Before beginning stage-specific observations, confirm this is the best current growth-stage estimate.',
                     supporting:
                         'If it is not correct, return to setup. Do not force another stage into this form.',
                     actionLabel: 'Confirm and continue',
                     onAction: () => _run(context, workflow.confirmGrowthStage),
+                    secondaryActionLabel: 'Change growth stage',
+                    onSecondaryAction: () async {
+                      final changed = await Navigator.push<bool>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const GrowthStageCorrectionScreen(),
+                        ),
+                      );
+                      if (changed == true) workflow.retry();
+                    },
                   ),
                   Station1ViewState.largeFieldBlocked => _MessageStep(
                     key: const Key('station1_large_field_blocked'),
@@ -188,10 +196,12 @@ class Station1WorkflowScreen extends StatelessWidget {
                     plan: workflow.routePlan!,
                     completedStationLocations:
                         workflow.completedStationLocations,
+                    completedStationNumbers: workflow.completedStationNumbers,
                     captureLocation: captureLocation,
                     isSaving: workflow.isSaving,
                     onSavePreparation: workflow.saveRoutePreparation,
                     onGenerate: workflow.generateRoute,
+                    imageryProvider: imageryProvider,
                   ),
                   Station1ViewState.stationTravel => StationRouteGuidanceStep(
                     blockNumber: workflow.blockNumber,
@@ -200,11 +210,13 @@ class Station1WorkflowScreen extends StatelessWidget {
                     plan: workflow.routePlan!,
                     completedStationLocations:
                         workflow.completedStationLocations,
+                    completedStationNumbers: workflow.completedStationNumbers,
                     watchLocation: watchLocation,
                     isSaving: workflow.isSaving,
                     onConfirmReached: workflow.confirmReachedActiveStation,
                     onAdjustTarget: workflow.beginTargetAdjustment,
                     onEditRoute: workflow.editRoutePreparation,
+                    imageryProvider: imageryProvider,
                   ),
                   Station1ViewState.targetAdjustment =>
                     StationTargetAdjustmentStep(
@@ -212,10 +224,12 @@ class Station1WorkflowScreen extends StatelessWidget {
                       plan: workflow.routePlan!,
                       completedStationLocations:
                           workflow.completedStationLocations,
+                      completedStationNumbers: workflow.completedStationNumbers,
                       isSaving: workflow.isSaving,
                       onSaveDraft: workflow.saveTargetAdjustmentDraft,
                       onApply: workflow.applyTargetAdjustment,
                       onCancel: workflow.cancelTargetAdjustment,
+                      imageryProvider: imageryProvider,
                     ),
                   Station1ViewState.stationLocation => StationLocationStep(
                     stationNumber: workflow.stationNumber,
@@ -228,21 +242,40 @@ class Station1WorkflowScreen extends StatelessWidget {
                     StationContextEvidenceStep(
                       blockNumber: workflow.blockNumber,
                       stationNumber: workflow.stationNumber,
+                      isVeV2: workflow.isVeV2,
                       bundle: workflow.stationContextEvidence!,
                       isSaving: workflow.isSaving,
                       resolveFile: workflow.resolveEvidenceFile,
                       onCapture: () async {
-                        await _captureEvidence(
+                        final accepted = await _captureEvidence(
                           context,
                           workflow,
                           DatabaseCodes.evidenceViewStationContext,
                         );
+                        if (accepted != null && context.mounted) {
+                          await _run(
+                            context,
+                            workflow.continueAfterStationContext,
+                          );
+                        }
                       },
                       onInspect: (media) async {
-                        await _inspectEvidence(context, workflow, media);
+                        final accepted = await _inspectEvidence(
+                          context,
+                          workflow,
+                          media,
+                        );
+                        if (accepted != null && context.mounted) {
+                          await _run(
+                            context,
+                            workflow.continueAfterStationContext,
+                          );
+                        }
                       },
-                      onAccept: (media) =>
-                          _run(context, () => workflow.acceptEvidence(media)),
+                      onAccept: (media) => _run(context, () async {
+                        await workflow.acceptEvidence(media);
+                        await workflow.continueAfterStationContext();
+                      }),
                       onRetake: (media) async {
                         await _retakeEvidence(context, workflow, media);
                       },
@@ -250,71 +283,300 @@ class Station1WorkflowScreen extends StatelessWidget {
                           _run(context, () => workflow.removeEvidence(media)),
                       onManualFallback: (reason, note) => _run(
                         context,
+                        () async {
+                          await workflow.waiveEvidence(
+                            viewType: DatabaseCodes.evidenceViewStationContext,
+                            reasonCode: reason,
+                            note: note,
+                          );
+                          await workflow.continueAfterStationContext();
+                        },
+                      ),
+                      onContinue: workflow.continueAfterStationContext,
+                    ),
+                  Station1ViewState.veV2StationSetup => VeV2StationSetupStep(
+                    stationNumber: workflow.stationNumber,
+                    stationId: workflow.snapshot!.station!.id,
+                    growthStage: workflow.assessment!.growthStage,
+                    actorPersonId: workflow.assessment!.evaluatorPersonId,
+                    isSaving: workflow.isSaving,
+                    onSave: workflow.saveVeV2StationSetup,
+                  ),
+                  Station1ViewState.veV2RowContextEvidence =>
+                    VeV2RowContextStep(
+                      stationNumber: workflow.stationNumber,
+                      bundle: workflow.veV2RowContextEvidence!,
+                      resolveFile: workflow.resolveEvidenceFile,
+                      onCapture: () => _captureEvidence(
+                        context,
+                        workflow,
+                        DatabaseCodes.evidenceViewVeRowContext,
+                      ),
+                      onInspect: (media) =>
+                          _inspectEvidence(context, workflow, media),
+                      onAccept: (media) =>
+                          _run(context, () => workflow.acceptEvidence(media)),
+                      onRetake: (media) =>
+                          _retakeEvidence(context, workflow, media),
+                      onRemove: (media) =>
+                          _run(context, () => workflow.removeEvidence(media)),
+                      onFallback: (reason, note) => _run(
+                        context,
                         () => workflow.waiveEvidence(
-                          viewType: DatabaseCodes.evidenceViewStationContext,
+                          viewType: DatabaseCodes.evidenceViewVeRowContext,
                           reasonCode: reason,
                           note: note,
                         ),
                       ),
-                      onContinue: workflow.continueAfterStationContext,
+                      onContinue: workflow.continueAfterVeV2RowContext,
                     ),
+                  Station1ViewState.veV2ContinuousCapture =>
+                    PlantCaptureBoardStep(
+                      key: const ValueKey('ve_v2_plant_capture_board_step'),
+                      isVeV2: true,
+                      selectedPosition: workflow.currentPlantPosition ?? 1,
+                      blockNumber: workflow.blockNumber,
+                      stationNumber: workflow.stationNumber,
+                      evidencePolicy: workflow.currentEvidencePolicy,
+                      capturedPlantCount: workflow.capturedPlantCount,
+                      stationBundles: workflow.stationEvidenceBundles,
+                      veV2Units: workflow.veV2Units,
+                      isSaving: workflow.isSaving,
+                      resolveFile: workflow.resolveEvidenceFile,
+                      cvDiagnoses: workflow.cvDiagnoses,
+                      onSelectPlant: (pos) =>
+                          _run(context, () => workflow.selectCapturePlant(pos)),
+                      onMarkAllHealthy: () =>
+                          _run(context, workflow.markEntireStationClean),
+                      onCapture: (position, viewType) async {
+                        await workflow.selectCapturePlant(position);
+                        if (!context.mounted) return null;
+                        return _captureEvidence(context, workflow, viewType);
+                      },
+                      onInspect: (media) =>
+                          _inspectEvidence(context, workflow, media),
+                      onAccept: (media) => _tryRun(context, () async {
+                        await workflow.acceptEvidence(media);
+                        if (workflow.currentPlantPosition != null) {
+                          await workflow.analyzePlantEvidence(
+                            media: media,
+                            plantPosition: workflow.currentPlantPosition!,
+                          );
+                        }
+                      }),
+                      onRetake: (media) =>
+                          _retakeEvidence(context, workflow, media),
+                      onRemove: (media) =>
+                          _run(context, () => workflow.removeEvidence(media)),
+                      onManualFallback: (position, viewType, reason, note) =>
+                          _tryRun(context, () async {
+                            await workflow.selectCapturePlant(position);
+                            await workflow.waiveEvidence(
+                              viewType: viewType,
+                              reasonCode: reason,
+                              note: note,
+                            );
+                          }),
+                      onCompleteStationCapture: () =>
+                          _run(context, workflow.proceedToStationReview),
+                      onCannotAssess: (position, reason) =>
+                          _run(context, () async {
+                            await workflow.selectCapturePlant(position);
+                            await workflow.saveCaptureNotAssessable(
+                              reason: reason,
+                              activeDuration: Duration.zero,
+                            );
+                          }),
+                      onSaveVeV2UnitException: (position, occupancy, reason) =>
+                          _run(context, () async {
+                            await workflow.selectCapturePlant(position);
+                            final bundle = workflow.currentEvidence;
+                            await workflow.saveVeV2CaptureRouting(
+                              VeV2CaptureRoutingSave(
+                                stationId: workflow.snapshot!.station!.id,
+                                sequenceNumber: position,
+                                occupancyStatus: occupancy,
+                                observedSeedlingCount:
+                                    occupancy ==
+                                        DatabaseCodes.veOccupancySeedling
+                                    ? 1
+                                    : 0,
+                                inspectionDurationMs: 0,
+                                evidenceCaptureSessionId:
+                                    bundle?.session.id ?? '',
+                                requiredEvidenceViewTypes: const {},
+                                actorPersonId:
+                                    workflow.assessment!.evaluatorPersonId,
+                                notAssessableReason: reason,
+                              ),
+                            );
+                          }),
+                    ),
+                  Station1ViewState.veV2PlantingUnitEntry =>
+                    VeV2PlantingUnitStep(
+                      key: ValueKey('ve_unit_${workflow.currentPlantPosition}'),
+                      position: workflow.currentPlantPosition!,
+                      stationId: workflow.snapshot!.station!.id,
+                      actorPersonId: workflow.assessment!.evaluatorPersonId,
+                      existing: workflow.currentVeV2Unit,
+                      bundle: workflow.currentEvidence!,
+                      isSaving: workflow.isSaving,
+                      resolveFile: workflow.resolveEvidenceFile,
+                      onCapture: (view) =>
+                          _captureEvidence(context, workflow, view),
+                      onInspect: (media) =>
+                          _inspectEvidence(context, workflow, media),
+                      onAccept: (media) =>
+                          _run(context, () => workflow.acceptEvidence(media)),
+                      onRetake: (media) =>
+                          _retakeEvidence(context, workflow, media),
+                      onRemove: (media) =>
+                          _run(context, () => workflow.removeEvidence(media)),
+                      onFallback: (view, reason, note) => _run(
+                        context,
+                        () => workflow.waiveEvidence(
+                          viewType: view,
+                          reasonCode: reason,
+                          note: note,
+                        ),
+                      ),
+                      onSave: workflow.saveVeV2PlantingUnit,
+                    ),
+                  Station1ViewState.veV2LivingSeedlingEntry =>
+                    VeV2LivingSeedlingStep(
+                      key: ValueKey(
+                        've_living_${workflow.currentPlantPosition}',
+                      ),
+                      position: workflow.currentPlantPosition!,
+                      stationId: workflow.snapshot!.station!.id,
+                      actorPersonId: workflow.assessment!.evaluatorPersonId,
+                      existing: workflow.currentPlant,
+                      suggestedSourceUnitId:
+                          workflow.veV2CaptureTarget?.sourcePlantingUnitId,
+                      initialLeavesInspectedCount: workflow
+                          .capturedLeavesInspectedFor(
+                            workflow.currentPlantPosition!,
+                          ),
+                      linkableUnits: workflow.linkableVeV2Units,
+                      bundle: workflow.currentEvidence!,
+                      isSaving: workflow.isSaving,
+                      resolveFile: workflow.resolveEvidenceFile,
+                      onCapture: (view) =>
+                          _captureEvidence(context, workflow, view),
+                      onInspect: (media) =>
+                          _inspectEvidence(context, workflow, media),
+                      onAccept: (media) =>
+                          _run(context, () => workflow.acceptEvidence(media)),
+                      onRetake: (media) =>
+                          _retakeEvidence(context, workflow, media),
+                      onRemove: (media) =>
+                          _run(context, () => workflow.removeEvidence(media)),
+                      onFallback: (view, reason, note) => _run(
+                        context,
+                        () => workflow.waiveEvidence(
+                          viewType: view,
+                          reasonCode: reason,
+                          note: note,
+                        ),
+                      ),
+                      onSave: workflow.saveVeV2LivingSeedling,
+                    ),
+                  Station1ViewState.veV2StationReview => VeV2StationReviewStep(
+                    stationNumber: workflow.stationNumber,
+                    units: workflow.veV2Units,
+                    plants: workflow.snapshot?.plants ?? const [],
+                    inspection: workflow.veV2Inspection,
+                    acceptedImageCount:
+                        workflow.pilotWorkloadMetrics.acceptedImageCount,
+                    fallbackCount:
+                        workflow.pilotWorkloadMetrics.manualFallbackCount,
+                    retakeCount: workflow.pilotWorkloadMetrics.retakeCount,
+                    evidenceBundles: workflow.stationEvidenceBundles,
+                    resolveFile: workflow.resolveEvidenceFile,
+                    onInspect: (media) =>
+                        _inspectEvidence(context, workflow, media),
+                    analysisFor: workflow.veV2AnalysisFor,
+                    isSaving: workflow.isSaving,
+                    onEditUnit: workflow.editVeV2PlantingUnit,
+                    onEditPlant: workflow.editVeV2LivingSeedling,
+                    onComplete: workflow.completeVeV2PilotStation,
+                    onCompleteWithoutManualConfirmation: () => _run(
+                      context,
+                      workflow.completeStationWithoutManualConfirmation,
+                    ),
+                  ),
+                  Station1ViewState.veV2PilotComplete => _MessageStep(
+                    key: const Key('ve_v2_pilot_complete'),
+                    status: 'STATION SAVED',
+                    title: 'VE–V2 station saved',
+                    message:
+                        'Ten planting spots and ten living plants are saved separately on this phone.',
+                    actionLabel: 'Return to Scan',
+                    onAction: () => Navigator.pop(context),
+                  ),
                   Station1ViewState.plantSelection => PlantSelectionStep(
                     blockNumber: workflow.blockNumber,
                     stationNumber: workflow.stationNumber,
                     evidencePolicy: workflow.evidencePolicy,
                     onBegin: () =>
                         _run(context, workflow.beginTenConsecutivePlants),
+                    onMarkAllHealthy: () =>
+                        _run(context, workflow.markEntireStationClean),
                   ),
-                  Station1ViewState.plantCapture => ContinuousPlantCaptureStep(
-                    key: ValueKey(
-                      'capture_plant_${workflow.currentPlantPosition}',
-                    ),
-                    position: workflow.currentPlantPosition!,
+                  Station1ViewState.plantCapture => PlantCaptureBoardStep(
+                    key: const ValueKey('plant_capture_board_step'),
+                    selectedPosition: workflow.currentPlantPosition ?? 1,
                     blockNumber: workflow.blockNumber,
                     stationNumber: workflow.stationNumber,
                     evidencePolicy: workflow.currentEvidencePolicy,
                     capturedPlantCount: workflow.capturedPlantCount,
-                    initialLeavesInspectedCount: workflow
-                        .capturedLeavesInspectedFor(
-                          workflow.currentPlantPosition!,
-                        ),
-                    bundle: workflow.currentEvidence!,
+                    stationBundles: workflow.stationEvidenceBundles,
                     isSaving: workflow.isSaving,
                     resolveFile: workflow.resolveEvidenceFile,
-                    onCapture: (viewType) =>
-                        _captureEvidence(context, workflow, viewType),
+                    cvDiagnoses: workflow.cvDiagnoses,
+                    onSelectPlant: (pos) =>
+                        _run(context, () => workflow.selectCapturePlant(pos)),
+                    onMarkAllHealthy: () =>
+                        _run(context, workflow.markEntireStationClean),
+                    onCapture: (position, viewType) async {
+                      await workflow.selectCapturePlant(position);
+                      if (!context.mounted) return null;
+                      return _captureEvidence(context, workflow, viewType);
+                    },
                     onInspect: (media) =>
                         _inspectEvidence(context, workflow, media),
-                    onAccept: (media) =>
-                        _tryRun(context, () => workflow.acceptEvidence(media)),
+                    onAccept: (media) => _tryRun(context, () async {
+                      await workflow.acceptEvidence(media);
+                      if (workflow.currentPlantPosition != null) {
+                        await workflow.analyzePlantEvidence(
+                          media: media,
+                          plantPosition: workflow.currentPlantPosition!,
+                        );
+                      }
+                    }),
                     onRetake: (media) =>
                         _retakeEvidence(context, workflow, media),
                     onRemove: (media) =>
                         _run(context, () => workflow.removeEvidence(media)),
-                    onManualFallback: (viewType, reason, note) => _tryRun(
-                      context,
-                      () => workflow.waiveEvidence(
-                        viewType: viewType,
-                        reasonCode: reason,
-                        note: note,
-                      ),
-                    ),
-                    onLeavesInspected: workflow.recordCurrentPlantInspection,
-                    onCompletePlant:
-                        (activeDuration, newestLeavesInspectedCount) => _run(
-                          context,
-                          () => workflow.completeCurrentPlantCapture(
-                            activeDuration,
-                            newestLeavesInspectedCount,
-                          ),
-                        ),
-                    onCannotAssess: (reason, activeDuration) => _run(
-                      context,
-                      () => workflow.saveCaptureNotAssessable(
-                        reason: reason,
-                        activeDuration: activeDuration,
-                      ),
-                    ),
+                    onManualFallback: (position, viewType, reason, note) =>
+                        _tryRun(context, () async {
+                          await workflow.selectCapturePlant(position);
+                          await workflow.waiveEvidence(
+                            viewType: viewType,
+                            reasonCode: reason,
+                            note: note,
+                          );
+                        }),
+                    onCompleteStationCapture: () =>
+                        _run(context, workflow.proceedToStationReview),
+                    onCannotAssess: (position, reason) =>
+                        _run(context, () async {
+                          await workflow.selectCapturePlant(position);
+                          await workflow.saveCaptureNotAssessable(
+                            reason: reason,
+                            activeDuration: Duration.zero,
+                          );
+                        }),
                   ),
                   Station1ViewState.plantEntry => PlantObservationStep(
                     key: ValueKey('plant_${workflow.currentPlantPosition}'),
@@ -333,6 +595,10 @@ class Station1WorkflowScreen extends StatelessWidget {
                     isSaving: workflow.isSaving,
                     onSave: workflow.savePlant,
                     onSaveReviewed: workflow.saveReviewedPlant,
+                    onMarkAllHealthy: () =>
+                        _run(context, workflow.markEntireStationClean),
+                    cvDiagnosis:
+                        workflow.cvDiagnoses[workflow.currentPlantPosition],
                     initialEvidenceReviewStatus:
                         workflow
                                 .plantEvidenceReviews[workflow
@@ -344,7 +610,7 @@ class Station1WorkflowScreen extends StatelessWidget {
                                   .currentPlantPosition!]
                               ?.status
                         : null,
-                    onCancelEdit: () => _handleBack(context, workflow),
+                    onCancelEdit: () => _handleSystemBack(context, workflow),
                     evidence: workflow.currentEvidence,
                     resolveEvidenceFile: workflow.resolveEvidenceFile,
                     onCaptureEvidence: (viewType) async {
@@ -353,8 +619,15 @@ class Station1WorkflowScreen extends StatelessWidget {
                     onInspectEvidence: (media) async {
                       await _inspectEvidence(context, workflow, media);
                     },
-                    onAcceptEvidence: (media) =>
-                        _run(context, () => workflow.acceptEvidence(media)),
+                    onAcceptEvidence: (media) => _run(context, () async {
+                      await workflow.acceptEvidence(media);
+                      if (workflow.currentPlantPosition != null) {
+                        await workflow.analyzePlantEvidence(
+                          media: media,
+                          plantPosition: workflow.currentPlantPosition!,
+                        );
+                      }
+                    }),
                     onRetakeEvidence: (media) async {
                       await _retakeEvidence(context, workflow, media);
                     },
@@ -380,6 +653,10 @@ class Station1WorkflowScreen extends StatelessWidget {
                         _run(context, () => workflow.editPlant(position)),
                     onConfirm: () =>
                         _run(context, workflow.confirmStationReview),
+                    onCompleteWithoutManualConfirmation: () => _run(
+                      context,
+                      workflow.completeStationWithoutManualConfirmation,
+                    ),
                     onCompleteTestStation:
                         kDebugMode && debugFeaturesEnabled && testMode
                         ? () => _run(context, workflow.completeTestStation)
@@ -415,6 +692,8 @@ class Station1WorkflowScreen extends StatelessWidget {
                     plan: workflow.routePlan,
                     completedStationLocations:
                         workflow.completedStationLocations,
+                    completedStationNumbers: workflow.completedStationNumbers,
+                    imageryProvider: imageryProvider,
                     isSaving: workflow.isSaving,
                     onContinue: () =>
                         _run(context, workflow.continueToNextStation),
@@ -483,7 +762,40 @@ class Station1WorkflowScreen extends StatelessWidget {
     );
   }
 
-  static Future<void> _handleBack(
+  static Future<void> _exitToScan(
+    BuildContext context,
+    FiveStationWorkflowProvider workflow,
+    Future<void> Function() exitRoute,
+  ) async {
+    if (workflow.isSaving) return;
+    if (workflow.state == Station1ViewState.plantEntry) {
+      final leave = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Return to Scan?'),
+          content: const Text(
+            'Answers not yet saved on this plant form will be discarded. Accepted photographs and previously saved plant records will remain attached.',
+          ),
+          actions: [
+            TextButton(
+              key: const Key('stay_on_plant_button'),
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Stay here'),
+            ),
+            FilledButton(
+              key: const Key('leave_plant_for_scan_button'),
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Return to Scan'),
+            ),
+          ],
+        ),
+      );
+      if (leave != true || !context.mounted) return;
+    }
+    await exitRoute();
+  }
+
+  static Future<void> _handleSystemBack(
     BuildContext context,
     FiveStationWorkflowProvider workflow,
   ) async {
@@ -616,9 +928,16 @@ class Station1WorkflowScreen extends StatelessWidget {
   ) async {
     final (title, viewLabel, instruction) = switch (viewType) {
       DatabaseCodes.evidenceViewStationContext => (
-        'Station context',
-        'Station-context view',
-        'Frame the maize row and immediate Station ${workflow.stationNumber} surroundings. Avoid people and identifying documents.',
+        'Station ${workflow.stationNumber}',
+        'Station photo',
+        workflow.isVeV2
+            ? 'Keep the row and planting spots clearly in the frame.'
+            : 'Keep the maize row and nearby crop clearly in the frame.',
+      ),
+      DatabaseCodes.evidenceViewWholeSeedling => (
+        'Seedling ${workflow.currentPlantPosition}',
+        'Whole seedling',
+        'Inspect the newest leaves and stem base, then keep the whole seedling clearly in the frame.',
       ),
       DatabaseCodes.evidenceViewCloseUp => (
         'Whorl detail',
@@ -635,9 +954,9 @@ class Station1WorkflowScreen extends StatelessWidget {
         'Frame the larva, egg mass, ambiguous feature, or other sign that needs its own detail view.',
       ),
       _ => (
-        'Whorl overview',
-        'Whorl and newest leaves',
-        'Gently expose the whorl and frame the newest three or four emerging leaves together.',
+        'Plant photo',
+        'Newest leaves and whorl',
+        'Keep the newest leaves and whorl clearly in the frame.',
       ),
     };
     final result = await Navigator.push<GuidedCameraResult>(
@@ -694,7 +1013,15 @@ class Station1WorkflowScreen extends StatelessWidget {
   ) async {
     final bundle = media.viewType == DatabaseCodes.evidenceViewStationContext
         ? workflow.stationContextEvidence
-        : workflow.currentEvidence;
+        : (workflow.stationEvidenceBundles
+                  .where((b) => b.session.id == media.captureSessionId)
+                  .firstOrNull ??
+              workflow.currentEvidence);
+    if (bundle?.session.plantPosition != null &&
+        workflow.currentPlantPosition != bundle!.session.plantPosition) {
+      await workflow.selectCapturePlant(bundle.session.plantPosition!);
+    }
+    if (!context.mounted) return null;
     final scopeLabel = bundle?.session.plantPosition == null
         ? 'Block ${workflow.blockNumber} · Station ${workflow.stationNumber}'
         : 'Station ${workflow.stationNumber} · Plant ${bundle!.session.plantPosition}';
@@ -836,16 +1163,56 @@ class Station1WorkflowScreen extends StatelessWidget {
   }
 }
 
+class _StationWorkflowBackBoundary extends StatefulWidget {
+  const _StationWorkflowBackBoundary({
+    required this.onSystemBack,
+    required this.builder,
+  });
+
+  final Future<void> Function() onSystemBack;
+  final Widget Function(Future<void> Function() exitRoute) builder;
+
+  @override
+  State<_StationWorkflowBackBoundary> createState() =>
+      _StationWorkflowBackBoundaryState();
+}
+
+class _StationWorkflowBackBoundaryState
+    extends State<_StationWorkflowBackBoundary> {
+  bool _allowRouteExit = false;
+
+  Future<void> _exitRoute() async {
+    if (_allowRouteExit) return;
+    setState(() => _allowRouteExit = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) Navigator.pop(context);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => PopScope<void>(
+    // Phone Back stays inside the workflow. Only the explicit app-bar action
+    // temporarily enables removal of this Navigator route.
+    canPop: _allowRouteExit,
+    onPopInvokedWithResult: (didPop, _) {
+      if (!didPop) unawaited(widget.onSystemBack());
+    },
+    child: widget.builder(_exitRoute),
+  );
+}
+
 class TestDataWorkflowActions extends StatelessWidget {
   const TestDataWorkflowActions({
     super.key,
     required this.stationNumber,
+    this.isVeV2 = false,
     required this.isSaving,
     required this.onCompleteCurrent,
     required this.onCompleteAll,
   });
 
   final int stationNumber;
+  final bool isVeV2;
   final bool isSaving;
   final VoidCallback onCompleteCurrent;
   final VoidCallback onCompleteAll;
@@ -876,7 +1243,11 @@ class TestDataWorkflowActions extends StatelessWidget {
                 key: const Key('complete_all_test_stations_persistent_button'),
                 onPressed: isSaving ? null : onCompleteAll,
                 icon: const Icon(Icons.fast_forward_outlined),
-                label: const Text('Complete all Stations 1–5 synthetically'),
+                label: Text(
+                  isVeV2
+                      ? 'Complete all VE–V2 Stations 1–5 synthetically'
+                      : 'Complete all Stations 1–5 synthetically',
+                ),
               ),
             ),
             TextButton(
@@ -898,8 +1269,10 @@ class _BetweenStationsStep extends StatelessWidget {
     required this.boundary,
     required this.plan,
     required this.completedStationLocations,
+    required this.completedStationNumbers,
     required this.isSaving,
     required this.onContinue,
+    this.imageryProvider,
   });
 
   final int blockNumber;
@@ -907,8 +1280,10 @@ class _BetweenStationsStep extends StatelessWidget {
   final List<LatLng> boundary;
   final ScoutingRoutePlan? plan;
   final Map<int, LatLng> completedStationLocations;
+  final Set<int> completedStationNumbers;
   final bool isSaving;
   final VoidCallback onContinue;
+  final FieldImageryProvider? imageryProvider;
 
   @override
   Widget build(BuildContext context) {
@@ -926,6 +1301,11 @@ class _BetweenStationsStep extends StatelessWidget {
           'Block $blockNumber, Station $completedStation is reviewed and saved on this phone.',
           style: const TextStyle(height: 1.45),
         ),
+        const SizedBox(height: 14),
+        _StationProgressStrip(
+          completedStations: completedStationNumbers,
+          activeStation: nextStation,
+        ),
         const SizedBox(height: 16),
         if (plan?.isReady == true) ...[
           OfflineScoutingRouteMap(
@@ -933,6 +1313,8 @@ class _BetweenStationsStep extends StatelessWidget {
             plan: plan!,
             activeStation: nextStation,
             completedStationLocations: completedStationLocations,
+            completedStationNumbers: completedStationNumbers,
+            imageryProvider: imageryProvider,
             height: 280,
           ),
           const SizedBox(height: 12),
@@ -952,6 +1334,100 @@ class _BetweenStationsStep extends StatelessWidget {
           onPressed: onContinue,
         ),
       ],
+    );
+  }
+}
+
+class _StationProgressStrip extends StatelessWidget {
+  const _StationProgressStrip({
+    required this.completedStations,
+    required this.activeStation,
+  });
+
+  final Set<int> completedStations;
+  final int activeStation;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    label:
+        '${completedStations.length} of 5 stations completed. Station $activeStation is next.',
+    child: DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF2F5EE),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFD5DED0)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        child: Row(
+          children: [
+            for (var station = 1; station <= 5; station++) ...[
+              if (station > 1)
+                Expanded(
+                  child: Container(
+                    height: 3,
+                    color: completedStations.contains(station - 1)
+                        ? AppColors.primary
+                        : const Color(0xFFD5DED0),
+                  ),
+                ),
+              _StationProgressDot(
+                station: station,
+                completed: completedStations.contains(station),
+                active: station == activeStation,
+              ),
+            ],
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+class _StationProgressDot extends StatelessWidget {
+  const _StationProgressDot({
+    required this.station,
+    required this.completed,
+    required this.active,
+  });
+
+  final int station;
+  final bool completed;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = completed
+        ? AppColors.primary
+        : active
+        ? const Color(0xFFE98B00)
+        : const Color(0xFF68766F);
+    return Tooltip(
+      message: completed
+          ? 'Station $station completed'
+          : active
+          ? 'Station $station next'
+          : 'Station $station upcoming',
+      child: Container(
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 2),
+        ),
+        alignment: Alignment.center,
+        child: completed
+            ? const Icon(Icons.check_rounded, color: Colors.white, size: 21)
+            : Text(
+                '$station',
+                textScaler: TextScaler.noScaling,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+      ),
     );
   }
 }
@@ -1094,6 +1570,8 @@ class _MessageStep extends StatelessWidget {
     required this.onAction,
     this.supporting,
     this.warning = false,
+    this.secondaryActionLabel,
+    this.onSecondaryAction,
   });
 
   final String status;
@@ -1103,6 +1581,8 @@ class _MessageStep extends StatelessWidget {
   final String actionLabel;
   final VoidCallback onAction;
   final bool warning;
+  final String? secondaryActionLabel;
+  final VoidCallback? onSecondaryAction;
 
   @override
   Widget build(BuildContext context) {
@@ -1131,6 +1611,17 @@ class _MessageStep extends StatelessWidget {
         ],
         const SizedBox(height: 24),
         _PrimaryButton(label: actionLabel, onPressed: onAction),
+        if (secondaryActionLabel != null && onSecondaryAction != null) ...[
+          const SizedBox(height: 8),
+          ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 52),
+            child: OutlinedButton(
+              key: const Key('change_growth_stage_button'),
+              onPressed: onSecondaryAction,
+              child: Text(secondaryActionLabel!),
+            ),
+          ),
+        ],
       ],
     );
   }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart' show LatLng;
 
 import '../../services/scouting_route_generator.dart';
+import '../../services/field_imagery_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/offline_scouting_route_map.dart';
 
@@ -13,15 +14,18 @@ class StationTargetAdjustmentStep extends StatefulWidget {
     required this.boundary,
     required this.plan,
     required this.completedStationLocations,
+    required this.completedStationNumbers,
     required this.isSaving,
     required this.onSaveDraft,
     required this.onApply,
     required this.onCancel,
+    this.imageryProvider,
   });
 
   final List<LatLng> boundary;
   final ScoutingRoutePlan plan;
   final Map<int, LatLng> completedStationLocations;
+  final Set<int> completedStationNumbers;
   final bool isSaving;
   final Future<void> Function({
     required LatLng? candidate,
@@ -30,6 +34,7 @@ class StationTargetAdjustmentStep extends StatefulWidget {
   onSaveDraft;
   final Future<void> Function() onApply;
   final Future<void> Function() onCancel;
+  final FieldImageryProvider? imageryProvider;
 
   @override
   State<StationTargetAdjustmentStep> createState() =>
@@ -125,6 +130,8 @@ class _StationTargetAdjustmentStepState
           plan: widget.plan,
           activeStation: stationNumber,
           completedStationLocations: widget.completedStationLocations,
+          completedStationNumbers: widget.completedStationNumbers,
+          imageryProvider: widget.imageryProvider,
           candidate: _candidate,
           onTap: widget.isSaving ? null : _selectCandidate,
         ),

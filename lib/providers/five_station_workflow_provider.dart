@@ -10,12 +10,51 @@ import '../data/repositories/evidence_capture_repository.dart';
 import '../data/repositories/scouting_workflow_repository.dart';
 import '../data/repositories/scouting_route_repository.dart';
 import '../data/services/atomic_plant_save_service.dart';
+import '../data/services/atomic_ve_v2_save_service.dart';
 import '../data/services/five_station_completion_service.dart';
+import '../services/computer_vision/faw_computer_vision_service.dart';
+import '../services/computer_vision/tflite_faw_detector.dart';
 import '../services/evidence_capture_coordinator.dart';
 import '../services/phone_location_service.dart';
 import '../services/scouting_route_generator.dart';
 import '../services/station_evidence_policy.dart';
+import '../services/ve_v2_analysis_service.dart';
 import 'station1_workflow_provider.dart';
+
+enum VeV2CaptureKind { plantingUnit, livingSeedling }
+
+class VeV2CaptureTarget {
+  const VeV2CaptureTarget._({
+    required this.kind,
+    this.plantingUnitPosition,
+    this.livingSeedlingPosition,
+    this.sourcePlantingUnitId,
+    this.sourcePlantingUnitSequence,
+  });
+
+  const VeV2CaptureTarget.plantingUnit(int position)
+    : this._(
+        kind: VeV2CaptureKind.plantingUnit,
+        plantingUnitPosition: position,
+      );
+
+  const VeV2CaptureTarget.livingSeedling({
+    required int livingSeedlingPosition,
+    required String? sourcePlantingUnitId,
+    required int? sourcePlantingUnitSequence,
+  }) : this._(
+         kind: VeV2CaptureKind.livingSeedling,
+         livingSeedlingPosition: livingSeedlingPosition,
+         sourcePlantingUnitId: sourcePlantingUnitId,
+         sourcePlantingUnitSequence: sourcePlantingUnitSequence,
+       );
+
+  final VeV2CaptureKind kind;
+  final int? plantingUnitPosition;
+  final int? livingSeedlingPosition;
+  final String? sourcePlantingUnitId;
+  final int? sourcePlantingUnitSequence;
+}
 
 /// Coordinates five-station capture and Scan-owned approximate route guidance.
 class FiveStationWorkflowProvider extends ChangeNotifier {
@@ -25,26 +64,40 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
     required AssessmentRepository assessmentRepository,
     required AtomicPlantSaveService plantSaveService,
     required FiveStationCompletionService completionService,
+    AtomicVeV2SaveService? veV2SaveService,
     ScoutingRouteRepository? routeRepository,
     EvidenceCaptureCoordinator? evidenceCoordinator,
+    VeV2AnalysisService veV2AnalysisService =
+        const UnavailableVeV2AnalysisService(),
+    FawComputerVisionService? computerVisionService,
     this.testMode = false,
     this.debugFeaturesEnabled = kDebugMode,
   }) : _workflow = workflowRepository,
        _assessments = assessmentRepository,
        _plantSaves = plantSaveService,
        _completion = completionService,
+       _veV2 = veV2SaveService,
        _routes = routeRepository,
-       _evidence = evidenceCoordinator;
+       _evidence = evidenceCoordinator,
+       _veV2Analysis = veV2AnalysisService,
+       _cvService = computerVisionService ?? TfliteFawDetector();
 
   final String assessmentId;
   final ScoutingWorkflowRepository _workflow;
   final AssessmentRepository _assessments;
   final AtomicPlantSaveService _plantSaves;
   final FiveStationCompletionService _completion;
+  final AtomicVeV2SaveService? _veV2;
   final ScoutingRouteRepository? _routes;
   final EvidenceCaptureCoordinator? _evidence;
+  final VeV2AnalysisService _veV2Analysis;
+  final FawComputerVisionService _cvService;
   final bool testMode;
   final bool debugFeaturesEnabled;
+
+  Map<int, PlantDiagnosisResult> _cvDiagnoses = const {};
+  Map<int, PlantDiagnosisResult> get cvDiagnoses => _cvDiagnoses;
+  FawComputerVisionService get cvService => _cvService;
 
   Station1ViewState _state = Station1ViewState.loading;
   Station1ViewState? _resumeTarget;
@@ -61,10 +114,16 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
   Map<int, PlantEvidenceReview> _plantEvidenceReviews = const {};
   PilotWorkloadMetrics _pilotWorkloadMetrics = PilotWorkloadMetrics.empty;
   Map<int, int> _capturedLeavesInspected = const {};
+  VeV2StationInspectionRecord? _veV2Inspection;
+  List<PlantingUnitObservationRecord> _veV2Units = const [];
+  EvidenceCaptureBundle? _veV2RowContextEvidence;
+  VeV2CaptureTarget? _veV2CaptureTarget;
+  Map<String, VeV2AnalysisPresentation> _veV2AnalysisPresentations = const {};
   int? _currentPlantPosition;
   Object? _error;
   bool _isSaving = false;
   bool _returnToBlockReview = false;
+  bool _returnToVeV2Review = false;
   bool _returnToRouteTravel = false;
   ScoutingRoutePlan? _routePlan;
 
@@ -79,6 +138,45 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
   int get stationNumber => _stationNumber;
   int get blockNumber => prepared?.run.blockSequence ?? 1;
   int? get currentPlantPosition => _currentPlantPosition;
+  bool get isVeV2 =>
+      const {'ve', 'v1', 'v2'}.contains(_assessment?.growthStage);
+  VeV2StationInspectionRecord? get veV2Inspection => _veV2Inspection;
+  List<PlantingUnitObservationRecord> get veV2Units => _veV2Units;
+  EvidenceCaptureBundle? get veV2RowContextEvidence => _veV2RowContextEvidence;
+  VeV2CaptureTarget? get veV2CaptureTarget => _veV2CaptureTarget;
+  int get veV2CapturedLivingCount => _veV2CapturedLivingPositions.length;
+  int get veV2ConfirmedUnitCount =>
+      _veV2Units.where((unit) => unit.primaryCondition != null).length;
+  int get veV2ConfirmedLivingCount => _snapshot?.plants.length ?? 0;
+  VeV2AnalysisPresentation veV2AnalysisFor(EvidenceCaptureBundle? bundle) =>
+      bundle == null
+      ? VeV2AnalysisPresentation.unavailable
+      : _veV2AnalysisPresentations[bundle.session.id] ??
+            VeV2AnalysisPresentation.unavailable;
+  PlantingUnitObservationRecord? get currentVeV2Unit {
+    final position = _currentPlantPosition;
+    if (position == null) return null;
+    for (final unit in _veV2Units) {
+      if (unit.sequenceNumber == position) return unit;
+    }
+    return null;
+  }
+
+  List<PlantingUnitObservationRecord> get linkableVeV2Units {
+    final plants = _snapshot?.plants ?? const <StationPlantRecord>[];
+    return _veV2Units.where((unit) {
+      final capacity = unit.observedSeedlingCount ?? 0;
+      final used = plants
+          .where(
+            (item) =>
+                item.plant.sequenceNumber != _currentPlantPosition &&
+                item.plant.sourcePlantingUnitObservationId == unit.id,
+          )
+          .length;
+      return capacity > used;
+    }).toList();
+  }
+
   EvidenceCaptureBundle? get stationContextEvidence => _stationContextEvidence;
   EvidenceCaptureBundle? get currentEvidence => _currentEvidence;
   List<EvidenceCaptureBundle> get stationEvidenceBundles =>
@@ -103,6 +201,8 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
     for (final entry in _completedStationLocations().entries)
       if (entry.value != null) entry.key: entry.value!,
   };
+  Set<int> get completedStationNumbers =>
+      _completedStationLocations().keys.toSet();
   int get savedPlantCount => _snapshot?.plants.length ?? 0;
   bool get canNavigateBackWithinWorkflow => switch (_state) {
     Station1ViewState.stationTravel ||
@@ -113,6 +213,12 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
     Station1ViewState.plantEntry ||
     Station1ViewState.plantCapture ||
     Station1ViewState.stationReview ||
+    Station1ViewState.veV2StationSetup ||
+    Station1ViewState.veV2RowContextEvidence ||
+    Station1ViewState.veV2ContinuousCapture ||
+    Station1ViewState.veV2PlantingUnitEntry ||
+    Station1ViewState.veV2LivingSeedlingEntry ||
+    Station1ViewState.veV2StationReview ||
     Station1ViewState.betweenStations ||
     Station1ViewState.blockReview => true,
     _ => false,
@@ -128,6 +234,50 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
       if (_isCaptureSatisfied(snapshot, position)) count++;
     }
     return count;
+  }
+
+  EvidenceCaptureBundle? bundleForPlant(int position) {
+    for (final bundle in _stationEvidenceBundles) {
+      if (bundle.session.scopeType == DatabaseCodes.evidenceScopePlant &&
+          bundle.session.plantPosition == position) {
+        return bundle;
+      }
+    }
+    return null;
+  }
+
+  bool isPlantCaptureSatisfied(int position) {
+    final s = _snapshot;
+    if (s == null) return false;
+    return _isCaptureSatisfied(s, position);
+  }
+
+  Future<void> selectCapturePlant(int position) async {
+    if (position < 1 || position > 10) return;
+    _currentPlantPosition = position;
+    if (isVeV2) {
+      final unit = _unitAt(position);
+      final bundle = bundleForPlant(position);
+      _veV2CaptureTarget = VeV2CaptureTarget.livingSeedling(
+        livingSeedlingPosition: position,
+        sourcePlantingUnitId:
+            unit?.id ?? bundle?.session.sourcePlantingUnitObservationId,
+        sourcePlantingUnitSequence:
+            unit?.sequenceNumber ??
+            _unitSequenceForId(bundle?.session.sourcePlantingUnitObservationId),
+      );
+    }
+    await _loadCurrentEvidence();
+    notifyListeners();
+  }
+
+  Future<void> proceedToStationReview() async {
+    _currentPlantPosition = null;
+    _setState(
+      isVeV2
+          ? Station1ViewState.veV2StationReview
+          : Station1ViewState.stationReview,
+    );
   }
 
   StationPlantRecord? get currentPlant {
@@ -467,8 +617,8 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
   /// reclassifying any persisted station, plant, or evidence record.
   ///
   /// The station workflow is hosted by one Navigator route. This method keeps
-  /// the system and app-bar Back actions inside that route until the evaluator
-  /// reaches a genuine exit point.
+  /// the phone's system Back gesture/button inside that route. The visible
+  /// app-bar Back action deliberately exits to Scan.
   Future<void> navigateBackWithinWorkflow() async {
     if (_isSaving) return;
     switch (_state) {
@@ -524,16 +674,88 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
               : Station1ViewState.plantCapture,
         );
         return;
+      case Station1ViewState.veV2StationSetup:
+        _setState(Station1ViewState.stationContextEvidence);
+        return;
+      case Station1ViewState.veV2RowContextEvidence:
+        _setState(Station1ViewState.veV2StationSetup);
+        return;
+      case Station1ViewState.veV2ContinuousCapture:
+        if (_veV2CaptureTarget?.kind == VeV2CaptureKind.livingSeedling &&
+            (_veV2CaptureTarget?.livingSeedlingPosition ?? 1) > 1) {
+          _currentPlantPosition =
+              _veV2CaptureTarget!.livingSeedlingPosition! - 1;
+          final previousBundle = _plantEvidenceBundle(_currentPlantPosition!);
+          final sourceUnitId =
+              previousBundle?.session.sourcePlantingUnitObservationId;
+          _veV2CaptureTarget = VeV2CaptureTarget.livingSeedling(
+            livingSeedlingPosition: _currentPlantPosition!,
+            sourcePlantingUnitId: sourceUnitId,
+            sourcePlantingUnitSequence: _unitSequenceForId(sourceUnitId),
+          );
+          await _loadCurrentEvidence();
+        }
+        return;
+      case Station1ViewState.veV2PlantingUnitEntry:
+        if (_returnToVeV2Review) {
+          _returnToVeV2Review = false;
+          _currentPlantPosition = null;
+          _setState(Station1ViewState.veV2StationReview);
+          return;
+        }
+        final position = _currentPlantPosition ?? 1;
+        if (position <= 1) {
+          _setState(Station1ViewState.veV2StationSetup);
+          return;
+        }
+        _currentPlantPosition = position - 1;
+        await loadVeV2PlantingUnitEvidence();
+        _setState(Station1ViewState.veV2PlantingUnitEntry);
+        return;
+      case Station1ViewState.veV2LivingSeedlingEntry:
+        if (_returnToVeV2Review) {
+          _returnToVeV2Review = false;
+          _currentPlantPosition = null;
+          _setState(Station1ViewState.veV2StationReview);
+          return;
+        }
+        final position = _currentPlantPosition ?? 1;
+        if (position <= 1) {
+          _currentPlantPosition = 10;
+          await loadVeV2PlantingUnitEvidence();
+          _setState(Station1ViewState.veV2PlantingUnitEntry);
+          return;
+        }
+        _currentPlantPosition = position - 1;
+        await _loadCurrentEvidence();
+        _setState(Station1ViewState.veV2LivingSeedlingEntry);
+        return;
+      case Station1ViewState.veV2StationReview:
+        if (_returnToBlockReview) {
+          _currentPlantPosition = null;
+          _setState(Station1ViewState.blockReview);
+          return;
+        }
+        await editVeV2LivingSeedling(10);
+        return;
       case Station1ViewState.betweenStations:
         _currentPlantPosition = null;
-        _setState(Station1ViewState.stationReview);
+        _setState(
+          isVeV2
+              ? Station1ViewState.veV2StationReview
+              : Station1ViewState.stationReview,
+        );
         return;
       case Station1ViewState.blockReview:
         _stationNumber = 5;
         _snapshot = _blockSnapshot?.station(_stationNumber);
         _currentPlantPosition = null;
         _returnToBlockReview = true;
-        _setState(Station1ViewState.stationReview);
+        _setState(
+          isVeV2
+              ? Station1ViewState.veV2StationReview
+              : Station1ViewState.stationReview,
+        );
         return;
       default:
         return;
@@ -640,6 +862,10 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
 
   Future<void> fillRemainingTestPlants() async {
     _requireTestShortcuts();
+    if (isVeV2) {
+      await _fillRemainingVeV2TestData();
+      return;
+    }
     await _perform(() async {
       await _ensureAssessmentActive();
       var snapshot = await _workflow.loadStationSnapshot(
@@ -770,6 +996,10 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
     _requireTestShortcuts();
     await _prepareTestBlockIfNeeded();
     await fillRemainingTestPlants();
+    if (isVeV2) {
+      await completeVeV2PilotStation(1);
+      return;
+    }
     final snapshot = _snapshot;
     if (snapshot == null) throw StateError('Test station is unavailable.');
     await _perform(() async {
@@ -798,6 +1028,167 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
       if (_stationNumber >= 5) return;
       await continueToNextStation();
     }
+  }
+
+  Future<void> _fillRemainingVeV2TestData() async {
+    final service = _veV2;
+    if (service == null) {
+      throw StateError('VE-V2 test persistence is unavailable.');
+    }
+    await _prepareTestBlockIfNeeded();
+    await _perform(() async {
+      var snapshot = await _workflow.loadStationSnapshot(
+        _requirePrepared(),
+        stationNumber: _stationNumber,
+      );
+      var station = snapshot.station;
+      station ??= await _workflow.saveStationLocation(
+        prepared: _requirePrepared(),
+        stationNumber: _stationNumber,
+        actorPersonId: _requireAssessment().evaluatorPersonId,
+        notLocatedReason: DatabaseCodes.stationNoCurrentFix,
+        accessibilityNotes: '[TEST DATA] Synthetic unavailable GPS.',
+      );
+      final coordinator = _requireEvidenceCoordinator();
+      var context = await coordinator.ensureStationContext(
+        assessmentId: assessmentId,
+        stationId: station.id,
+        actorPersonId: _requireAssessment().evaluatorPersonId,
+      );
+      if (!context.isViewSatisfied(DatabaseCodes.evidenceViewStationContext)) {
+        context = await coordinator.waive(
+          session: context.session,
+          viewType: DatabaseCodes.evidenceViewStationContext,
+          reasonCode: DatabaseCodes.evidenceFallbackNoCamera,
+          actorPersonId: _requireAssessment().evaluatorPersonId,
+          note: '[TEST DATA] Synthetic station and row context fallback.',
+        );
+      }
+      if (context.session.completedAt == null) {
+        await coordinator.completeStationContext(
+          session: context.session,
+          actorPersonId: _requireAssessment().evaluatorPersonId,
+        );
+      }
+      var inspection = await service.loadStationInspection(station.id);
+      inspection ??= await service.saveStationSetup(
+        VeV2StationSetupInput(
+          stationId: station.id,
+          growthStage: _requireAssessment().growthStage,
+          rowDirectionCode: 'forward_from_station',
+          plantingUnitSequenceAssessable: true,
+          stationContextMeetsRowPurpose: true,
+          emergenceContinuing: _requireAssessment().growthStage == 've'
+              ? false
+              : null,
+          delayedEmergencePlausible: _requireAssessment().growthStage == 've'
+              ? null
+              : false,
+          actorPersonId: _requireAssessment().evaluatorPersonId,
+        ),
+      );
+      final units = await service.loadPlantingUnits(station.id);
+      final byPosition = {for (final unit in units) unit.sequenceNumber: unit};
+      for (var position = 1; position <= 10; position++) {
+        byPosition[position] ??= await service.savePlantingUnit(
+          VeV2PlantingUnitSave(
+            stationId: station.id,
+            sequenceNumber: position,
+            assessable: true,
+            primaryCondition: DatabaseCodes.veUnitHealthy,
+            observedSeedlingCount: 1,
+            recognizableRemnantPresent: true,
+            visibleCutting: false,
+            visibleSevering: false,
+            visibleSeedlingInjury: false,
+            injuryLocation: null,
+            injuryFreshness: null,
+            larvaVisible: null,
+            larvalSize: null,
+            freshFrass: null,
+            rotPresent: null,
+            tunnelingPresent: null,
+            discolorationPresent: null,
+            otherNonFawEvidence: null,
+            evaluatorPrimaryInterpretation: DatabaseCodes.veInterpretationNone,
+            evaluatorConfidence: 'high',
+            alternativeCauseCodes: const {},
+            inspectionDurationMs: 0,
+            notes: '[TEST DATA] Synthetic healthy planting unit.',
+            actorPersonId: _requireAssessment().evaluatorPersonId,
+          ),
+        );
+      }
+      snapshot = await _workflow.loadStationSnapshot(
+        _requirePrepared(),
+        stationNumber: _stationNumber,
+      );
+      final savedPlants = snapshot.plants
+          .map((item) => item.plant.sequenceNumber)
+          .toSet();
+      for (var position = 1; position <= 10; position++) {
+        if (savedPlants.contains(position)) continue;
+        var bundle = await coordinator.ensurePlant(
+          assessmentId: assessmentId,
+          stationId: station.id,
+          plantPosition: position,
+          actorPersonId: _requireAssessment().evaluatorPersonId,
+          requirementsVersion:
+              DatabaseCodes.evidencePolicyVeV2ModelReadyCaptureV1,
+          sourcePlantingUnitObservationId: byPosition[position]!.id,
+        );
+        if (!bundle.isViewSatisfied(DatabaseCodes.evidenceViewWhorlOverview)) {
+          bundle = await coordinator.waive(
+            session: bundle.session,
+            viewType: DatabaseCodes.evidenceViewWhorlOverview,
+            reasonCode: DatabaseCodes.evidenceFallbackNoCamera,
+            actorPersonId: _requireAssessment().evaluatorPersonId,
+            note: '[TEST DATA] Synthetic living-plant evidence fallback.',
+          );
+        }
+        if (bundle.session.completedAt == null) {
+          await coordinator.completePlantCapture(
+            session: bundle.session,
+            actorPersonId: _requireAssessment().evaluatorPersonId,
+            activeDuration: Duration.zero,
+            newestLeavesInspectedCount: 3,
+            requiredViewTypes: const {DatabaseCodes.evidenceViewWhorlOverview},
+          );
+        }
+        await _plantSaves.saveVegetativePlant(
+          VegetativePlantSave(
+            stationId: station.id,
+            plantPosition: position,
+            plantStatus: DatabaseCodes.plantNegative,
+            assessable: true,
+            newestLeavesInspectedCount: 3,
+            smallFreshWindowpanes: false,
+            scraping: false,
+            cuttingOrTearing: false,
+            freshFrass: false,
+            whorlFeedingSign: false,
+            larvaVisible: false,
+            larvalSize: 'none_seen',
+            eggMassVisible: false,
+            oldDamagePresent: false,
+            possibleNonFawEvidence: false,
+            uncertainEvidence: false,
+            naturalEnemyQuickStatus: DatabaseCodes.naturalEnemyNoneSeen,
+            sourcePlantingUnitObservationId: byPosition[position]!.id,
+            evaluatorNotes: '[TEST DATA] Synthetic living seedling.',
+            actorPersonId: _requireAssessment().evaluatorPersonId,
+            evidenceCaptureSessionId: bundle.session.id,
+            requiredEvidenceViewTypes: const {
+              DatabaseCodes.evidenceViewWhorlOverview,
+            },
+            requireCameraPhaseAEvidence: true,
+            manualFormUsed: true,
+            pilotActiveDurationMs: 0,
+          ),
+        );
+      }
+      await _loadSnapshot(askForResume: false);
+    });
   }
 
   Future<void> _prepareTestBlockIfNeeded() async {
@@ -829,6 +1220,58 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
     });
   }
 
+  Future<void> completeStationWithoutManualConfirmation() async {
+    final snapshot = _snapshot;
+    if (snapshot == null) throw StateError('Station data is unavailable.');
+    await _perform(() async {
+      await _ensureAssessmentActive();
+      _validateDeferredManualConfirmationEvidence();
+      await _workflow.confirmStationReview(
+        snapshot: snapshot,
+        actorPersonId: _requireAssessment().evaluatorPersonId,
+        manualConfirmationDeferred: true,
+      );
+      await _loadSnapshot(askForResume: false);
+      if (_returnToBlockReview) {
+        _returnToBlockReview = false;
+        _setState(Station1ViewState.blockReview);
+      }
+    });
+  }
+
+  void _validateDeferredManualConfirmationEvidence() {
+    final context = _stationEvidenceBundles.where(
+      (bundle) =>
+          bundle.session.scopeType == DatabaseCodes.evidenceScopeStationContext,
+    );
+    if (context.length != 1 ||
+        context.single.session.completedAt == null ||
+        !context.single.isViewSatisfied(
+          DatabaseCodes.evidenceViewStationContext,
+        )) {
+      throw StateError(
+        'Record the station context or its documented fallback first.',
+      );
+    }
+    final requiredView = isVeV2
+        ? DatabaseCodes.evidenceViewWholeSeedling
+        : DatabaseCodes.evidenceViewWhorlOverview;
+    for (var position = 1; position <= 10; position++) {
+      final matches = _stationEvidenceBundles.where(
+        (bundle) =>
+            bundle.session.scopeType == DatabaseCodes.evidenceScopePlant &&
+            bundle.session.plantPosition == position,
+      );
+      if (matches.length != 1 ||
+          matches.single.session.completedAt == null ||
+          !matches.single.isViewSatisfied(requiredView)) {
+        throw StateError(
+          '${isVeV2 ? 'Seedling' : 'Plant'} $position needs its required photo or documented fallback.',
+        );
+      }
+    }
+  }
+
   Future<void> openStationFromBlockReview(int stationNumber) async {
     if (stationNumber < 1 || stationNumber > 5) {
       throw ArgumentError.value(stationNumber, 'stationNumber', 'Must be 1-5');
@@ -837,7 +1280,11 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
     _returnToBlockReview = true;
     await _loadSnapshot(askForResume: false);
     _currentPlantPosition = null;
-    _setState(Station1ViewState.stationReview);
+    _setState(
+      isVeV2
+          ? Station1ViewState.veV2StationReview
+          : Station1ViewState.stationReview,
+    );
   }
 
   Future<void> continueToNextStation() async {
@@ -929,8 +1376,17 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
   }) async {
     await _perform(() async {
       await _ensureAssessmentActive();
+      final activeBundle = _requireActiveEvidenceBundle();
+      final existingMedia = activeBundle.mediaForView(viewType);
+      if (existingMedia != null) {
+        await _requireEvidenceCoordinator().remove(
+          media: existingMedia,
+          actorPersonId: _requireAssessment().evaluatorPersonId,
+          retake: true,
+        );
+      }
       final updated = await _requireEvidenceCoordinator().stageCapture(
-        session: _requireActiveEvidenceBundle().session,
+        session: activeBundle.session,
         viewType: viewType,
         sourcePath: sourcePath,
         actorPersonId: _requireAssessment().evaluatorPersonId,
@@ -941,6 +1397,7 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
   }
 
   Future<void> acceptEvidence(EvidenceMediaRecord media) async {
+    if (media.storageState == DatabaseCodes.evidenceStorageReady) return;
     await _perform(() async {
       final updated = await _requireEvidenceCoordinator().accept(
         media: media,
@@ -997,6 +1454,230 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
     });
   }
 
+  Future<void> saveVeV2StationSetup(VeV2StationSetupInput input) async {
+    final service = _veV2;
+    if (!isVeV2 || service == null) {
+      throw StateError('VE-V2 persistence is unavailable.');
+    }
+    await _perform(() async {
+      _veV2Inspection = await service.saveStationSetup(input);
+      await _loadSnapshot(askForResume: false);
+    });
+  }
+
+  Future<void> continueAfterVeV2RowContext() async {
+    final bundle = _veV2RowContextEvidence;
+    if (bundle == null ||
+        !bundle.isViewSatisfied(DatabaseCodes.evidenceViewVeRowContext)) {
+      throw StateError('Capture the row context or document manual fallback.');
+    }
+    await _loadSnapshot(askForResume: false);
+  }
+
+  Future<void> saveVeV2PlantingUnit(VeV2PlantingUnitSave input) async {
+    final service = _veV2;
+    if (!isVeV2 || service == null) {
+      throw StateError('VE-V2 persistence is unavailable.');
+    }
+    await _perform(() async {
+      await service.savePlantingUnit(input);
+      await service.addEntryDuration(
+        stationId: input.stationId,
+        duration: Duration(milliseconds: input.inspectionDurationMs),
+        plantingUnit: true,
+      );
+      await _loadSnapshot(askForResume: false);
+    });
+  }
+
+  Future<void> saveVeV2CaptureRouting(VeV2CaptureRoutingSave input) async {
+    final service = _veV2;
+    if (!isVeV2 || service == null) {
+      throw StateError('VE-V2 persistence is unavailable.');
+    }
+    await _perform(() async {
+      await service.saveCaptureRouting(input);
+      await service.addEntryDuration(
+        stationId: input.stationId,
+        duration: Duration(milliseconds: input.inspectionDurationMs),
+        plantingUnit: true,
+      );
+      await _loadSnapshot(askForResume: false);
+    });
+  }
+
+  Future<void> completeVeV2LivingCapture({
+    required int newestLeavesInspectedCount,
+    required Duration activeDuration,
+  }) async {
+    final bundle = _currentEvidence;
+    final target = _veV2CaptureTarget;
+    if (bundle == null || target?.kind != VeV2CaptureKind.livingSeedling) {
+      throw StateError('The living-seedling capture is unavailable.');
+    }
+    // VE-V2 uses a stage-specific whole-seedling image as its canonical
+    // capture. Whorl imagery belongs to the V3-V12 workflow.
+    final requiredViews = <String>{DatabaseCodes.evidenceViewWholeSeedling};
+    await _perform(() async {
+      await _requireEvidenceCoordinator().completePlantCapture(
+        session: bundle.session,
+        actorPersonId: _requireAssessment().evaluatorPersonId,
+        activeDuration: activeDuration,
+        newestLeavesInspectedCount: newestLeavesInspectedCount,
+        requiredViewTypes: requiredViews,
+      );
+      await _loadSnapshot(askForResume: false);
+    });
+  }
+
+  Future<void> saveVeV2LivingSeedling(
+    VegetativePlantSave input,
+    bool repeatedPhysicalCheck,
+  ) async {
+    final service = _veV2;
+    if (!isVeV2 || service == null) {
+      throw StateError('This is not a VE-V2 assessment.');
+    }
+    await _perform(() async {
+      final correcting = currentPlant != null;
+      await _plantSaves.saveVegetativePlant(input);
+      await service.addEntryDuration(
+        stationId: input.stationId,
+        duration: Duration(milliseconds: input.pilotActiveDurationMs),
+        plantingUnit: false,
+      );
+      if (correcting) {
+        await service.recordLivingPlantCorrection(
+          stationId: input.stationId,
+          repeatedPhysicalCheck: repeatedPhysicalCheck,
+        );
+      }
+      await _loadSnapshot(askForResume: false);
+    });
+  }
+
+  Future<void> editVeV2PlantingUnit(int position) async {
+    if (position < 1 || position > 10) throw ArgumentError('Must be 1-10');
+    _currentPlantPosition = position;
+    _returnToVeV2Review = true;
+    await loadVeV2PlantingUnitEvidence();
+    _setState(Station1ViewState.veV2PlantingUnitEntry);
+  }
+
+  Future<void> editVeV2LivingSeedling(int position) async {
+    if (position < 1 || position > 10) throw ArgumentError('Must be 1-10');
+    _currentPlantPosition = position;
+    _returnToVeV2Review = true;
+    final bundle = _plantEvidenceBundle(position);
+    _veV2CaptureTarget = VeV2CaptureTarget.livingSeedling(
+      livingSeedlingPosition: position,
+      sourcePlantingUnitId:
+          bundle?.session.sourcePlantingUnitObservationId ??
+          currentPlant?.plant.sourcePlantingUnitObservationId,
+      sourcePlantingUnitSequence: _unitSequenceForId(
+        bundle?.session.sourcePlantingUnitObservationId ??
+            currentPlant?.plant.sourcePlantingUnitObservationId,
+      ),
+    );
+    await _loadCurrentEvidence();
+    _setState(Station1ViewState.veV2LivingSeedlingEntry);
+  }
+
+  Future<void> completeVeV2PilotStation(int workloadRating) async {
+    final station = _snapshot?.station;
+    if (!isVeV2 || station == null || _veV2 == null) {
+      throw StateError('VE-V2 station data is unavailable.');
+    }
+    await _perform(() async {
+      _veV2Inspection = await _veV2.completePilotStation(
+        stationId: station.id,
+        workloadRating: workloadRating,
+        actorPersonId: _requireAssessment().evaluatorPersonId,
+      );
+      final reviewedSnapshot = await _workflow.loadStationSnapshot(
+        _requirePrepared(),
+        stationNumber: _stationNumber,
+      );
+      await _workflow.confirmStationReview(
+        snapshot: reviewedSnapshot,
+        actorPersonId: _requireAssessment().evaluatorPersonId,
+      );
+      await _loadSnapshot(askForResume: false);
+      if (_returnToBlockReview) {
+        _returnToBlockReview = false;
+        _setState(Station1ViewState.blockReview);
+      }
+    });
+  }
+
+  Future<PlantDiagnosisResult?> analyzePlantEvidence({
+    required EvidenceMediaRecord media,
+    required int plantPosition,
+  }) async {
+    final coordinator = _evidence;
+    if (coordinator == null) return null;
+    try {
+      final file = await coordinator.resolve(media.localUri);
+      final result = await _cvService.analyzeImage(file);
+      _cvDiagnoses = {..._cvDiagnoses, plantPosition: result};
+      notifyListeners();
+      return result;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// 1-Tap Shortcut: Records all remaining plants at the active station as healthy
+  /// and automatically advances to the next station route guidance.
+  Future<void> markEntireStationClean() async {
+    final station = _snapshot?.station;
+    if (station == null) return;
+    await _perform(() async {
+      final existingPositions = {
+        for (final p in _snapshot!.plants) p.plant.sequenceNumber,
+      };
+      for (var pos = 1; pos <= 10; pos++) {
+        if (!existingPositions.contains(pos)) {
+          await _plantSaves.saveVegetativePlant(
+            VegetativePlantSave(
+              stationId: station.id,
+              plantPosition: pos,
+              plantStatus: DatabaseCodes.plantNegative,
+              assessable: true,
+              newestLeavesInspectedCount: 3,
+              smallFreshWindowpanes: false,
+              scraping: false,
+              cuttingOrTearing: false,
+              freshFrass: false,
+              whorlFeedingSign: false,
+              larvaVisible: false,
+              larvalSize: 'none_seen',
+              eggMassVisible: false,
+              oldDamagePresent: false,
+              possibleNonFawEvidence: false,
+              uncertainEvidence: false,
+              actorPersonId: _requireAssessment().evaluatorPersonId,
+            ),
+          );
+        }
+      }
+      final reviewedSnapshot = await _workflow.loadStationSnapshot(
+        _requirePrepared(),
+        stationNumber: _stationNumber,
+      );
+      await _workflow.confirmStationReview(
+        snapshot: reviewedSnapshot,
+        actorPersonId: _requireAssessment().evaluatorPersonId,
+      );
+      await _loadSnapshot(askForResume: false);
+      if (_stationNumber < 5) {
+        _setState(Station1ViewState.betweenStations);
+      } else {
+        _setState(Station1ViewState.blockReview);
+      }
+    });
+  }
+
   void retry() => initialize();
 
   Future<void> _loadActiveBlock({required bool askForResume}) async {
@@ -1013,6 +1694,7 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
         assessment: _requireAssessment(),
         prepared: _requirePrepared(),
       );
+      await _upgradeLegacyRouteIfNeeded();
     }
     _stationContextEvidence = null;
     _currentEvidence = null;
@@ -1020,6 +1702,11 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
     _plantEvidenceReviews = const {};
     _pilotWorkloadMetrics = PilotWorkloadMetrics.empty;
     _capturedLeavesInspected = const {};
+    _veV2Inspection = null;
+    _veV2Units = const [];
+    _veV2RowContextEvidence = null;
+    _veV2CaptureTarget = null;
+    _veV2AnalysisPresentations = const {};
     final station = _snapshot!.station;
     if (station != null && _evidence != null) {
       _stationContextEvidence = await _evidence.ensureStationContext(
@@ -1030,6 +1717,7 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
       _stationEvidenceBundles = await _evidence.repository.loadStationBundles(
         station.id,
       );
+      if (isVeV2) await _refreshVeV2AnalysisPresentations();
       _plantEvidenceReviews = await _evidence.repository
           .loadPlantEvidenceReviews(station.id);
       _pilotWorkloadMetrics = await _evidence.loadPilotWorkloadMetrics(
@@ -1040,10 +1728,38 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
             station.id,
           )).inspectedLeavesByPlant;
     }
+    if (station != null && isVeV2 && _veV2 != null) {
+      _veV2Inspection = await _veV2.loadStationInspection(station.id);
+      _veV2Inspection ??= await _veV2.saveStationSetup(
+        VeV2StationSetupInput(
+          stationId: station.id,
+          growthStage: _requireAssessment().growthStage,
+          rowDirectionCode: 'forward_from_station',
+          plantingUnitSequenceAssessable: true,
+          stationContextMeetsRowPurpose: true,
+          emergenceContinuing: _requireAssessment().growthStage == 've'
+              ? false
+              : null,
+          delayedEmergencePlausible: _requireAssessment().growthStage == 've'
+              ? null
+              : false,
+          actorPersonId: _requireAssessment().evaluatorPersonId,
+        ),
+      );
+      _veV2Units = await _veV2.loadPlantingUnits(station.id);
+    }
     final target = _targetFor(_snapshot!);
     if (target == Station1ViewState.plantEntry ||
-        target == Station1ViewState.plantCapture) {
+        target == Station1ViewState.plantCapture ||
+        target == Station1ViewState.veV2LivingSeedlingEntry ||
+        (target == Station1ViewState.veV2ContinuousCapture &&
+            _veV2CaptureTarget?.kind == VeV2CaptureKind.livingSeedling)) {
       await _loadCurrentEvidence();
+    }
+    if (target == Station1ViewState.veV2PlantingUnitEntry ||
+        (target == Station1ViewState.veV2ContinuousCapture &&
+            _veV2CaptureTarget?.kind == VeV2CaptureKind.plantingUnit)) {
+      await loadVeV2PlantingUnitEvidence();
     }
     if (askForResume &&
         target != Station1ViewState.samplingComplete &&
@@ -1054,6 +1770,44 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
     }
     _resumeTarget = null;
     _setState(target);
+  }
+
+  Future<void> _upgradeLegacyRouteIfNeeded() async {
+    final repository = _routes;
+    final plan = _routePlan;
+    if (repository == null ||
+        plan == null ||
+        plan.algorithmVersion == scoutingRouteAlgorithmVersion) {
+      return;
+    }
+    final preparation = plan.preparation;
+    final hasAutomaticInputs = preparation.obstaclesReviewed;
+    if (hasAutomaticInputs) {
+      try {
+        final generated = ScoutingRouteGenerator.generate(
+          draft: plan.copyWith(
+            algorithmVersion: scoutingRouteAlgorithmVersion,
+            status: ScoutingRouteStatus.draft,
+          ),
+          boundary: blockBoundary,
+          completedStations: _completedStationLocations(),
+        );
+        _routePlan = await repository.saveGeneratedPlan(
+          generated,
+          actorPersonId: _requireAssessment().evaluatorPersonId,
+          recalculated: true,
+        );
+        return;
+      } on RouteGenerationException {
+        // Preserve the preparation and all completed station records. The
+        // evaluator can review the inputs and explicitly generate again.
+      }
+    }
+    _routePlan = await repository.savePreparationDraft(
+      plan.copyWith(algorithmVersion: scoutingRouteAlgorithmVersion),
+      preparation,
+      actorPersonId: _requireAssessment().evaluatorPersonId,
+    );
   }
 
   Station1ViewState _targetFor(StationSnapshot snapshot) {
@@ -1084,6 +1838,7 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
                 false))) {
       return Station1ViewState.stationContextEvidence;
     }
+    if (isVeV2) return _veV2TargetFor(snapshot);
     if (_evidence == null) {
       if (snapshot.plants.isEmpty) return Station1ViewState.plantSelection;
       if (snapshot.plants.length < 10) {
@@ -1100,7 +1855,7 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
           (bundle) =>
               bundle.session.scopeType == DatabaseCodes.evidenceScopePlant,
         );
-        return !started && snapshot.plants.isEmpty
+        return !started && snapshot.plants.isEmpty && _stationNumber == 1
             ? Station1ViewState.plantSelection
             : Station1ViewState.plantCapture;
       }
@@ -1109,23 +1864,60 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
     return Station1ViewState.stationReview;
   }
 
+  Station1ViewState _veV2TargetFor(StationSnapshot snapshot) {
+    if (_veV2Inspection?.completedAt != null) {
+      return Station1ViewState.veV2StationReview;
+    }
+    for (var position = 1; position <= 10; position++) {
+      if (!_isCaptureSatisfied(snapshot, position)) {
+        _currentPlantPosition = position;
+        final unit = _unitAt(position);
+        final bundle = _plantEvidenceBundle(position);
+        _veV2CaptureTarget = VeV2CaptureTarget.livingSeedling(
+          livingSeedlingPosition: position,
+          sourcePlantingUnitId:
+              unit?.id ?? bundle?.session.sourcePlantingUnitObservationId,
+          sourcePlantingUnitSequence:
+              unit?.sequenceNumber ??
+              _unitSequenceForId(
+                bundle?.session.sourcePlantingUnitObservationId,
+              ),
+        );
+        return Station1ViewState.veV2ContinuousCapture;
+      }
+    }
+    _currentPlantPosition = null;
+    _veV2CaptureTarget = null;
+    return Station1ViewState.veV2StationReview;
+  }
+
   bool _isCaptureSatisfied(StationSnapshot snapshot, int position) {
     StationPlantRecord? saved;
     for (final item in snapshot.plants) {
       if (item.plant.sequenceNumber == position) saved = item;
     }
     if (saved != null && !saved.plant.assessable) return true;
+    if (isVeV2) {
+      final unit = _unitAt(position);
+      if (unit != null &&
+          (unit.occupancyStatus == DatabaseCodes.veOccupancyEmpty ||
+              unit.occupancyStatus == DatabaseCodes.veOccupancyRemnant ||
+              unit.occupancyStatus == DatabaseCodes.veOccupancyNotAssessable)) {
+        return true;
+      }
+    }
     final matches = _stationEvidenceBundles.where(
       (bundle) =>
           bundle.session.scopeType == DatabaseCodes.evidenceScopePlant &&
           bundle.session.plantPosition == position,
     );
-    if (matches.isEmpty || matches.first.session.completedAt == null) {
-      return false;
-    }
-    return _policyForBundle(matches.first)
-        .captureCompletionViews(matches.first)
-        .every(matches.first.isViewSatisfied);
+    if (matches.isEmpty) return false;
+    final bundle = matches.first;
+    if (bundle.session.completedAt != null) return true;
+    final requiredView = isVeV2
+        ? DatabaseCodes.evidenceViewWholeSeedling
+        : DatabaseCodes.evidenceViewWhorlOverview;
+    return bundle.isViewSatisfied(requiredView);
   }
 
   Future<void> _loadCurrentEvidence() async {
@@ -1140,8 +1932,85 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
       stationId: station.id,
       plantPosition: position,
       actorPersonId: _requireAssessment().evaluatorPersonId,
-      requirementsVersion: evidencePolicy.requirementsVersion,
+      requirementsVersion: isVeV2
+          ? DatabaseCodes.evidencePolicyVeV2ModelReadyCaptureV1
+          : evidencePolicy.requirementsVersion,
+      sourcePlantingUnitObservationId: isVeV2
+          ? _veV2CaptureTarget?.sourcePlantingUnitId
+          : null,
     );
+  }
+
+  Set<int> get _veV2CapturedLivingPositions {
+    final positions = <int>{
+      for (final plant in _snapshot?.plants ?? const <StationPlantRecord>[])
+        plant.plant.sequenceNumber,
+    };
+    for (final bundle in _stationEvidenceBundles) {
+      final session = bundle.session;
+      if (session.scopeType == DatabaseCodes.evidenceScopePlant &&
+          session.requirementsVersion ==
+              DatabaseCodes.evidencePolicyVeV2ModelReadyCaptureV1 &&
+          session.completedAt != null &&
+          session.plantPosition != null) {
+        positions.add(session.plantPosition!);
+      }
+    }
+    return positions;
+  }
+
+  PlantingUnitObservationRecord? _unitAt(int sequence) {
+    for (final unit in _veV2Units) {
+      if (unit.sequenceNumber == sequence) return unit;
+    }
+    return null;
+  }
+
+  int? _unitSequenceForId(String? id) {
+    if (id == null) return null;
+    for (final unit in _veV2Units) {
+      if (unit.id == id) return unit.sequenceNumber;
+    }
+    return null;
+  }
+
+  EvidenceCaptureBundle? _plantEvidenceBundle(int position) {
+    for (final bundle in _stationEvidenceBundles) {
+      if (bundle.session.scopeType == DatabaseCodes.evidenceScopePlant &&
+          bundle.session.plantPosition == position) {
+        return bundle;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _refreshVeV2AnalysisPresentations() async {
+    final presentations = <String, VeV2AnalysisPresentation>{};
+    for (final bundle in _stationEvidenceBundles) {
+      if (bundle.session.scopeType == DatabaseCodes.evidenceScopePlant ||
+          bundle.session.scopeType == DatabaseCodes.evidenceScopePlantingUnit) {
+        presentations[bundle.session.id] = await _veV2Analysis.presentationFor(
+          bundle,
+        );
+      }
+    }
+    _veV2AnalysisPresentations = presentations;
+  }
+
+  Future<void> loadVeV2PlantingUnitEvidence() async {
+    final position = _currentPlantPosition;
+    final station = _snapshot?.station;
+    if (_evidence == null || position == null || station == null) {
+      _currentEvidence = null;
+      return;
+    }
+    _currentEvidence = await _evidence.ensurePlantingUnit(
+      assessmentId: assessmentId,
+      stationId: station.id,
+      sequenceNumber: position,
+      actorPersonId: _requireAssessment().evaluatorPersonId,
+    );
+    notifyListeners();
   }
 
   Set<String> _requiredViewsForInput(
@@ -1218,18 +2087,6 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
           );
         }
       }
-      if (item.plant.assessable &&
-          sessionPolicy ==
-              StationEvidencePolicy.cameraFirstOverviewConditional) {
-        final review = _plantEvidenceReviews[item.plant.sequenceNumber];
-        if (review == null ||
-            !review.isCurrent ||
-            review.status != DatabaseCodes.evidenceReviewSufficient) {
-          throw StateError(
-            'Plant ${item.plant.sequenceNumber} evidence must be reviewed and sufficient before station completion.',
-          );
-        }
-      }
     }
   }
 
@@ -1289,15 +2146,20 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
   }
 
   EvidenceCaptureBundle _requireActiveEvidenceBundle() {
-    final value = _state == Station1ViewState.stationContextEvidence
-        ? _stationContextEvidence
-        : _currentEvidence;
+    final value = switch (_state) {
+      Station1ViewState.stationContextEvidence => _stationContextEvidence,
+      Station1ViewState.veV2RowContextEvidence => _veV2RowContextEvidence,
+      _ => _currentEvidence,
+    };
     if (value == null) throw StateError('Evidence capture is unavailable.');
     return value;
   }
 
   void _replaceEvidenceBundle(EvidenceCaptureBundle value) {
-    if (value.session.scopeType == DatabaseCodes.evidenceScopeStationContext) {
+    if (value.session.scopeKey == 've_v2_row_context') {
+      _veV2RowContextEvidence = value;
+    } else if (value.session.scopeType ==
+        DatabaseCodes.evidenceScopeStationContext) {
       _stationContextEvidence = value;
     } else {
       _currentEvidence = value;
@@ -1375,7 +2237,8 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
     }
   }
 
-  bool _isPilotStage(String value) => value == 'v3_v6' || value == 'v7_v12';
+  bool _isPilotStage(String value) =>
+      DatabaseCodes.isGrowthStageImplemented(value);
 
   void _setState(Station1ViewState value) {
     _state = value;

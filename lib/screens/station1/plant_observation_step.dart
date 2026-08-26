@@ -7,6 +7,7 @@ import '../../data/local/database_codes.dart';
 import '../../data/repositories/evidence_capture_repository.dart';
 import '../../data/repositories/station1_workflow_repository.dart';
 import '../../data/services/atomic_plant_save_service.dart';
+import '../../services/computer_vision/faw_computer_vision_service.dart';
 import '../../services/station_evidence_policy.dart';
 import 'evidence_capture_panel.dart';
 
@@ -35,6 +36,8 @@ class PlantObservationStep extends StatefulWidget {
     this.onRetakeEvidence,
     this.onRemoveEvidence,
     this.onManualFallback,
+    this.onMarkAllHealthy,
+    this.cvDiagnosis,
   });
 
   final int position;
@@ -61,6 +64,8 @@ class PlantObservationStep extends StatefulWidget {
   final Future<void> Function(EvidenceMediaRecord media)? onRemoveEvidence;
   final Future<void> Function(String viewType, String reasonCode, String? note)?
   onManualFallback;
+  final VoidCallback? onMarkAllHealthy;
+  final PlantDiagnosisResult? cvDiagnosis;
 
   @override
   State<PlantObservationStep> createState() => _PlantObservationStepState();
@@ -148,6 +153,36 @@ class _PlantObservationStepState extends State<PlantObservationStep>
     super.dispose();
   }
 
+  void _applyCvDiagnosis(PlantDiagnosisResult diag) {
+    setState(() {
+      _assessable = true;
+      _leavesInspected = 3;
+      if (diag.isInfested) {
+        _plantStatus = diag.suggestedPlantStatus;
+        _larvaVisible = diag.larvaVisible;
+        _larvalSize = diag.larvalSize;
+        _windowpanes = diag.windowpanes;
+        _whorlFeeding = diag.whorlFeeding;
+        _frass = diag.frass;
+        _noFreshSigns = false;
+      } else {
+        _plantStatus = DatabaseCodes.plantNegative;
+        _larvaVisible = false;
+        _larvalSize = 'none_seen';
+        _noFreshSigns = true;
+        _windowpanes = false;
+        _scraping = false;
+        _cutting = false;
+        _frass = false;
+        _whorlFeeding = false;
+        _eggMassResponse = 'no';
+        _oldDamage = false;
+      }
+      _freshSignsAnswered = true;
+      _validationMessage = null;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final isAssessable = _assessable == true;
@@ -163,8 +198,30 @@ class _PlantObservationStepState extends State<PlantObservationStep>
         Expanded(
           child: ListView(
             key: const Key('plant_observation_step'),
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
             children: [
+              if (widget.cvDiagnosis != null) ...[
+                _CvDiagnosisObservationCard(
+                  diagnosis: widget.cvDiagnosis!,
+                  onApply: () => _applyCvDiagnosis(widget.cvDiagnosis!),
+                ),
+                const SizedBox(height: 14),
+              ],
+              if (widget.onMarkAllHealthy != null && widget.position == 1) ...[
+                ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 48),
+                  child: OutlinedButton.icon(
+                    key: const Key('mark_all_healthy_button'),
+                    onPressed: widget.isSaving ? null : widget.onMarkAllHealthy,
+                    icon: const Icon(
+                      Icons.check_circle_outline,
+                      color: Color(0xFF176B3A),
+                    ),
+                    label: const Text('All 10 Plants Clean (1-Tap Shortcut)'),
+                  ),
+                ),
+                const SizedBox(height: 14),
+              ],
               const _ReminderCard(),
               const SizedBox(height: 14),
               const _SectionTitle('Can this plant be assessed?'),
@@ -1078,4 +1135,104 @@ class _InterpretationHelp extends StatelessWidget {
       ),
     ],
   );
+}
+
+class _CvDiagnosisObservationCard extends StatelessWidget {
+  const _CvDiagnosisObservationCard({
+    required this.diagnosis,
+    required this.onApply,
+  });
+
+  final PlantDiagnosisResult diagnosis;
+  final VoidCallback onApply;
+
+  @override
+  Widget build(BuildContext context) {
+    final isInfested = diagnosis.isInfested;
+    final color = isInfested
+        ? const Color(0xFFB3261E)
+        : const Color(0xFF176B3A);
+    final bgColor = isInfested
+        ? const Color(0xFFFDE8E8)
+        : const Color(0xFFEAF6EE);
+
+    return Card(
+      elevation: 0,
+      color: bgColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  isInfested
+                      ? Icons.bug_report_outlined
+                      : Icons.verified_outlined,
+                  color: color,
+                  size: 26,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'AI: ${diagnosis.pestLabel}',
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: color,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '${(diagnosis.confidenceScore * 100).toInt()}%',
+                            style: TextStyle(
+                              color: color,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        isInfested
+                            ? 'Damage: Grade ${diagnosis.davisDamageGrade}/9 · FAW detected'
+                            : 'No FAW damage detected on newest leaves.',
+                        style: TextStyle(
+                          color: color.withValues(alpha: 0.85),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton.tonal(
+                key: const Key('apply_ai_diagnosis_button'),
+                onPressed: onApply,
+                child: const Text('Auto-Fill from AI'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

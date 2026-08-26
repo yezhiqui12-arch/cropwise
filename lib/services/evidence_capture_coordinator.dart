@@ -68,6 +68,7 @@ class EvidenceCaptureCoordinator {
     required int plantPosition,
     required String actorPersonId,
     String requirementsVersion = DatabaseCodes.evidencePolicyStation1TwoViewV1,
+    String? sourcePlantingUnitObservationId,
   }) async {
     final session = await _repository.ensurePlantSession(
       assessmentId: assessmentId,
@@ -75,6 +76,35 @@ class EvidenceCaptureCoordinator {
       plantPosition: plantPosition,
       actorPersonId: actorPersonId,
       requirementsVersion: requirementsVersion,
+      sourcePlantingUnitObservationId: sourcePlantingUnitObservationId,
+    );
+    return _repository.loadBundle(session.id);
+  }
+
+  Future<EvidenceCaptureBundle> ensurePlantingUnit({
+    required String assessmentId,
+    required String stationId,
+    required int sequenceNumber,
+    required String actorPersonId,
+  }) async {
+    final session = await _repository.ensurePlantingUnitSession(
+      assessmentId: assessmentId,
+      stationId: stationId,
+      sequenceNumber: sequenceNumber,
+      actorPersonId: actorPersonId,
+    );
+    return _repository.loadBundle(session.id);
+  }
+
+  Future<EvidenceCaptureBundle> ensureVeRowContext({
+    required String assessmentId,
+    required String stationId,
+    required String actorPersonId,
+  }) async {
+    final session = await _repository.ensureVeRowContextSession(
+      assessmentId: assessmentId,
+      stationId: stationId,
+      actorPersonId: actorPersonId,
     );
     return _repository.loadBundle(session.id);
   }

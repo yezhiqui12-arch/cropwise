@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../data/local/app_database.dart';
 import '../../data/local/database_codes.dart';
 import '../../data/repositories/evidence_capture_repository.dart';
+import '../../services/computer_vision/faw_computer_vision_service.dart';
 import '../../services/station_evidence_policy.dart';
 import 'evidence_capture_panel.dart';
 
@@ -29,6 +30,8 @@ class ContinuousPlantCaptureStep extends StatefulWidget {
     required this.onLeavesInspected,
     required this.onCompletePlant,
     required this.onCannotAssess,
+    this.onMarkAllHealthy,
+    this.cvDiagnosis,
   });
 
   final int blockNumber;
@@ -55,6 +58,8 @@ class ContinuousPlantCaptureStep extends StatefulWidget {
   onCompletePlant;
   final Future<void> Function(String reason, Duration activeDuration)
   onCannotAssess;
+  final VoidCallback? onMarkAllHealthy;
+  final PlantDiagnosisResult? cvDiagnosis;
 
   @override
   State<ContinuousPlantCaptureStep> createState() =>
@@ -64,27 +69,25 @@ class ContinuousPlantCaptureStep extends StatefulWidget {
 class _ContinuousPlantCaptureStepState extends State<ContinuousPlantCaptureStep>
     with WidgetsBindingObserver {
   final Stopwatch _activeTimer = Stopwatch();
-  bool? _assessable;
   int? _leavesInspected;
   bool _detailRequested = false;
+  bool _cameraOpenedForPosition = false;
   String? _validationMessage;
-
-  bool get _captureStarted =>
-      widget.bundle.media.isNotEmpty ||
-      widget.bundle.waivedViewTypes.isNotEmpty;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _activeTimer.start();
-    if (_captureStarted) _assessable = true;
     _leavesInspected = widget.initialLeavesInspectedCount;
     _detailRequested = widget.bundle.isViewSatisfied(
       widget.evidencePolicy == StationEvidencePolicy.station1TwoView
           ? DatabaseCodes.evidenceViewDiagnosticDetail
           : DatabaseCodes.evidenceViewCloseUp,
     );
+    if (widget.bundle.media.isEmpty && widget.bundle.waivedViewTypes.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _openPlantCamera());
+    }
   }
 
   @override
@@ -94,14 +97,18 @@ class _ContinuousPlantCaptureStepState extends State<ContinuousPlantCaptureStep>
       _activeTimer
         ..reset()
         ..start();
-      _assessable = _captureStarted ? true : null;
       _leavesInspected = widget.initialLeavesInspectedCount;
       _detailRequested = widget.bundle.isViewSatisfied(
         widget.evidencePolicy == StationEvidencePolicy.station1TwoView
             ? DatabaseCodes.evidenceViewDiagnosticDetail
             : DatabaseCodes.evidenceViewCloseUp,
       );
+      _cameraOpenedForPosition = false;
       _validationMessage = null;
+      if (widget.bundle.media.isEmpty &&
+          widget.bundle.waivedViewTypes.isEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _openPlantCamera());
+      }
     }
   }
 
@@ -170,22 +177,39 @@ class _ContinuousPlantCaptureStepState extends State<ContinuousPlantCaptureStep>
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
             children: [
               const Text(
-                'Inspect the newest three or four leaves and the whorl. Do not skip this position based on damage.',
+                'Inspect the newest leaves and whorl, then take the photo.',
                 style: TextStyle(height: 1.35, fontWeight: FontWeight.w600),
               ),
-              const SizedBox(height: 12),
-              if (_assessable == null) _buildAssessabilityChoice(),
-              if (_assessable == true) ...[
-                _buildLeafConfirmation(),
-                const SizedBox(height: 12),
-                if (currentView != null)
-                  _buildEvidencePanel(currentView)
-                else
-                  _buildRequiredViewsComplete(
-                    detailReady,
-                    usesLegacyTwoView: usesLegacyTwoView,
-                  ),
+              const SizedBox(height: 8),
+              if (widget.cvDiagnosis != null) ...[
+                _CvDiagnosisCard(diagnosis: widget.cvDiagnosis!),
+                const SizedBox(height: 8),
               ],
+              if (currentView != null)
+                _buildEvidencePanel(currentView)
+              else
+                _buildRequiredViewsComplete(
+                  detailReady,
+                  usesLegacyTwoView: usesLegacyTwoView,
+                ),
+              if (widget.onMarkAllHealthy != null && widget.position == 1) ...[
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  key: const Key('mark_all_healthy_button'),
+                  onPressed: widget.isSaving ? null : widget.onMarkAllHealthy,
+                  icon: const Icon(
+                    Icons.check_circle_outline,
+                    color: Color(0xFF176B3A),
+                  ),
+                  label: const Text('All 10 Plants Clean (1-Tap Shortcut)'),
+                ),
+              ],
+              TextButton.icon(
+                key: const Key('capture_cannot_assess'),
+                onPressed: widget.isSaving ? null : _recordCannotAssess,
+                icon: const Icon(Icons.report_outlined),
+                label: const Text('Cannot assess this position'),
+              ),
               if (_validationMessage != null) ...[
                 const SizedBox(height: 12),
                 Text(
@@ -204,90 +228,11 @@ class _ContinuousPlantCaptureStepState extends State<ContinuousPlantCaptureStep>
     );
   }
 
-  Widget _buildAssessabilityChoice() {
-    return Card(
-      elevation: 0,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              'Can this plant position be assessed?',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                ChoiceChip(
-                  key: const Key('capture_assessable_yes'),
-                  label: const Text('Assess plant'),
-                  selected: false,
-                  onSelected: widget.isSaving
-                      ? null
-                      : (_) => setState(() {
-                          _assessable = true;
-                          _validationMessage = null;
-                        }),
-                ),
-                ActionChip(
-                  key: const Key('capture_cannot_assess'),
-                  avatar: const Icon(Icons.report_outlined),
-                  label: const Text('Cannot assess'),
-                  onPressed: widget.isSaving ? null : _recordCannotAssess,
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLeafConfirmation() {
-    return Card(
-      elevation: 0,
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          children: [
-            const Expanded(
-              child: Text(
-                'Newest leaves physically inspected',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-            ),
-            const SizedBox(width: 8),
-            ChoiceChip(
-              key: const Key('capture_leaves_3'),
-              label: const Text('3'),
-              selected: _leavesInspected == 3,
-              onSelected: widget.isSaving
-                  ? null
-                  : (_) => _recordLeavesInspected(3),
-            ),
-            const SizedBox(width: 6),
-            ChoiceChip(
-              key: const Key('capture_leaves_4'),
-              label: const Text('4'),
-              selected: _leavesInspected == 4,
-              onSelected: widget.isSaving
-                  ? null
-                  : (_) => _recordLeavesInspected(4),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildEvidencePanel(String viewType) {
     final (title, instruction) = switch (viewType) {
       DatabaseCodes.evidenceViewWhorlOverview => (
-        'Required view 1 · Overview',
-        'Frame the whole whorl and newest three or four leaves.',
+        'Plant photo',
+        'Keep the newest leaves and whorl clearly in the frame.',
       ),
       DatabaseCodes.evidenceViewCloseUp => (
         widget.evidencePolicy == StationEvidencePolicy.station1TwoView
@@ -300,55 +245,43 @@ class _ContinuousPlantCaptureStepState extends State<ContinuousPlantCaptureStep>
         'Frame the larva, egg mass, ambiguous sign, or feature that needs detail.',
       ),
     };
-    final captureAllowed = _leavesInspected == 3 || _leavesInspected == 4;
     return IgnorePointer(
-      ignoring: !captureAllowed || widget.isSaving,
-      child: Opacity(
-        opacity: captureAllowed ? 1 : 0.55,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (!captureAllowed)
-              const Padding(
-                padding: EdgeInsets.only(bottom: 8),
-                child: Text(
-                  'Confirm whether three or four newest leaves were inspected before photographing.',
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
+      ignoring: widget.isSaving,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (viewType == DatabaseCodes.evidenceViewCloseUp &&
+              widget.evidencePolicy == StationEvidencePolicy.station1TwoView)
+            CheckboxListTile(
+              key: const Key('conditional_detail_requested'),
+              contentPadding: EdgeInsets.zero,
+              controlAffinity: ListTileControlAffinity.leading,
+              value: _detailRequested,
+              onChanged: widget.isSaving
+                  ? null
+                  : (value) =>
+                        setState(() => _detailRequested = value ?? false),
+              title: const Text('This plant needs one extra detail photo'),
+              subtitle: const Text(
+                'Use only for a larva, egg mass, or ambiguous feature.',
               ),
-            if (viewType == DatabaseCodes.evidenceViewCloseUp &&
-                widget.evidencePolicy == StationEvidencePolicy.station1TwoView)
-              CheckboxListTile(
-                key: const Key('conditional_detail_requested'),
-                contentPadding: EdgeInsets.zero,
-                controlAffinity: ListTileControlAffinity.leading,
-                value: _detailRequested,
-                onChanged: widget.isSaving
-                    ? null
-                    : (value) =>
-                          setState(() => _detailRequested = value ?? false),
-                title: const Text('This plant needs one extra detail photo'),
-                subtitle: const Text(
-                  'Use only for a larva, egg mass, or ambiguous feature.',
-                ),
-              ),
-            EvidenceCapturePanel(
-              title: title,
-              scopeLabel: 'Plant ${widget.position}',
-              instruction: instruction,
-              viewType: viewType,
-              bundle: widget.bundle,
-              resolveFile: widget.resolveFile,
-              onCapture: () => _captureAndMaybeAdvance(viewType),
-              onInspect: _inspectAndMaybeAdvance,
-              onAccept: _acceptAndMaybeAdvance,
-              onRetake: _retakeAndMaybeAdvance,
-              onRemove: widget.onRemove,
-              onManualFallback: (reason, note) =>
-                  _fallbackAndMaybeAdvance(viewType, reason, note),
             ),
-          ],
-        ),
+          EvidenceCapturePanel(
+            title: title,
+            scopeLabel: 'Plant ${widget.position}',
+            instruction: instruction,
+            viewType: viewType,
+            bundle: widget.bundle,
+            resolveFile: widget.resolveFile,
+            onCapture: () => _captureAndMaybeAdvance(viewType),
+            onInspect: _inspectAndMaybeAdvance,
+            onAccept: _acceptAndMaybeAdvance,
+            onRetake: _retakeAndMaybeAdvance,
+            onRemove: widget.onRemove,
+            onManualFallback: (reason, note) =>
+                _fallbackAndMaybeAdvance(viewType, reason, note),
+          ),
+        ],
       ),
     );
   }
@@ -418,10 +351,16 @@ class _ContinuousPlantCaptureStepState extends State<ContinuousPlantCaptureStep>
   }
 
   Future<void> _completePlant() async {
+    if (_leavesInspected != 3 &&
+        _leavesInspected != 4 &&
+        widget.bundle.isViewSatisfied(
+          DatabaseCodes.evidenceViewWhorlOverview,
+        )) {
+      await _recordLeavesInspected(3);
+    }
     if (_leavesInspected != 3 && _leavesInspected != 4) {
       setState(() {
-        _validationMessage =
-            'Confirm whether three or four newest leaves were inspected.';
+        _validationMessage = 'Complete the guided plant photo or fallback.';
       });
       return;
     }
@@ -436,6 +375,12 @@ class _ContinuousPlantCaptureStepState extends State<ContinuousPlantCaptureStep>
   Future<void> _captureAndMaybeAdvance(String viewType) async {
     final acceptedView = await widget.onCapture(viewType);
     await _advanceAfterAcceptedView(acceptedView);
+  }
+
+  Future<void> _openPlantCamera() async {
+    if (!mounted || _cameraOpenedForPosition || widget.isSaving) return;
+    _cameraOpenedForPosition = true;
+    await _captureAndMaybeAdvance(DatabaseCodes.evidenceViewWhorlOverview);
   }
 
   Future<void> _inspectAndMaybeAdvance(EvidenceMediaRecord media) async {
@@ -464,28 +409,23 @@ class _ContinuousPlantCaptureStepState extends State<ContinuousPlantCaptureStep>
 
   Future<void> _advanceAfterAcceptedView(String? viewType) async {
     if (!mounted || viewType == null) return;
-    if (widget.evidencePolicy ==
-        StationEvidencePolicy.cameraFirstOverviewConditional) {
-      if (viewType == DatabaseCodes.evidenceViewWhorlOverview ||
-          viewType == DatabaseCodes.evidenceViewCloseUp) {
-        await _completePlant();
-      }
-      return;
+    if (viewType == DatabaseCodes.evidenceViewWhorlOverview) {
+      await _recordLeavesInspected(3);
+      if (_leavesInspected != 3 && _leavesInspected != 4) return;
     }
-    final completesPlant =
-        viewType == DatabaseCodes.evidenceViewDiagnosticDetail ||
-        (viewType == DatabaseCodes.evidenceViewCloseUp && !_detailRequested);
-    if (completesPlant) await _completePlant();
+    // Keep the evaluator on this plant after accepting evidence. The rebuilt
+    // capture step presents the accepted photo, optional detail capture, and
+    // an explicit Continue action instead of advancing automatically.
   }
 
-  Future<void> _recordLeavesInspected(int count) async {
+  Future<void> _recordLeavesInspected(int? count) async {
     final previous = _leavesInspected;
     setState(() {
       _leavesInspected = count;
       _validationMessage = null;
     });
     try {
-      await widget.onLeavesInspected(count);
+      if (count != null) await widget.onLeavesInspected(count);
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -497,55 +437,42 @@ class _ContinuousPlantCaptureStepState extends State<ContinuousPlantCaptureStep>
   }
 
   Future<void> _recordCannotAssess() async {
-    final controller = TextEditingController();
     final reason = await showModalBottomSheet<String>(
       context: context,
-      isScrollControlled: true,
-      builder: (context) => Padding(
-        padding: EdgeInsets.fromLTRB(
-          20,
-          20,
-          20,
-          MediaQuery.viewInsetsOf(context).bottom + 20,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Plant ${widget.position} cannot be assessed',
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Keep this position in the sequence and record the reason.',
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              key: const Key('capture_not_assessable_reason'),
-              controller: controller,
-              autofocus: true,
-              maxLines: 2,
-              decoration: const InputDecoration(
-                labelText: 'Reason',
-                hintText: 'Missing, broken, or unsafe to reach',
-                border: OutlineInputBorder(),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Plant ${widget.position} cannot be assessed',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            FilledButton(
-              key: const Key('save_capture_not_assessable'),
-              onPressed: () {
-                final value = controller.text.trim();
-                if (value.isNotEmpty) Navigator.pop(context, value);
-              },
-              child: const Text('Save position and continue'),
-            ),
-          ],
+              const SizedBox(height: 8),
+              const Text('Choose a reason to continue.'),
+              const SizedBox(height: 12),
+              for (final reason in const [
+                'Plant missing',
+                'Unsafe to reach',
+                'Required plant area cannot be inspected',
+                'Other',
+              ])
+                ListTile(
+                  minTileHeight: 52,
+                  title: Text(reason),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.pop(context, reason),
+                ),
+            ],
+          ),
         ),
       ),
     );
-    controller.dispose();
     if (reason == null || !mounted) return;
     _activeTimer.stop();
     try {
@@ -690,6 +617,83 @@ class _FinishCaptureCard extends StatelessWidget {
                 key: actionKey,
                 onPressed: isSaving ? null : onPressed,
                 child: Text(actionLabel),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CvDiagnosisCard extends StatelessWidget {
+  const _CvDiagnosisCard({required this.diagnosis});
+
+  final PlantDiagnosisResult diagnosis;
+
+  @override
+  Widget build(BuildContext context) {
+    final isInfested = diagnosis.isInfested;
+    final color = isInfested
+        ? const Color(0xFFB3261E)
+        : const Color(0xFF176B3A);
+    final bgColor = isInfested
+        ? const Color(0xFFFDE8E8)
+        : const Color(0xFFEAF6EE);
+
+    return Card(
+      elevation: 0,
+      color: bgColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Icon(
+              isInfested ? Icons.bug_report_outlined : Icons.verified_outlined,
+              color: color,
+              size: 28,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'AI: ${diagnosis.pestLabel}',
+                        style: TextStyle(
+                          color: color,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                      Text(
+                        '${(diagnosis.confidenceScore * 100).toInt()}% conf',
+                        style: TextStyle(
+                          color: color,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    isInfested
+                        ? 'Damage grade: ${diagnosis.davisDamageGrade}/9 · FAW symptoms detected'
+                        : 'No FAW damage detected on newest leaves.',
+                    style: TextStyle(
+                      color: color.withValues(alpha: 0.85),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

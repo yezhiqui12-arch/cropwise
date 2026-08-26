@@ -7,6 +7,7 @@ import '../data/repositories/evidence_capture_repository.dart';
 import '../data/repositories/scouting_workflow_repository.dart';
 import '../data/repositories/scouting_route_repository.dart';
 import '../data/services/atomic_plant_save_service.dart';
+import '../data/services/atomic_ve_v2_save_service.dart';
 import '../data/services/five_station_completion_service.dart';
 import '../providers/assessment_workspace_provider.dart';
 import '../providers/app_data_mode.dart';
@@ -14,6 +15,7 @@ import '../providers/five_station_workflow_provider.dart';
 import '../services/phone_location_service.dart';
 import '../services/evidence_capture_coordinator.dart';
 import '../services/evidence_storage_service.dart';
+import '../services/field_imagery_provider.dart';
 import 'station1/station1_workflow_screen.dart';
 
 class AssessmentSessionScreen extends StatelessWidget {
@@ -56,6 +58,10 @@ class AssessmentSessionScreen extends StatelessWidget {
         ),
         evidenceCoordinator: evidenceCoordinator,
         completionService: FiveStationCompletionService(database),
+        veV2SaveService: AtomicVeV2SaveService(
+          database,
+          evidenceRepository: evidenceRepository,
+        ),
         routeRepository: ScoutingRouteRepository(database),
         testMode: dataMode.isTestMode,
         debugFeaturesEnabled: dataMode.debugFeaturesEnabled,
@@ -67,6 +73,7 @@ class AssessmentSessionScreen extends StatelessWidget {
         watchLocation: phoneLocation.watchPosition,
         testMode: dataMode.isTestMode,
         debugFeaturesEnabled: dataMode.debugFeaturesEnabled,
+        imageryProvider: PiatFieldImageryProvider(),
       ),
     );
   }

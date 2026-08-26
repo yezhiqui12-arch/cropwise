@@ -17,6 +17,7 @@ void main() {
         pattern: DatabaseCodes.patternW,
         preparation: const RoutePreparationData(
           entrance: LatLng(17.0002, 121.0002),
+          rowBearingDegrees: 0,
           obstaclesReviewed: true,
           wCrossingConfirmed: true,
         ),
@@ -52,16 +53,13 @@ void main() {
     );
   });
 
-  test('ladder guidance uses confirmed passes and alternates side hints', () {
+  test('ladder is automatic and alternates right and left branches', () {
     final plan = ScoutingRouteGenerator.generate(
       draft: _draft(
         pattern: DatabaseCodes.patternLadder,
         preparation: const RoutePreparationData(
           entrance: LatLng(17.0002, 121.0002),
           rowBearingDegrees: 0,
-          accessiblePaths: [
-            [LatLng(17.001, 121.005), LatLng(17.009, 121.005)],
-          ],
           obstaclesReviewed: true,
         ),
       ),
@@ -80,32 +78,43 @@ void main() {
       ]),
     );
     expect(
-      plan.segments.every(
-        (segment) =>
-            segment.kind == 'evaluator_confirmed_accessible_path' &&
-            segment.drawable,
+      plan.segments.where(
+        (segment) => segment.kind == 'ladder_branch_outbound',
       ),
-      isTrue,
+      hasLength(5),
+    );
+    expect(
+      plan.segments.where((segment) => segment.kind == 'ladder_branch_return'),
+      hasLength(5),
+    );
+    expect(
+      plan.segments.where((segment) => segment.kind == 'ladder_spine_approach'),
+      hasLength(5),
     );
   });
 
-  test('ladder rejects a claimed pass that leaves the block', () {
-    expect(
-      () => ScoutingRouteGenerator.generate(
-        draft: _draft(
-          pattern: DatabaseCodes.patternLadder,
-          preparation: const RoutePreparationData(
-            entrance: LatLng(17.0002, 121.0002),
-            rowBearingDegrees: 0,
-            accessiblePaths: [
-              [LatLng(17.001, 121.005), LatLng(17.02, 121.005)],
-            ],
-            obstaclesReviewed: true,
-          ),
+  test('legacy manually drawn passes do not control automatic ladder', () {
+    final plan = ScoutingRouteGenerator.generate(
+      draft: _draft(
+        pattern: DatabaseCodes.patternLadder,
+        preparation: const RoutePreparationData(
+          entrance: LatLng(17.0002, 121.0002),
+          rowBearingDegrees: 0,
+          obstaclesReviewed: true,
+          accessiblePaths: [
+            [LatLng(17.001, 121.005), LatLng(17.02, 121.005)],
+          ],
         ),
-        boundary: boundary,
       ),
-      throwsA(isA<RouteGenerationException>()),
+      boundary: boundary,
+    );
+
+    expect(plan.targets, hasLength(5));
+    expect(
+      plan.segments.any(
+        (segment) => segment.kind == 'evaluator_confirmed_accessible_path',
+      ),
+      isFalse,
     );
   });
 
@@ -125,6 +134,7 @@ void main() {
         pattern: DatabaseCodes.patternW,
         preparation: const RoutePreparationData(
           entrance: LatLng(17.0002, 121.0002),
+          rowBearingDegrees: 0,
           obstaclesReviewed: true,
           wCrossingConfirmed: true,
         ),
@@ -143,6 +153,7 @@ void main() {
         pattern: DatabaseCodes.patternW,
         preparation: const RoutePreparationData(
           entrance: LatLng(17.0002, 121.0002),
+          rowBearingDegrees: 0,
           obstaclesReviewed: true,
           wCrossingConfirmed: true,
         ),
@@ -180,6 +191,7 @@ void main() {
           pattern: DatabaseCodes.patternW,
           preparation: const RoutePreparationData(
             entrance: LatLng(17.0002, 121.0002),
+            rowBearingDegrees: 0,
             obstaclesReviewed: true,
             wCrossingConfirmed: true,
             draftGeometry: RouteDraftGeometry.obstacle,
@@ -200,6 +212,51 @@ void main() {
     expect(restored.pendingAdjustment?.stationNumber, 3);
     expect(restored.pendingAdjustment?.reason, 'Dense unsafe growth');
     expect(restored.arrivalConfirmedStation, 2);
+  });
+
+  test('both patterns generate without manual entrance or row points', () {
+    for (final pattern in [
+      DatabaseCodes.patternW,
+      DatabaseCodes.patternLadder,
+    ]) {
+      final plan = ScoutingRouteGenerator.generate(
+        draft: _draft(
+          pattern: pattern,
+          preparation: const RoutePreparationData(obstaclesReviewed: true),
+        ),
+        boundary: boundary,
+      );
+
+      expect(plan.targets, hasLength(5));
+      expect(plan.preparation.entrance, isNotNull);
+      expect(
+        plan.preparation.startSource,
+        routeStartSourceFieldOutlineFallback,
+      );
+      expect(plan.preparation.rowBearingDegrees, isNotNull);
+      expect(
+        plan.preparation.orientationSource,
+        routeOrientationSourceFieldShape,
+      );
+    }
+  });
+
+  test('completed target stays locked when station GPS is unavailable', () {
+    final first = ScoutingRouteGenerator.generate(
+      draft: _draft(
+        pattern: DatabaseCodes.patternW,
+        preparation: const RoutePreparationData(obstaclesReviewed: true),
+      ),
+      boundary: boundary,
+    );
+    final recalculated = ScoutingRouteGenerator.generate(
+      draft: first,
+      boundary: boundary,
+      completedStations: const {1: null},
+    );
+
+    expect(recalculated.targetFor(1).lockedCompleted, isTrue);
+    expect(recalculated.targetFor(1).location, first.targetFor(1).location);
   });
 }
 

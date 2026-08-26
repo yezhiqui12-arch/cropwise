@@ -102,7 +102,7 @@ void main() {
     );
     await tester.tap(fallback);
     await tester.pumpAndSettle();
-    expect(find.text('Document manual fallback'), findsWidgets);
+    expect(find.text('Camera unavailable'), findsWidgets);
     expect(
       tester
           .widget<FilledButton>(find.byKey(const Key('save_evidence_fallback')))
@@ -344,6 +344,10 @@ void main() {
     );
     await tester.pump();
 
+    await _revealStationDetails(tester);
+    await tester.tap(find.byKey(const Key('station_review_details')));
+    await tester.pumpAndSettle();
+
     expect(
       find.byKey(const Key('review_evidence_station_context')),
       findsOneWidget,
@@ -389,11 +393,21 @@ void main() {
     );
     await tester.pump();
 
+    await _revealStationDetails(tester);
+    await tester.tap(find.byKey(const Key('station_review_details')));
+    await tester.pumpAndSettle();
+
     expect(
       find.byKey(const Key('accepted_evidence_thumbnail')),
       findsOneWidget,
     );
     expect(find.text('Context'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('review_open_evidence_context-media')),
+      180,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(const Key('review_open_evidence_context-media')),
     );
@@ -412,6 +426,14 @@ void main() {
     expect(find.textContaining('P1: 48s'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+}
+
+Future<void> _revealStationDetails(WidgetTester tester) async {
+  final details = find.byKey(const Key('station_review_details'));
+  final scrollable = find.byType(Scrollable).first;
+  await tester.scrollUntilVisible(details, 200, scrollable: scrollable);
+  await tester.drag(scrollable, const Offset(0, -120));
+  await tester.pump();
 }
 
 EvidenceCaptureBundle _bundle({

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart' show LatLng;
 
 import '../../services/phone_location_service.dart';
+import '../../services/field_imagery_provider.dart';
 import '../../services/scouting_route_generator.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/offline_scouting_route_map.dart';
@@ -16,11 +17,13 @@ class StationRouteGuidanceStep extends StatefulWidget {
     required this.boundary,
     required this.plan,
     required this.completedStationLocations,
+    required this.completedStationNumbers,
     required this.watchLocation,
     required this.isSaving,
     required this.onConfirmReached,
     required this.onAdjustTarget,
     required this.onEditRoute,
+    this.imageryProvider,
   });
 
   final int blockNumber;
@@ -28,11 +31,13 @@ class StationRouteGuidanceStep extends StatefulWidget {
   final List<LatLng> boundary;
   final ScoutingRoutePlan plan;
   final Map<int, LatLng> completedStationLocations;
+  final Set<int> completedStationNumbers;
   final Future<Stream<PhoneLocationReading>> Function() watchLocation;
   final bool isSaving;
   final Future<void> Function() onConfirmReached;
   final Future<void> Function() onAdjustTarget;
   final Future<void> Function() onEditRoute;
+  final FieldImageryProvider? imageryProvider;
 
   @override
   State<StationRouteGuidanceStep> createState() =>
@@ -111,7 +116,7 @@ class _StationRouteGuidanceStepState extends State<StationRouteGuidanceStep> {
         Text(
           widget.plan.pattern == 'w'
               ? 'Use the W orientation only while crossing remains practical and safe.'
-              : 'Stay on the evaluator-confirmed accessible pass. Use the suggested side only where access allows.',
+              : 'Follow the approximate generated spine and alternating branch guidance only where access remains practical and safe.',
           style: const TextStyle(height: 1.4),
         ),
         if (target.sideHint != null) ...[
@@ -129,6 +134,8 @@ class _StationRouteGuidanceStepState extends State<StationRouteGuidanceStep> {
           plan: widget.plan,
           activeStation: widget.stationNumber,
           completedStationLocations: widget.completedStationLocations,
+          completedStationNumbers: widget.completedStationNumbers,
+          imageryProvider: widget.imageryProvider,
           currentLocation: location,
         ),
         const SizedBox(height: 14),

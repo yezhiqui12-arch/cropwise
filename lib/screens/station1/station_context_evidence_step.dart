@@ -7,11 +7,12 @@ import '../../data/local/database_codes.dart';
 import '../../data/repositories/evidence_capture_repository.dart';
 import 'evidence_capture_panel.dart';
 
-class StationContextEvidenceStep extends StatelessWidget {
+class StationContextEvidenceStep extends StatefulWidget {
   const StationContextEvidenceStep({
     super.key,
     this.blockNumber = 1,
     this.stationNumber = 1,
+    this.isVeV2 = false,
     required this.bundle,
     required this.isSaving,
     required this.resolveFile,
@@ -26,6 +27,7 @@ class StationContextEvidenceStep extends StatelessWidget {
 
   final int blockNumber;
   final int stationNumber;
+  final bool isVeV2;
   final EvidenceCaptureBundle bundle;
   final bool isSaving;
   final Future<File> Function(String localUri) resolveFile;
@@ -38,8 +40,31 @@ class StationContextEvidenceStep extends StatelessWidget {
   final Future<void> Function() onContinue;
 
   @override
+  State<StationContextEvidenceStep> createState() =>
+      _StationContextEvidenceStepState();
+}
+
+class _StationContextEvidenceStepState
+    extends State<StationContextEvidenceStep> {
+  bool _cameraOpened = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.bundle.media.isEmpty && widget.bundle.waivedViewTypes.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _openCamera());
+    }
+  }
+
+  Future<void> _openCamera() async {
+    if (!mounted || _cameraOpened) return;
+    _cameraOpened = true;
+    await widget.onCapture();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final satisfied = bundle.isViewSatisfied(
+    final satisfied = widget.bundle.isViewSatisfied(
       DatabaseCodes.evidenceViewStationContext,
     );
     return ListView(
@@ -47,7 +72,7 @@ class StationContextEvidenceStep extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 30),
       children: [
         Text(
-          'BLOCK $blockNumber · STATION $stationNumber · CONTEXT',
+          'BLOCK ${widget.blockNumber} · STATION ${widget.stationNumber}',
           style: const TextStyle(
             color: Color(0xFF176B3A),
             fontSize: 12,
@@ -57,55 +82,41 @@ class StationContextEvidenceStep extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         const Text(
-          'Record the station context',
+          'Take station photo',
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 10),
-        const Text(
-          'Photograph the maize row and immediate station surroundings without including people or identifying documents.',
-          style: TextStyle(height: 1.45),
-        ),
-        const SizedBox(height: 12),
-        const Card(
-          elevation: 0,
-          color: Color(0xFFFFF3CD),
-          child: Padding(
-            padding: EdgeInsets.all(16),
-            child: Text(
-              'This image documents context only. It does not prove that the sampling procedure or route was followed correctly.',
-              style: TextStyle(height: 1.4, fontWeight: FontWeight.w600),
-            ),
-          ),
+        Text(
+          widget.isVeV2
+              ? 'Photograph the row and planting spots ahead.'
+              : 'Photograph the maize row and nearby crop.',
+          style: const TextStyle(height: 1.45),
         ),
         const SizedBox(height: 12),
         EvidenceCapturePanel(
-          title: 'Station-context image',
-          scopeLabel: 'Block $blockNumber · Station $stationNumber',
-          instruction:
-              'Frame enough of the row and surrounding crop to document conditions at Station $stationNumber.',
+          title: 'Station photo',
+          scopeLabel:
+              'Block ${widget.blockNumber} · Station ${widget.stationNumber}',
+          instruction: widget.isVeV2
+              ? 'Keep the row and planting spots clearly in the frame.'
+              : 'Keep the row and nearby crop clearly in the frame.',
           viewType: DatabaseCodes.evidenceViewStationContext,
-          bundle: bundle,
-          resolveFile: resolveFile,
-          onCapture: onCapture,
-          onInspect: onInspect,
-          onAccept: onAccept,
-          onRetake: onRetake,
-          onRemove: onRemove,
-          onManualFallback: onManualFallback,
+          bundle: widget.bundle,
+          resolveFile: widget.resolveFile,
+          onCapture: widget.onCapture,
+          onInspect: widget.onInspect,
+          onAccept: widget.onAccept,
+          onRetake: widget.onRetake,
+          onRemove: widget.onRemove,
+          onManualFallback: widget.onManualFallback,
         ),
         const SizedBox(height: 18),
         ConstrainedBox(
           constraints: const BoxConstraints(minHeight: 56),
           child: FilledButton(
             key: const Key('continue_after_station_context'),
-            onPressed: satisfied && !isSaving ? onContinue : null,
-            child: Text(
-              bundle.waivedViewTypes.contains(
-                    DatabaseCodes.evidenceViewStationContext,
-                  )
-                  ? 'Continue with documented fallback'
-                  : 'Continue to ten plants',
-            ),
+            onPressed: satisfied && !widget.isSaving ? widget.onContinue : null,
+            child: const Text('Continue'),
           ),
         ),
       ],

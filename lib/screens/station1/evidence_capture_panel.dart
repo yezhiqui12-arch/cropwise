@@ -82,21 +82,27 @@ class EvidenceCapturePanel extends StatelessWidget {
               if (media.storageState == DatabaseCodes.evidenceStorageReady ||
                   media.storageState == DatabaseCodes.evidenceStorageStaged ||
                   media.storageState == DatabaseCodes.evidenceStorageMissing)
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                Row(
                   children: [
-                    OutlinedButton.icon(
-                      key: Key('retake_$viewType'),
-                      onPressed: () => _retake(context, media),
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Retake'),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        key: Key('retake_$viewType'),
+                        onPressed: () => _retake(context, media),
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Retake'),
+                      ),
                     ),
-                    TextButton.icon(
-                      key: Key('remove_$viewType'),
-                      onPressed: () => _remove(context, media),
-                      icon: const Icon(Icons.delete_outline),
-                      label: const Text('Remove'),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        key: Key('remove_$viewType'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFFB3261E),
+                        ),
+                        onPressed: () => _remove(context, media),
+                        icon: const Icon(Icons.delete_outline),
+                        label: const Text('Remove'),
+                      ),
                     ),
                   ],
                 ),
@@ -113,7 +119,7 @@ class EvidenceCapturePanel extends StatelessWidget {
               _ActionButton(
                 key: Key('capture_$viewType'),
                 icon: Icons.camera_alt_outlined,
-                label: 'Open guided camera',
+                label: 'Take photo',
                 onPressed: onCapture,
               ),
             ],
@@ -123,7 +129,7 @@ class EvidenceCapturePanel extends StatelessWidget {
               TextButton(
                 key: Key('manual_fallback_$viewType'),
                 onPressed: () => _manualFallback(context),
-                child: const Text('Document manual fallback'),
+                child: const Text('Camera unavailable'),
               ),
             ],
           ],
@@ -385,7 +391,7 @@ Future<EvidenceFallbackChoice?> showEvidenceFallbackDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: const Text('Document manual fallback'),
+          title: const Text('Camera unavailable'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,

@@ -8,6 +8,7 @@ import 'package:wormwise/main.dart';
 import 'package:wormwise/providers/app_data_mode.dart';
 import 'package:wormwise/screens/main_navigation_screen.dart';
 import 'package:wormwise/screens/debug_test_mode_shell.dart';
+import 'package:wormwise/screens/station1/station1_workflow_screen.dart';
 import 'package:wormwise/services/debug_test_data_service.dart';
 import 'package:wormwise/widgets/wormwise_data_scope.dart';
 
@@ -172,66 +173,128 @@ void main() {
   );
 
   testWidgets(
-    'station Back returns to review and never jumps directly to Scan',
+    'app-bar Back exits to Scan while system Back moves within station',
     (tester) async {
       final database = AppDatabase(NativeDatabase.memory());
       await tester.pumpWidget(
         MaterialApp(home: DebugTestModeShell(database: database)),
       );
-      await tester.pumpAndSettle();
+      await _pumpUntil(
+        tester,
+        find.byKey(const Key('resume_assessment_from_scan_button')),
+      );
       await tester.tap(
         find.byKey(const Key('resume_assessment_from_scan_button')),
       );
-      await tester.pumpAndSettle();
+      await _pumpUntil(
+        tester,
+        find.byKey(
+          const Key('complete_current_test_station_persistent_button'),
+        ),
+      );
 
       await tester.tap(
         find.byKey(
           const Key('complete_current_test_station_persistent_button'),
         ),
       );
-      await tester.pumpAndSettle();
+      await _pumpUntil(tester, find.text('Continue to Station 2'));
       expect(find.text('Continue to Station 2'), findsWidgets);
 
-      await tester.tap(find.byKey(const Key('station_workflow_back_button')));
-      await tester.pumpAndSettle();
+      _invokePhoneBack(tester);
+      await _pumpUntil(tester, find.text('Station Evidence Review'));
       expect(find.text('Station Evidence Review'), findsOneWidget);
-      expect(find.text('Scan · TEST DATA'), findsNothing);
+      expect(find.byType(Station1WorkflowScreen), findsOneWidget);
 
-      final editPlant = find.byKey(const Key('edit_plant_1_button'));
-      await tester.scrollUntilVisible(
-        editPlant,
-        500,
-        scrollable: find.byType(Scrollable).last,
+      final plantOne = find.byKey(const Key('review_position_1'));
+      await tester.tap(plantOne);
+      await _pumpUntil(
+        tester,
+        find.byKey(const Key('manual_confirmation_header')),
       );
-      await tester.pumpAndSettle();
-      await tester.tap(editPlant);
-      await tester.pumpAndSettle();
       expect(
         find.byKey(const Key('manual_confirmation_header')),
         findsOneWidget,
       );
 
-      await tester.tap(find.byKey(const Key('station_workflow_back_button')));
-      await tester.pumpAndSettle();
+      _invokePhoneBack(tester);
+      await _pumpUntil(tester, find.text('Return to Station Review?'));
       expect(find.text('Return to Station Review?'), findsOneWidget);
       await tester.tap(find.byKey(const Key('keep_editing_plant_button')));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      expect(
+        find.byKey(const Key('manual_confirmation_header')),
+        findsOneWidget,
+      );
+
+      _invokePhoneBack(tester);
+      await _pumpUntil(tester, find.text('Return to Station Review?'));
+      await tester.tap(find.byKey(const Key('discard_plant_edits_button')));
+      await _pumpUntil(tester, find.text('Station Evidence Review'));
+      expect(find.text('Station Evidence Review'), findsOneWidget);
+      expect(find.byType(Station1WorkflowScreen), findsOneWidget);
+
+      await _pumpUntil(tester, plantOne);
+      await tester.tap(plantOne);
+      await _pumpUntil(
+        tester,
+        find.byKey(const Key('manual_confirmation_header')),
+      );
+      await tester.tap(find.byKey(const Key('station_workflow_back_button')));
+      await _pumpUntil(tester, find.text('Return to Scan?'));
+      expect(find.text('Return to Scan?'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('stay_on_plant_button')));
+      await tester.pump();
       expect(
         find.byKey(const Key('manual_confirmation_header')),
         findsOneWidget,
       );
 
       await tester.tap(find.byKey(const Key('station_workflow_back_button')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('discard_plant_edits_button')));
-      await tester.pumpAndSettle();
-      expect(find.text('Station Evidence Review'), findsOneWidget);
-      expect(find.text('Scan · TEST DATA'), findsNothing);
+      await _pumpUntil(tester, find.text('Return to Scan?'));
+      await tester.tap(find.byKey(const Key('leave_plant_for_scan_button')));
+      await _pumpUntilAbsent(tester, find.byType(Station1WorkflowScreen));
+      expect(find.byType(Station1WorkflowScreen), findsNothing);
+      expect(find.text('Scan · TEST DATA'), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump(const Duration(milliseconds: 1));
     },
   );
+}
+
+void _invokePhoneBack(WidgetTester tester) {
+  final scope = tester.widget<PopScope<void>>(
+    find.descendant(
+      of: find.byType(Station1WorkflowScreen),
+      matching: find.byWidgetPredicate((widget) => widget is PopScope<void>),
+    ),
+  );
+  scope.onPopInvokedWithResult!(false, null);
+}
+
+Future<void> _pumpUntil(
+  WidgetTester tester,
+  Finder finder, {
+  int maximumPumps = 100,
+}) async {
+  for (var pump = 0; pump < maximumPumps; pump++) {
+    await tester.pump(const Duration(milliseconds: 100));
+    if (finder.evaluate().isNotEmpty) return;
+  }
+  fail('Timed out waiting for the expected widget.');
+}
+
+Future<void> _pumpUntilAbsent(
+  WidgetTester tester,
+  Finder finder, {
+  int maximumPumps = 100,
+}) async {
+  for (var pump = 0; pump < maximumPumps; pump++) {
+    await tester.pump(const Duration(milliseconds: 100));
+    if (finder.evaluate().isEmpty) return;
+  }
+  fail('Timed out waiting for the widget to disappear.');
 }
 
 Future<void> _closeApp(WidgetTester tester, AppDatabase database) async {

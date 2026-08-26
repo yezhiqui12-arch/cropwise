@@ -215,7 +215,7 @@ void main() {
     },
   );
 
-  testWidgets('station GPS displays accuracy without blocking a coarse fix', (
+  testWidgets('station GPS saves a coarse fix automatically', (
     WidgetTester tester,
   ) async {
     AveragedPhoneLocation? saved;
@@ -239,14 +239,9 @@ void main() {
       ),
     );
 
-    await tester.tap(find.byKey(const Key('capture_station_gps_button')));
     await tester.pumpAndSettle();
-
-    expect(find.textContaining('245.0 m'), findsOneWidget);
-    expect(find.textContaining('does not block this station'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('use_station_gps_button')));
-    await tester.pump();
     expect(saved?.averageAccuracyMeters, 245);
+    expect(find.byKey(const Key('use_station_gps_button')), findsNothing);
   });
 }
 

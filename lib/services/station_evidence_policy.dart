@@ -35,6 +35,10 @@ enum StationEvidencePolicy {
         StationEvidencePolicy.humanWorkloadSafe,
       DatabaseCodes.evidencePolicyCameraFirstOverviewConditionalV1 =>
         StationEvidencePolicy.cameraFirstOverviewConditional,
+      DatabaseCodes.evidencePolicyVeV2ModelReadyCaptureV1 =>
+        StationEvidencePolicy.cameraFirstOverviewConditional,
+      DatabaseCodes.evidencePolicyVeV2UnitEvidenceV1 =>
+        StationEvidencePolicy.cameraFirstOverviewConditional,
       'camera_phase_a_v1' => StationEvidencePolicy.station1TwoView,
       _ => throw StateError('Unsupported evidence requirements: $value'),
     };

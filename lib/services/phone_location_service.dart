@@ -216,7 +216,7 @@ class PhoneLocationService {
     }
     if (permission == LocationPermission.denied) {
       throw const PhoneLocationException(
-        'Location permission was denied. You can still save the field without GPS.',
+        'Location permission was denied. Allow location to record this station.',
         code: PhoneLocationFailureCode.permissionDenied,
       );
     }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart' show LatLng;
 
 import '../../data/local/database_codes.dart';
+import '../../services/field_imagery_provider.dart';
 import '../../services/phone_location_service.dart';
 import '../../services/scouting_route_generator.dart';
 import '../../theme/app_colors.dart';
@@ -14,20 +15,24 @@ class RoutePreparationStep extends StatefulWidget {
     required this.boundary,
     required this.plan,
     required this.completedStationLocations,
+    required this.completedStationNumbers,
     required this.captureLocation,
     required this.isSaving,
     required this.onSavePreparation,
     required this.onGenerate,
+    this.imageryProvider,
   });
 
   final int blockNumber;
   final List<LatLng> boundary;
   final ScoutingRoutePlan plan;
   final Map<int, LatLng> completedStationLocations;
+  final Set<int> completedStationNumbers;
   final Future<AveragedPhoneLocation> Function() captureLocation;
   final bool isSaving;
   final Future<void> Function(RoutePreparationData) onSavePreparation;
   final Future<void> Function() onGenerate;
+  final FieldImageryProvider? imageryProvider;
 
   @override
   State<RoutePreparationStep> createState() => _RoutePreparationStepState();
@@ -36,6 +41,9 @@ class RoutePreparationStep extends StatefulWidget {
 class _RoutePreparationStepState extends State<RoutePreparationStep> {
   late RoutePreparationData _preparation;
   String? _localError;
+  String? _automaticStartMessage;
+  bool _resolvingAutomaticInputs = false;
+  bool _automaticInputsReady = false;
 
   bool get _isW => widget.plan.pattern == DatabaseCodes.patternW;
 
@@ -43,6 +51,9 @@ class _RoutePreparationStepState extends State<RoutePreparationStep> {
   void initState() {
     super.initState();
     _preparation = widget.plan.preparation;
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _resolveAutomaticInputs(),
+    );
   }
 
   @override
@@ -53,84 +64,90 @@ class _RoutePreparationStepState extends State<RoutePreparationStep> {
     }
   }
 
-  Future<void> _save(RoutePreparationData value) async {
+  Future<bool> _save(RoutePreparationData value) async {
     setState(() {
       _preparation = value;
       _localError = null;
     });
     try {
       await widget.onSavePreparation(value);
+      return true;
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted) return false;
       setState(() => _localError = _message(error));
+      return false;
     }
   }
 
-  Future<void> _usePhoneEntrance() async {
+  Future<void> _resolveAutomaticInputs({bool retry = false}) async {
+    if (_resolvingAutomaticInputs || (_automaticInputsReady && !retry)) return;
+    setState(() {
+      _resolvingAutomaticInputs = true;
+      _localError = null;
+      _automaticStartMessage = null;
+    });
+    late final LatLng start;
+    late final String startSource;
+    double? accuracyMeters;
     try {
       final location = await widget.captureLocation();
-      await _save(
-        _preparation.copyWith(
-          entrance: LatLng(location.latitude, location.longitude),
-          draftGeometry: RouteDraftGeometry.none,
-          draftPoints: const [],
-        ),
+      start = LatLng(location.latitude, location.longitude);
+      startSource = routeStartSourcePhoneLocation;
+      accuracyMeters = location.averageAccuracyMeters;
+    } catch (_) {
+      start = ScoutingRouteGenerator.automaticBoundaryStart(
+        widget.boundary,
+        obstacles: _preparation.obstacles,
       );
-    } catch (error) {
-      if (!mounted) return;
-      setState(() => _localError = _message(error));
+      startSource = routeStartSourceFieldOutlineFallback;
+    }
+    final updated = _preparation.copyWith(
+      entrance: start,
+      startSource: startSource,
+      startAccuracyMeters: accuracyMeters,
+      rowBearingDegrees: ScoutingRouteGenerator.automaticRouteBearingDegrees(
+        widget.boundary,
+      ),
+      orientationSource: routeOrientationSourceFieldShape,
+      draftGeometry: RouteDraftGeometry.none,
+      draftPoints: const [],
+    );
+    final saved = await _save(updated);
+    if (!mounted) return;
+    setState(() {
+      _resolvingAutomaticInputs = false;
+      _automaticInputsReady = saved;
+      _automaticStartMessage = startSource == routeStartSourcePhoneLocation
+          ? 'Starting position taken automatically from this phone${accuracyMeters == null ? '' : ' · reported accuracy ${accuracyMeters.toStringAsFixed(0)} m'}.'
+          : 'Phone location was unavailable. WormWise used a generated field-edge reference; it is not your measured position.';
+    });
+  }
+
+  Future<void> _removeObstacle(int index) async {
+    final obstacles = [..._preparation.obstacles]..removeAt(index);
+    await _save(
+      _preparation.copyWith(
+        obstacles: obstacles,
+        obstaclesReviewed: false,
+        draftGeometry: RouteDraftGeometry.none,
+        draftPoints: const [],
+      ),
+    );
+    if (mounted) {
+      setState(() => _automaticInputsReady = false);
+      await _resolveAutomaticInputs(retry: true);
     }
   }
 
   Future<void> _tapMap(LatLng point) async {
     final mode = _preparation.draftGeometry;
-    if (mode == RouteDraftGeometry.none) return;
-    if (mode == RouteDraftGeometry.entrance) {
-      await _save(
-        _preparation.copyWith(
-          entrance: point,
-          draftGeometry: RouteDraftGeometry.none,
-          draftPoints: const [],
-        ),
-      );
-      return;
-    }
+    if (mode != RouteDraftGeometry.obstacle) return;
     final points = [..._preparation.draftPoints, point];
-    if (mode == RouteDraftGeometry.rowDirection && points.length == 2) {
-      await _save(
-        _preparation.copyWith(
-          rowBearingDegrees: ScoutingRouteGenerator.bearingDegrees(
-            points.first,
-            points.last,
-          ),
-          draftGeometry: RouteDraftGeometry.none,
-          draftPoints: const [],
-        ),
-      );
-      return;
-    }
     await _save(_preparation.copyWith(draftPoints: points));
   }
 
   Future<void> _startDrawing(RouteDraftGeometry mode) =>
       _save(_preparation.copyWith(draftGeometry: mode, draftPoints: const []));
-
-  Future<void> _finishPath() async {
-    if (_preparation.draftPoints.length < 2) {
-      setState(() => _localError = 'Add at least two points for a pass.');
-      return;
-    }
-    await _save(
-      _preparation.copyWith(
-        accessiblePaths: [
-          ..._preparation.accessiblePaths,
-          List.unmodifiable(_preparation.draftPoints),
-        ],
-        draftGeometry: RouteDraftGeometry.none,
-        draftPoints: const [],
-      ),
-    );
-  }
 
   Future<void> _finishObstacle() async {
     if (_preparation.draftPoints.length < 3) {
@@ -139,7 +156,7 @@ class _RoutePreparationStepState extends State<RoutePreparationStep> {
       );
       return;
     }
-    await _save(
+    final saved = await _save(
       _preparation.copyWith(
         obstacles: [
           ..._preparation.obstacles,
@@ -150,6 +167,10 @@ class _RoutePreparationStepState extends State<RoutePreparationStep> {
         draftPoints: const [],
       ),
     );
+    if (saved && mounted) {
+      setState(() => _automaticInputsReady = false);
+      await _resolveAutomaticInputs(retry: true);
+    }
   }
 
   Future<void> _generate() async {
@@ -186,8 +207,8 @@ class _RoutePreparationStepState extends State<RoutePreparationStep> {
         const SizedBox(height: 8),
         Text(
           _isW
-              ? 'Use W guidance only where younger maize can be crossed safely and accessibly.'
-              : 'For taller or dense maize, confirm the entrance, row or pass direction, accessible paths, and known obstacles.',
+              ? 'WormWise places five stations across the confirmed block. Use this pattern only where younger maize can be crossed safely.'
+              : 'WormWise generates the central spine and five alternating sampling branches from the confirmed block shape.',
           style: const TextStyle(height: 1.4),
         ),
         const SizedBox(height: 14),
@@ -195,6 +216,8 @@ class _RoutePreparationStepState extends State<RoutePreparationStep> {
           boundary: widget.boundary,
           plan: mapPlan,
           completedStationLocations: widget.completedStationLocations,
+          completedStationNumbers: widget.completedStationNumbers,
+          imageryProvider: widget.imageryProvider,
           onTap: drawing == RouteDraftGeometry.none ? null : _tapMap,
         ),
         const SizedBox(height: 8),
@@ -213,90 +236,53 @@ class _RoutePreparationStepState extends State<RoutePreparationStep> {
         ],
         const SizedBox(height: 16),
         _PreparationCard(
-          title: '1. Confirm the accessible entrance',
-          complete: _preparation.entrance != null,
-          child: Wrap(
-            spacing: 10,
-            runSpacing: 10,
+          title: 'Automatic pattern setup',
+          complete: _automaticInputsReady,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              OutlinedButton.icon(
-                key: const Key('use_phone_as_route_entrance'),
-                onPressed: widget.isSaving ? null : _usePhoneEntrance,
-                icon: const Icon(Icons.my_location),
-                label: const Text('Use phone location'),
-              ),
-              OutlinedButton.icon(
-                key: const Key('place_route_entrance_on_map'),
-                onPressed: widget.isSaving
-                    ? null
-                    : () => _startDrawing(RouteDraftGeometry.entrance),
-                icon: const Icon(Icons.touch_app),
-                label: const Text('Place on map'),
-              ),
+              if (_resolvingAutomaticInputs)
+                const Row(
+                  children: [
+                    SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2.5),
+                    ),
+                    SizedBox(width: 10),
+                    Expanded(child: Text('Finding your starting position…')),
+                  ],
+                )
+              else ...[
+                Text(
+                  _automaticStartMessage ??
+                      'WormWise prepares the start and orientation automatically.',
+                  key: const Key('automatic_route_start_status'),
+                  style: const TextStyle(height: 1.4),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Pattern direction is estimated from the saved field shape. It does not claim to detect actual maize rows.',
+                  style: TextStyle(height: 1.4),
+                ),
+                if (_preparation.startSource ==
+                    routeStartSourceFieldOutlineFallback) ...[
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    key: const Key('retry_automatic_route_location'),
+                    onPressed: widget.isSaving
+                        ? null
+                        : () => _resolveAutomaticInputs(retry: true),
+                    icon: const Icon(Icons.my_location),
+                    label: const Text('Retry phone location'),
+                  ),
+                ],
+              ],
             ],
           ),
         ),
-        if (_isW)
-          _PreparationCard(
-            title: '2. Confirm W-pattern access',
-            complete: _preparation.wCrossingConfirmed,
-            child: CheckboxListTile(
-              key: const Key('confirm_w_crossing_accessible'),
-              contentPadding: EdgeInsets.zero,
-              value: _preparation.wCrossingConfirmed,
-              onChanged: widget.isSaving
-                  ? null
-                  : (value) => _save(
-                      _preparation.copyWith(wCrossingConfirmed: value == true),
-                    ),
-              title: const Text(
-                'I confirmed that crossing rows for this W pattern is practical, accessible, and safe today.',
-              ),
-            ),
-          )
-        else ...[
-          _PreparationCard(
-            title: '2. Confirm row or pass direction',
-            complete: _preparation.rowBearingDegrees != null,
-            child: OutlinedButton.icon(
-              key: const Key('draw_row_direction'),
-              onPressed: widget.isSaving
-                  ? null
-                  : () => _startDrawing(RouteDraftGeometry.rowDirection),
-              icon: const Icon(Icons.swap_calls),
-              label: Text(
-                _preparation.rowBearingDegrees == null
-                    ? 'Tap two points on the map'
-                    : 'Direction ${_preparation.rowBearingDegrees!.toStringAsFixed(0)}° · change',
-              ),
-            ),
-          ),
-          _PreparationCard(
-            title: '3. Confirm accessible pass or path',
-            complete: _preparation.accessiblePaths.isNotEmpty,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                OutlinedButton.icon(
-                  key: const Key('draw_accessible_path'),
-                  onPressed: widget.isSaving
-                      ? null
-                      : () => _startDrawing(RouteDraftGeometry.accessiblePath),
-                  icon: const Icon(Icons.route),
-                  label: const Text('Draw accessible pass'),
-                ),
-                if (drawing == RouteDraftGeometry.accessiblePath)
-                  FilledButton(
-                    key: const Key('finish_accessible_path'),
-                    onPressed: widget.isSaving ? null : _finishPath,
-                    child: const Text('Save this pass'),
-                  ),
-              ],
-            ),
-          ),
-        ],
         _PreparationCard(
-          title: _isW ? '3. Review obstacles' : '4. Review obstacles',
+          title: 'Check obstacles and unsafe areas',
           complete: _preparation.obstaclesReviewed,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -328,6 +314,27 @@ class _RoutePreparationStepState extends State<RoutePreparationStep> {
                   onPressed: widget.isSaving ? null : _finishObstacle,
                   child: const Text('Save this obstacle'),
                 ),
+              if (_preparation.obstacles.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (
+                      var index = 0;
+                      index < _preparation.obstacles.length;
+                      index++
+                    )
+                      InputChip(
+                        label: Text('Obstacle ${index + 1}'),
+                        avatar: const Icon(Icons.warning_amber, size: 18),
+                        onDeleted: widget.isSaving
+                            ? null
+                            : () => _removeObstacle(index),
+                      ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
@@ -351,7 +358,12 @@ class _RoutePreparationStepState extends State<RoutePreparationStep> {
           constraints: const BoxConstraints(minHeight: 56),
           child: FilledButton.icon(
             key: const Key('generate_route_targets_button'),
-            onPressed: widget.isSaving ? null : _generate,
+            onPressed:
+                widget.isSaving ||
+                    !_automaticInputsReady ||
+                    !_preparation.obstaclesReviewed
+                ? null
+                : _generate,
             icon: const Icon(Icons.route),
             label: Text(
               widget.plan.targets.isEmpty
@@ -366,12 +378,12 @@ class _RoutePreparationStepState extends State<RoutePreparationStep> {
 
   String _drawingInstruction(RouteDraftGeometry mode) => switch (mode) {
     RouteDraftGeometry.none =>
-      'Pan and zoom to inspect the local field outline.',
-    RouteDraftGeometry.entrance => 'Tap the confirmed accessible entrance.',
+      'Pan and zoom to review the automatically prepared pattern area.',
+    RouteDraftGeometry.entrance => 'Legacy entrance drawing is no longer used.',
     RouteDraftGeometry.rowDirection =>
-      'Tap two points along the row or pass direction.',
+      'Legacy row-direction drawing is no longer used.',
     RouteDraftGeometry.accessiblePath =>
-      'Tap along a known accessible pass, then save it.',
+      'This legacy drawing mode is not used by automatic ladder guidance.',
     RouteDraftGeometry.obstacle => 'Tap around the unsafe area, then save it.',
   };
 }

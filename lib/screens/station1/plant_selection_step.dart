@@ -6,12 +6,14 @@ class PlantSelectionStep extends StatelessWidget {
   const PlantSelectionStep({
     super.key,
     required this.onBegin,
+    this.onMarkAllHealthy,
     this.blockNumber = 1,
     this.stationNumber = 1,
     this.evidencePolicy = StationEvidencePolicy.station1TwoView,
   });
 
   final VoidCallback onBegin;
+  final VoidCallback? onMarkAllHealthy;
   final int blockNumber;
   final int stationNumber;
   final StationEvidencePolicy evidencePolicy;
@@ -33,61 +35,23 @@ class PlantSelectionStep extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         const Text(
-          'Select ten consecutive plants',
+          'Inspect 10 plants',
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
-        Text(
-          'At Station $stationNumber, face along the approved scouting direction. Use the nearest plant directly ahead as Plant 1, then inspect the next nine plant positions consecutively in that same row.',
-          style: const TextStyle(height: 1.45),
+        const Text(
+          'Start with the nearest plant ahead. Check the next nine plants in the same row.',
+          style: TextStyle(height: 1.45),
         ),
-        if (evidencePolicy ==
-            StationEvidencePolicy.cameraFirstOverviewConditional) ...[
-          const SizedBox(height: 12),
-          Card(
-            key: const Key('camera_first_policy_notice'),
-            elevation: 0,
-            color: const Color(0xFFEAF6EE),
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Text(
-                'Camera-first pilot · ${evidencePolicy.requirementsVersion}',
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-            ),
-          ),
-        ],
         const SizedBox(height: 16),
-        const _Instruction(
-          number: '1',
-          text: 'Do not choose plants because they look damaged or healthy.',
-        ),
+        const _Instruction(number: '1', text: 'Keep every plant in order.'),
         const _Instruction(
           number: '2',
-          text:
-              'Keep every position in sequence. If a plant cannot be assessed, record that position and its reason.',
+          text: 'Check the newest leaves and whorl.',
         ),
         const _Instruction(
           number: '3',
-          text:
-              'For every assessable plant, inspect the newest three or four leaves emerging from the whorl.',
-        ),
-        _Instruction(
-          number: '4',
-          text: evidencePolicy == StationEvidencePolicy.station1TwoView
-              ? 'This older saved evidence record retains its original overview-and-close-up requirement.'
-              : 'Gently expose the newest leaves and whorl. Take one guided overview for every assessable plant, then continue directly to the next plant.',
-        ),
-        _Instruction(
-          number: '5',
-          text: evidencePolicy == StationEvidencePolicy.station1TwoView
-              ? 'Add a third image only when a larva, egg mass, unclear feature, or other evidence needs detail.'
-              : 'Add a close-up only when damage, larvae, eggs, possible non-FAW evidence, uncertainty, or inadequate overview detail makes it necessary. Use documented fallback when photography is unavailable.',
-        ),
-        const _Instruction(
-          number: '6',
-          text:
-              'WormWise has no validated image model. After Plant 10, confirm every plant manually from Station Review.',
+          text: 'Take a close-up only when more detail is needed.',
         ),
         const SizedBox(height: 24),
         ConstrainedBox(
@@ -96,9 +60,24 @@ class PlantSelectionStep extends StatelessWidget {
             key: const Key('begin_ten_plants_button'),
             onPressed: onBegin,
             icon: const Icon(Icons.eco_outlined),
-            label: const Text('Begin with Plant 1'),
+            label: const Text('Start Plant 1'),
           ),
         ),
+        if (onMarkAllHealthy != null) ...[
+          const SizedBox(height: 12),
+          ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 52),
+            child: OutlinedButton.icon(
+              key: const Key('mark_all_healthy_button'),
+              onPressed: onMarkAllHealthy,
+              icon: const Icon(
+                Icons.check_circle_outline,
+                color: Color(0xFF176B3A),
+              ),
+              label: const Text('All 10 Plants Clean (1-Tap Shortcut)'),
+            ),
+          ),
+        ],
       ],
     );
   }

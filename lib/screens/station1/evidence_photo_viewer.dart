@@ -140,10 +140,8 @@ class _EvidencePhotoViewerState extends State<EvidencePhotoViewer> {
                 elevation: 8,
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(12),
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    alignment: WrapAlignment.center,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       if (staged)
                         _ViewerButton(
@@ -153,32 +151,47 @@ class _EvidencePhotoViewerState extends State<EvidencePhotoViewer> {
                           label: 'Use photo',
                           action: EvidencePhotoAction.usePhoto,
                         ),
-                      _ViewerButton(
-                        key: const Key('viewer_retake'),
-                        icon: Icons.refresh,
-                        label: 'Retake',
-                        action: EvidencePhotoAction.retake,
+                      if (staged) const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _ViewerButton(
+                              key: const Key('viewer_retake'),
+                              icon: Icons.refresh,
+                              label: 'Retake',
+                              action: EvidencePhotoAction.retake,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _ViewerButton(
+                              key: const Key('viewer_remove'),
+                              destructive: true,
+                              icon: Icons.delete_outline,
+                              label: 'Remove',
+                              action: EvidencePhotoAction.remove,
+                            ),
+                          ),
+                        ],
                       ),
-                      if (widget.allowAddCloseUp)
+                      if (widget.allowAddCloseUp) ...[
+                        const SizedBox(height: 8),
                         _ViewerButton(
                           key: const Key('viewer_add_close_up'),
                           icon: Icons.add_a_photo_outlined,
                           label: 'Add close-up',
                           action: EvidencePhotoAction.addCloseUp,
                         ),
-                      if (widget.allowAddDiagnosticDetail)
+                      ],
+                      if (widget.allowAddDiagnosticDetail) ...[
+                        const SizedBox(height: 8),
                         _ViewerButton(
                           key: const Key('viewer_add_diagnostic_detail'),
                           icon: Icons.add_a_photo_outlined,
                           label: 'Add extra detail',
                           action: EvidencePhotoAction.addDiagnosticDetail,
                         ),
-                      _ViewerButton(
-                        key: const Key('viewer_remove'),
-                        icon: Icons.delete_outline,
-                        label: 'Remove',
-                        action: EvidencePhotoAction.remove,
-                      ),
+                      ],
                     ],
                   ),
                 ),
@@ -197,12 +210,14 @@ class _ViewerButton extends StatelessWidget {
     required this.label,
     required this.action,
     this.filled = false,
+    this.destructive = false,
   });
 
   final IconData icon;
   final String label;
   final EvidencePhotoAction action;
   final bool filled;
+  final bool destructive;
 
   @override
   Widget build(BuildContext context) {
@@ -215,6 +230,11 @@ class _ViewerButton extends StatelessWidget {
               label: Text(label),
             )
           : OutlinedButton.icon(
+              style: destructive
+                  ? OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFFB3261E),
+                    )
+                  : null,
               onPressed: () => Navigator.pop(context, action),
               icon: Icon(icon),
               label: Text(label),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 
 import '../../data/local/database_codes.dart';
 import '../../services/phone_location_service.dart';
@@ -25,12 +26,17 @@ class StationLocationStep extends StatefulWidget {
 }
 
 class _StationLocationStepState extends State<StationLocationStep> {
-  AveragedPhoneLocation? _location;
   PhoneLocationException? _locationError;
   bool _capturing = false;
   bool _showUnavailable = false;
   String? _reason;
   final _note = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _capture());
+  }
 
   @override
   void dispose() {
@@ -44,8 +50,8 @@ class _StationLocationStepState extends State<StationLocationStep> {
       key: const Key('station_location_step'),
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
       children: [
-        const Text(
-          'STATION LOCATION · 0 OF 10 PLANTS SAVED',
+        Text(
+          'STATION ${widget.stationNumber}',
           style: TextStyle(
             color: Color(0xFF176B3A),
             fontSize: 12,
@@ -54,57 +60,54 @@ class _StationLocationStepState extends State<StationLocationStep> {
           ),
         ),
         const SizedBox(height: 8),
-        Text(
-          'Record Station ${widget.stationNumber}',
-          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        const Text(
+          'Saving station location…',
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 10),
-        Text(
-          'Stand at the Station ${widget.stationNumber} observation point. WormWise will average several phone readings when available.',
-          style: const TextStyle(height: 1.45),
-        ),
-        const SizedBox(height: 16),
-        if (_location != null) _LocationResult(location: _location!),
+        const Text('Keep WormWise open while it records this station.'),
+        const SizedBox(height: 20),
+        if (_capturing || widget.isSaving)
+          const Center(child: CircularProgressIndicator()),
         if (_locationError != null) ...[
           _WarningCard(message: _locationError!.message),
           const SizedBox(height: 12),
-        ],
-        ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 56),
-          child: FilledButton.icon(
-            key: const Key('capture_station_gps_button'),
-            onPressed: _capturing || widget.isSaving ? null : _capture,
-            icon: _capturing
-                ? const SizedBox.square(
-                    dimension: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.my_location),
-            label: Text(_location == null ? 'Record station GPS' : 'Retry GPS'),
-          ),
-        ),
-        if (_location != null) ...[
-          const SizedBox(height: 12),
           ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 56),
-            child: FilledButton.tonal(
-              key: const Key('use_station_gps_button'),
-              onPressed: widget.isSaving ? null : _useLocation,
-              child: const Text('Use this location'),
+            child: FilledButton.icon(
+              key: const Key('capture_station_gps_button'),
+              onPressed: _capturing || widget.isSaving ? null : _capture,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Try again'),
             ),
           ),
-        ],
-        const SizedBox(height: 12),
-        ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 56),
-          child: OutlinedButton(
+          if (_locationError!.code ==
+              PhoneLocationFailureCode.servicesDisabled) ...[
+            const SizedBox(height: 8),
+            OutlinedButton(
+              key: const Key('open_location_settings_button'),
+              onPressed: Geolocator.openLocationSettings,
+              child: const Text('Turn on location'),
+            ),
+          ],
+          if (_locationError!.code ==
+              PhoneLocationFailureCode.permissionBlocked) ...[
+            const SizedBox(height: 8),
+            OutlinedButton(
+              key: const Key('open_app_location_settings_button'),
+              onPressed: Geolocator.openAppSettings,
+              child: const Text('Open app settings'),
+            ),
+          ],
+          const SizedBox(height: 8),
+          TextButton(
             key: const Key('station_gps_unavailable_button'),
             onPressed: widget.isSaving
                 ? null
                 : () => setState(() => _showUnavailable = true),
-            child: const Text('Continue without station GPS'),
+            child: const Text('Record location problem'),
           ),
-        ),
+        ],
         if (_showUnavailable) ...[
           const SizedBox(height: 20),
           const Text(
@@ -146,7 +149,7 @@ class _StationLocationStepState extends State<StationLocationStep> {
               onPressed: _reason == null || widget.isSaving
                   ? null
                   : _saveUnavailable,
-              child: const Text('Save reason and continue'),
+              child: const Text('Save problem and continue'),
             ),
           ),
         ],
@@ -162,7 +165,7 @@ class _StationLocationStepState extends State<StationLocationStep> {
     try {
       final result = await widget.captureLocation();
       if (!mounted) return;
-      setState(() => _location = result);
+      await widget.onUseLocation(result);
     } on PhoneLocationException catch (error) {
       if (!mounted) return;
       setState(() {
@@ -183,8 +186,6 @@ class _StationLocationStepState extends State<StationLocationStep> {
     }
   }
 
-  Future<void> _useLocation() => _run(() => widget.onUseLocation(_location!));
-
   Future<void> _saveUnavailable() =>
       _run(() => widget.onSaveUnavailable(reason: _reason!, note: _note.text));
 
@@ -199,47 +200,6 @@ class _StationLocationStepState extends State<StationLocationStep> {
         ),
       );
     }
-  }
-}
-
-class _LocationResult extends StatelessWidget {
-  const _LocationResult({required this.location});
-
-  final AveragedPhoneLocation location;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      key: const Key('station_gps_result'),
-      elevation: 0,
-      color: const Color(0xFFEAF6EE),
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Phone location received',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              '${location.latitude.toStringAsFixed(6)}, ${location.longitude.toStringAsFixed(6)}',
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Average reported accuracy: ${location.averageAccuracyMeters.toStringAsFixed(1)} m · ${location.sampleCount} reading${location.sampleCount == 1 ? '' : 's'}',
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Accuracy is the phone’s technical estimate. It is displayed for context and does not block this station.',
-              style: TextStyle(height: 1.35),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }
 
