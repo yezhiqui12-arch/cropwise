@@ -87,7 +87,7 @@ class _EmptyWorkspaceCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           const Text(
-            'Field details are saved offline and become the workspace for boundaries, crop cycles, assessments, and reports.',
+            'Field details are saved on this phone and keep outlines, crop cycles, and assessments together.',
             textAlign: TextAlign.center,
             style: TextStyle(color: AppColors.textSecondary, height: 1.4),
           ),

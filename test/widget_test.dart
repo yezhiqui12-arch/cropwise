@@ -60,12 +60,19 @@ void main() {
     expect(find.text('Test Maize Field'), findsWidgets);
     expect(find.text('Boundary not added'), findsOneWidget);
 
-    await tester.tap(find.text('Test Maize Field'));
+    final field = await database.select(database.fields).getSingle();
+    await tester.tap(find.byKey(ValueKey('field_card_${field.id}')));
     await tester.pumpAndSettle();
 
+    expect(find.text('Field Details'), findsOneWidget);
     expect(find.text('Test Maize Field'), findsWidgets);
-    expect(find.text('REPORTED AREA'), findsOneWidget);
     expect(find.text('1.25 ha'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('delete_field_button')),
+      250,
+      scrollable: find.byType(Scrollable).last,
+    );
+    expect(find.byKey(const Key('delete_field_button')), findsOneWidget);
     expect(find.text('Bayani Cornfield'), findsNothing);
 
     await tester.pumpWidget(const SizedBox.shrink());

@@ -12,6 +12,7 @@ import '../services/polygon_calculator.dart';
 import '../services/walk_boundary_recorder.dart';
 import '../theme/app_colors.dart';
 import 'fields_screen.dart';
+import 'field_details_screen.dart';
 
 class FieldBoundarySetupScreen extends StatelessWidget {
   const FieldBoundarySetupScreen({super.key});
@@ -158,6 +159,8 @@ class _FieldMapOverviewState extends State<_FieldMapOverview> {
     );
   }
 
+  bool _satelliteView = true;
+
   @override
   Widget build(BuildContext context) {
     final boundary = widget.workspace.boundary;
@@ -173,10 +176,18 @@ class _FieldMapOverviewState extends State<_FieldMapOverview> {
             onPositionChanged: (camera, _) => _zoom = camera.zoom,
           ),
           children: [
-            TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'com.wormwise.app.wormwise',
-            ),
+            if (_satelliteView)
+              TileLayer(
+                urlTemplate:
+                    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                userAgentPackageName: 'com.wormwise.app.wormwise',
+                maxNativeZoom: 17,
+              )
+            else
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.wormwise.app.wormwise',
+              ),
             if (_hasOutline)
               PolygonLayer(
                 polygons: [
@@ -205,10 +216,14 @@ class _FieldMapOverviewState extends State<_FieldMapOverview> {
                   ),
               ],
             ),
-            const RichAttributionWidget(
+            RichAttributionWidget(
               showFlutterMapAttribution: false,
               attributions: [
-                TextSourceAttribution('OpenStreetMap contributors'),
+                TextSourceAttribution(
+                  _satelliteView
+                      ? 'Esri World Imagery'
+                      : 'OpenStreetMap contributors',
+                ),
               ],
             ),
           ],
@@ -242,6 +257,18 @@ class _FieldMapOverviewState extends State<_FieldMapOverview> {
                 icon: Icons.center_focus_strong,
                 onPressed: _centerField,
               ),
+              const SizedBox(height: 8),
+              _MapControlButton(
+                key: const Key('overview_toggle_satellite_view_button'),
+                tooltip: _satelliteView
+                    ? 'Use street map'
+                    : 'Use satellite imagery',
+                icon: _satelliteView
+                    ? Icons.map_outlined
+                    : Icons.satellite_alt_outlined,
+                onPressed: () =>
+                    setState(() => _satelliteView = !_satelliteView),
+              ),
             ],
           ),
         ),
@@ -255,7 +282,9 @@ class _FieldMapOverviewState extends State<_FieldMapOverview> {
             areaHectares: _hasOutline ? boundary!.areaHectares : null,
             onOpenFields: () => Navigator.push<void>(
               context,
-              MaterialPageRoute(builder: (_) => const FieldsScreen()),
+              MaterialPageRoute(
+                builder: (_) => FieldDetailsScreen(workspace: widget.workspace),
+              ),
             ),
             onManageBoundary: _openBoundaryManagement,
           ),
@@ -548,7 +577,6 @@ class _BoundaryMethodSelection extends StatelessWidget {
           description:
               'Follow the boundary outdoors while WormWise records a filtered phone-GPS path.',
           badge: 'OUTDOOR',
-          emphasized: true,
           onTap: () => Navigator.push<void>(
             context,
             MaterialPageRoute(builder: (_) => const WalkFieldBoundaryScreen()),
@@ -559,8 +587,8 @@ class _BoundaryMethodSelection extends StatelessWidget {
           icon: Icons.satellite_alt_outlined,
           title: 'Satellite reference',
           description:
-              'Use agricultural imagery as a visual reference while drawing. This method will be added later.',
-          badge: 'PLANNED',
+              'View online imagery as a drawing reference. Availability and image date may vary.',
+          badge: 'ONLINE',
         ),
         const SizedBox(height: 18),
         Container(
@@ -595,7 +623,6 @@ class _BoundaryMethodCard extends StatelessWidget {
     required this.title,
     required this.description,
     required this.badge,
-    this.emphasized = false,
     this.onTap,
   });
 
@@ -603,7 +630,6 @@ class _BoundaryMethodCard extends StatelessWidget {
   final String title;
   final String description;
   final String badge;
-  final bool emphasized;
   final VoidCallback? onTap;
 
   @override
@@ -611,14 +637,11 @@ class _BoundaryMethodCard extends StatelessWidget {
     final enabled = onTap != null;
     return Card(
       margin: EdgeInsets.zero,
-      elevation: emphasized ? 2 : 0,
+      elevation: 0,
       color: enabled ? Colors.white : AppColors.surfaceContainer,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(15),
-        side: BorderSide(
-          color: emphasized ? AppColors.primary : AppColors.outlineVariant,
-          width: emphasized ? 1.5 : 1,
-        ),
+        side: BorderSide(color: AppColors.outlineVariant, width: 1),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -745,6 +768,7 @@ class _BoundaryEditorState extends State<_BoundaryEditor> {
   bool _isCapturingGpsCorner = false;
   int? _selectedPointIndex;
   bool _isDirty = false;
+  bool _savedInThisSession = false;
   int? _tapCandidatePointer;
   Offset? _tapDownPosition;
   bool _tapCandidateMoved = false;
@@ -754,6 +778,7 @@ class _BoundaryEditorState extends State<_BoundaryEditor> {
   bool _walkBoundaryWasCaptured = false;
   bool _walkBoundaryWasAdjusted = false;
   bool _walkPreviousDirty = false;
+  bool _satelliteView = true;
   WalkSampleDecision? _latestWalkDecision;
   WalkBoundarySample? _displayedWalkSample;
   bool _hasLiveWalkReading = false;
@@ -1358,10 +1383,18 @@ class _BoundaryEditorState extends State<_BoundaryEditor> {
           ),
         ),
         children: [
-          TileLayer(
-            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-            userAgentPackageName: 'com.wormwise.app.wormwise',
-          ),
+          if (_satelliteView)
+            TileLayer(
+              urlTemplate:
+                  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+              userAgentPackageName: 'com.wormwise.app.wormwise',
+              maxNativeZoom: 17,
+            )
+          else
+            TileLayer(
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'com.wormwise.app.wormwise',
+            ),
           if (_walkSessionOpen && _displayedWalkSample != null)
             CircleLayer(
               circles: [
@@ -1478,9 +1511,15 @@ class _BoundaryEditorState extends State<_BoundaryEditor> {
                   ),
             ],
           ),
-          const RichAttributionWidget(
+          RichAttributionWidget(
             showFlutterMapAttribution: false,
-            attributions: [TextSourceAttribution('OpenStreetMap contributors')],
+            attributions: [
+              TextSourceAttribution(
+                _satelliteView
+                    ? 'Esri World Imagery'
+                    : 'OpenStreetMap contributors',
+              ),
+            ],
           ),
         ],
       ),
@@ -1548,12 +1587,10 @@ class _BoundaryEditorState extends State<_BoundaryEditor> {
         confidenceCode: confidenceCode,
       );
       if (!mounted) return;
-      setState(() => _isDirty = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Approximate outline confirmed and saved offline.'),
-        ),
-      );
+      setState(() {
+        _isDirty = false;
+        _savedInThisSession = true;
+      });
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1568,6 +1605,7 @@ class _BoundaryEditorState extends State<_BoundaryEditor> {
     final areaHectares = PolygonCalculator.calculateHectares(_points);
     final perimeterMeters = PolygonCalculator.calculatePerimeterMeters(_points);
     final isConfirmed =
+        _savedInThisSession ||
         widget.workspace.boundary?.confirmationStatus == 'user_confirmed';
 
     return Column(
@@ -1618,6 +1656,18 @@ class _BoundaryEditorState extends State<_BoundaryEditor> {
                       tooltip: 'Center boundary',
                       icon: Icons.center_focus_strong,
                       onPressed: _centerBoundary,
+                    ),
+                    const SizedBox(height: 8),
+                    _MapControlButton(
+                      key: const Key('toggle_satellite_view_button'),
+                      tooltip: _satelliteView
+                          ? 'Use street map'
+                          : 'Use satellite imagery',
+                      icon: _satelliteView
+                          ? Icons.map_outlined
+                          : Icons.satellite_alt_outlined,
+                      onPressed: () =>
+                          setState(() => _satelliteView = !_satelliteView),
                     ),
                     if (_manualEditingEnabled) ...[
                       const SizedBox(height: 8),
@@ -2496,7 +2546,7 @@ class _BoundaryConfirmationDialogState
               ),
               child: const Text(
                 'Use this outline for scouting and approximate area only. It is not '
-                'survey-grade and remains optional for an assessment.',
+                'a legal, cadastral, or survey-grade property boundary.',
                 style: TextStyle(fontSize: 13, height: 1.35),
               ),
             ),

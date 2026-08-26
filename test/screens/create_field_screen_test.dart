@@ -25,13 +25,19 @@ void main() {
     );
     await tester.enterText(find.byKey(const Key('field_area_input')), '1.25');
 
+    expect(
+      find.byKey(const Key('capture_field_entrance_button')),
+      findsNothing,
+    );
+    expect(find.text('Field entrance GPS'), findsNothing);
+
     final varietyField = find.byKey(const Key('field_variety_input'));
     for (
       var attempt = 0;
       attempt < 6 && varietyField.evaluate().isEmpty;
       attempt++
     ) {
-      await tester.drag(find.byType(ListView).last, const Offset(0, -300));
+      await tester.drag(find.byType(ListView).last, const Offset(0, -100));
       await tester.pump();
     }
     await tester.pumpAndSettle();
@@ -107,6 +113,13 @@ void main() {
     expect(find.byKey(const Key('manage_boundary_button')), findsOneWidget);
     expect(find.text('Add boundary'), findsOneWidget);
 
+    await tester.tap(find.text('Field details'));
+    await tester.pumpAndSettle();
+    expect(find.text('Field Details'), findsOneWidget);
+    expect(find.text('1.25 ha'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
     await tester.tap(find.byKey(const Key('manage_boundary_button')));
     await tester.pumpAndSettle();
     expect(find.text('Manage Field Boundary'), findsOneWidget);
@@ -117,4 +130,79 @@ void main() {
     await database.close();
     await tester.pump(const Duration(milliseconds: 1));
   });
+
+  testWidgets(
+    'Variety value is preserved when choosing intended use bottom sheet',
+    (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final database = AppDatabase(NativeDatabase.memory());
+
+      await tester.pumpWidget(WormWiseApp(database: database));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('home_add_first_field_button')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('add_field_fab')));
+      await tester.pumpAndSettle();
+
+      await tester.drag(find.byType(ListView).last, const Offset(0, -250));
+      await tester.pumpAndSettle();
+
+      final varietyField = find.byKey(const Key('field_variety_input'));
+      expect(varietyField, findsOneWidget);
+
+      // Enter text into variety field
+      await tester.enterText(varietyField, 'Pioneer');
+      await tester.pumpAndSettle();
+
+      // Tap the suggestion
+      expect(find.text('Pioneer (P3530 / 30T80)'), findsWidgets);
+      await tester.tap(find.text('Pioneer (P3530 / 30T80)').last);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.descendant(
+          of: varietyField,
+          matching: find.text('Pioneer (P3530 / 30T80)'),
+        ),
+        findsOneWidget,
+      );
+
+      // Open intended use choice
+      final intendedUseChoice = find.byKey(
+        const Key('field_intended_use_choice'),
+      );
+      expect(intendedUseChoice, findsOneWidget);
+      await tester.tap(intendedUseChoice);
+      await tester.pumpAndSettle();
+
+      // Select 'Dry grain'
+      await tester.tap(find.text('Dry grain'));
+      await tester.pumpAndSettle();
+
+      // Verify the variety text field STILL contains the selected variety!
+      expect(
+        find.descendant(
+          of: varietyField,
+          matching: find.text('Pioneer (P3530 / 30T80)'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Pioneer (P3530 / 30T80)'), findsOneWidget);
+      expect(
+        find.text('This helps interpret crop stage and harvest timing.'),
+        findsNothing,
+      );
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 1));
+      await database.close();
+      await tester.pump(const Duration(milliseconds: 1));
+    },
+  );
 }

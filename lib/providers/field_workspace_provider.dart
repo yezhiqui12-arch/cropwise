@@ -3,13 +3,18 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../data/repositories/field_repository.dart';
+import '../services/field_retention_service.dart';
 
 class FieldWorkspaceProvider extends ChangeNotifier {
-  FieldWorkspaceProvider(this._repository) {
+  FieldWorkspaceProvider(
+    this._repository, {
+    FieldRetentionService? retentionService,
+  }) : _retention = retentionService ?? FieldRetentionService(_repository) {
     _initialize();
   }
 
   final FieldRepository _repository;
+  final FieldRetentionService _retention;
   StreamSubscription<List<FieldWorkspaceRecord>>? _subscription;
 
   List<FieldWorkspaceRecord> _workspaces = const [];
@@ -36,6 +41,12 @@ class FieldWorkspaceProvider extends ChangeNotifier {
 
   Future<void> _initialize() async {
     try {
+      try {
+        await _retention.purgeExpired();
+      } catch (_) {
+        // A failed cleanup must not prevent the farmer from opening saved
+        // fields. The expired item remains queued and is retried next launch.
+      }
       _activeFieldId = await _repository.readPreferredFieldId();
       _subscription = _repository.watchFieldWorkspaces().listen(
         _handleWorkspaces,
@@ -190,6 +201,120 @@ class FieldWorkspaceProvider extends ChangeNotifier {
             'Calculated perimeter: ${perimeterMeters.toStringAsFixed(2)} m. '
             'User confirmed as a WormWise scouting boundary; not a cadastral survey.',
       );
+    } catch (error) {
+      _error = error;
+      rethrow;
+    } finally {
+      _isSaving = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> updateFieldDetails({
+    required String fieldId,
+    required String name,
+    required double areaHectares,
+    String? varietyName,
+    String? intendedUse,
+    DateTime? plantingDate,
+  }) async {
+    final workspace = _workspaces
+        .where((item) => item.field.id == fieldId)
+        .firstOrNull;
+    if (workspace == null) {
+      throw ArgumentError.value(fieldId, 'fieldId', 'Field does not exist');
+    }
+    _isSaving = true;
+    _error = null;
+    notifyListeners();
+    try {
+      final boundary = workspace.boundary;
+      if (!workspace.hasApproximateOutline && boundary != null) {
+        final areaChanged =
+            (boundary.areaHectares - areaHectares).abs() > 0.000001;
+        if (areaChanged) {
+          await _repository.addBoundaryVersion(
+            fieldId: fieldId,
+            geometryGeojson: boundary.geometryGeojson,
+            areaHectares: areaHectares,
+            sourceMethod: boundary.sourceMethod,
+            centroidLatitude: boundary.centroidLatitude,
+            centroidLongitude: boundary.centroidLongitude,
+            averageAccuracyM: boundary.averageAccuracyM,
+            worstAccuracyM: boundary.worstAccuracyM,
+            confidenceCode: boundary.confidenceCode,
+            confirmationStatus: boundary.confirmationStatus,
+            notes: 'Farmer-reported area updated; confirmed location retained.',
+          );
+        }
+      }
+      await _repository.updateFieldDetails(
+        fieldId: fieldId,
+        name: name,
+        varietyName: _nullIfBlank(varietyName),
+        intendedUse: _nullIfBlank(intendedUse),
+        plantingDate: plantingDate,
+      );
+    } catch (error) {
+      _error = error;
+      rethrow;
+    } finally {
+      _isSaving = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> renameField(String fieldId, String name) async {
+    _isSaving = true;
+    _error = null;
+    notifyListeners();
+    try {
+      await _repository.renameField(fieldId: fieldId, name: name);
+    } catch (error) {
+      _error = error;
+      rethrow;
+    } finally {
+      _isSaving = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> archiveField(String fieldId) async {
+    _isSaving = true;
+    _error = null;
+    notifyListeners();
+    try {
+      final alternatives = _workspaces
+          .where((workspace) => workspace.field.id != fieldId)
+          .toList(growable: false);
+      await _repository.setFieldArchived(fieldId: fieldId, archived: true);
+      if (_activeFieldId == fieldId) {
+        _activeFieldId = alternatives.isEmpty
+            ? null
+            : alternatives.first.field.id;
+        if (_activeFieldId == null) {
+          await _repository.clearPreferredFieldId();
+        } else {
+          await _repository.savePreferredFieldId(_activeFieldId!);
+        }
+      }
+    } catch (error) {
+      _error = error;
+      rethrow;
+    } finally {
+      _isSaving = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> deleteField(String fieldId) => archiveField(fieldId);
+
+  Future<void> restoreField(String fieldId) async {
+    _isSaving = true;
+    _error = null;
+    notifyListeners();
+    try {
+      await _repository.setFieldArchived(fieldId: fieldId, archived: false);
     } catch (error) {
       _error = error;
       rethrow;

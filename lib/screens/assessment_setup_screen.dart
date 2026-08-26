@@ -4,14 +4,18 @@ import 'package:provider/provider.dart';
 import '../data/local/database_codes.dart';
 import '../data/repositories/field_repository.dart';
 import '../providers/assessment_workspace_provider.dart';
+import '../providers/field_workspace_provider.dart';
 import '../services/assessment_protocol_selector.dart';
+import '../services/recent_weather_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/accessible_choice_field.dart';
 import 'assessment_session_screen.dart';
 import 'boundary_map_screen.dart';
 
 class AssessmentSetupScreen extends StatefulWidget {
-  const AssessmentSetupScreen({super.key});
+  const AssessmentSetupScreen({super.key, this.recentWeatherService});
+
+  final RecentWeatherService? recentWeatherService;
 
   @override
   State<AssessmentSetupScreen> createState() => _AssessmentSetupScreenState();
@@ -20,19 +24,17 @@ class AssessmentSetupScreen extends StatefulWidget {
 class _AssessmentSetupScreenState extends State<AssessmentSetupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _evaluatorController = TextEditingController();
-  final _patternReasonController = TextEditingController();
   final _safetySourceController = TextEditingController();
   final _safetyNotesController = TextEditingController();
 
   String _growthStage = 'v3_v6';
-  String _scoutingPattern = DatabaseCodes.patternW;
   String? _rainLast48Hours;
-  String? _fieldSurfaceCondition;
   String? _safetyStatus;
-  bool _growthStageUncertain = false;
-  bool _patternManuallySelected = false;
   bool _safeIntervalVerified = false;
   String? _loadedAssessmentId;
+  String? _weatherLookupFieldId;
+  RecentRainSnapshot? _recentRain;
+  _WeatherLookupState _weatherLookupState = _WeatherLookupState.idle;
 
   @override
   void didChangeDependencies() {
@@ -43,16 +45,67 @@ class _AssessmentSetupScreenState extends State<AssessmentSetupScreen> {
     if (assessment != null && assessment.id != _loadedAssessmentId) {
       _loadedAssessmentId = assessment.id;
       _growthStage = assessment.growthStage;
-      _scoutingPattern = assessment.scoutingPattern;
-      _growthStageUncertain = assessment.growthStageUncertain;
-      _patternReasonController.text = assessment.patternReason ?? '';
+    }
+    final workspace = context.watch<FieldWorkspaceProvider>().activeWorkspace;
+    if (assessment?.status != DatabaseCodes.inProgress &&
+        workspace != null &&
+        workspace.field.id != _weatherLookupFieldId) {
+      _weatherLookupFieldId = workspace.field.id;
+      _recentRain = null;
+      _rainLast48Hours = null;
+      _startWeatherLookup(workspace);
+    }
+  }
+
+  Future<void> _startWeatherLookup(FieldWorkspaceRecord workspace) async {
+    final location = resolveRecentWeatherCoordinates(
+      storedLatitude: workspace.boundary?.centroidLatitude,
+      storedLongitude: workspace.boundary?.centroidLongitude,
+      boundaryGeoJson: workspace.boundary?.geometryGeojson ?? '',
+    );
+    if (location == null) {
+      if (!mounted) return;
+      setState(() => _weatherLookupState = _WeatherLookupState.unavailable);
+      return;
+    }
+    setState(() => _weatherLookupState = _WeatherLookupState.loading);
+    final repository = context.read<FieldRepository>();
+    final cacheKey = 'recent_weather_${workspace.field.id}';
+    try {
+      final cached = RecentRainSnapshot.tryParse(
+        await repository.readPreferenceValue(cacheKey),
+      );
+      if (cached != null &&
+          DateTime.now().toUtc().difference(cached.fetchedAtUtc) <
+              const Duration(hours: 3)) {
+        if (!mounted || _weatherLookupFieldId != workspace.field.id) return;
+        setState(() {
+          _recentRain = cached;
+          _weatherLookupState = _WeatherLookupState.available;
+        });
+        return;
+      }
+      final snapshot =
+          await (widget.recentWeatherService ?? OpenMeteoRecentWeatherService())
+              .recentRain(
+                latitude: location.latitude,
+                longitude: location.longitude,
+              );
+      await repository.savePreferenceValue(cacheKey, snapshot.toJson());
+      if (!mounted || _weatherLookupFieldId != workspace.field.id) return;
+      setState(() {
+        _recentRain = snapshot;
+        _weatherLookupState = _WeatherLookupState.available;
+      });
+    } catch (_) {
+      if (!mounted || _weatherLookupFieldId != workspace.field.id) return;
+      setState(() => _weatherLookupState = _WeatherLookupState.unavailable);
     }
   }
 
   @override
   void dispose() {
     _evaluatorController.dispose();
-    _patternReasonController.dispose();
     _safetySourceController.dispose();
     _safetyNotesController.dispose();
     super.dispose();
@@ -69,10 +122,6 @@ class _AssessmentSetupScreenState extends State<AssessmentSetupScreen> {
     final provider = context.read<AssessmentWorkspaceProvider>();
     final existing = provider.currentAssessment;
     if (!_formKey.currentState!.validate()) return;
-    if (existing == null && _rainLast48Hours == null) {
-      _showMessage('Answer the question about rain in the last 48 hours.');
-      return;
-    }
     if (_safetyStatus == null) {
       _showMessage('Select the field-entry safety situation.');
       return;
@@ -93,12 +142,10 @@ class _AssessmentSetupScreenState extends State<AssessmentSetupScreen> {
               assessmentMode: AssessmentProtocolSelector.assessmentModeFor(
                 _growthStage,
               ),
-              scoutingPattern: _scoutingPattern,
-              patternReason: _scoutingPattern == _recommendedPattern
-                  ? null
-                  : _patternReasonController.text.trim(),
+              scoutingPattern: _recommendedPattern,
+              patternReason: null,
               growthStage: _growthStage,
-              growthStageUncertain: _growthStageUncertain,
+              growthStageUncertain: false,
               safetyStatus: _safetyStatus!,
               interventionHistoryStatus:
                   _safetyStatus == DatabaseCodes.noRecentTreatment
@@ -117,6 +164,7 @@ class _AssessmentSetupScreenState extends State<AssessmentSetupScreen> {
               safetySource: _nullIfBlank(_safetySourceController.text),
               safetyNotes: _nullIfBlank(_safetyNotesController.text),
               safetyInputsVerified: _safeIntervalVerified,
+              weatherContext: _fieldConditionContext,
             );
       if (!mounted) return;
 
@@ -124,6 +172,13 @@ class _AssessmentSetupScreenState extends State<AssessmentSetupScreen> {
         await Navigator.pushReplacement<void, void>(
           context,
           MaterialPageRoute(builder: (_) => const AssessmentSessionScreen()),
+        );
+        return;
+      }
+
+      if (!DatabaseCodes.isGrowthStageImplemented(result.growthStage)) {
+        _showMessage(
+          '${AssessmentProtocolSelector.growthStageLabel(result.growthStage)} assessment workflow is not yet available. Your setup draft is saved on this phone.',
         );
         return;
       }
@@ -143,12 +198,17 @@ class _AssessmentSetupScreenState extends State<AssessmentSetupScreen> {
   }
 
   String? get _fieldConditionContext {
+    final automatic = _recentRain;
+    if (automatic != null) {
+      return [
+        'open_meteo_precipitation_last_48h_mm=${automatic.precipitationMm.toStringAsFixed(2)}',
+        'weather_period_end_utc=${automatic.periodEndUtc.toIso8601String()}',
+        'weather_fetched_at_utc=${automatic.fetchedAtUtc.toIso8601String()}',
+      ].join(';');
+    }
     final parts = <String>[];
     if (_rainLast48Hours != null) {
       parts.add('rain_wet_field_last_48h=$_rainLast48Hours');
-    }
-    if (_fieldSurfaceCondition != null) {
-      parts.add('field_surface=$_fieldSurfaceCondition');
     }
     return parts.isEmpty ? null : parts.join(';');
   }
@@ -233,6 +293,9 @@ class _AssessmentSetupScreenState extends State<AssessmentSetupScreen> {
 
     final isExisting = assessment != null;
     final stageHelp = AssessmentProtocolSelector.growthStageHelp(_growthStage);
+    final routePattern = isExisting
+        ? assessment.scoutingPattern
+        : _recommendedPattern;
 
     return Scaffold(
       appBar: AppBar(
@@ -320,12 +383,6 @@ class _AssessmentSetupScreenState extends State<AssessmentSetupScreen> {
                     : (value) {
                         setState(() {
                           _growthStage = value;
-                          if (!_patternManuallySelected) {
-                            _scoutingPattern =
-                                AssessmentProtocolSelector.recommendedPatternFor(
-                                  value,
-                                );
-                          }
                         });
                       },
               ),
@@ -337,123 +394,18 @@ class _AssessmentSetupScreenState extends State<AssessmentSetupScreen> {
                   height: 1.35,
                 ),
               ),
-              CheckboxListTile(
-                key: const Key('growth_stage_uncertain_checkbox'),
-                value: _growthStageUncertain,
-                contentPadding: EdgeInsets.zero,
-                controlAffinity: ListTileControlAffinity.leading,
-                title: const Text('I am not fully certain about the stage'),
-                onChanged: isExisting
-                    ? null
-                    : (value) => setState(
-                        () => _growthStageUncertain = value ?? false,
-                      ),
-              ),
               const SizedBox(height: 16),
               const _SectionTitle('Scouting route'),
-              _RecommendationBanner(pattern: _recommendedPattern),
-              const SizedBox(height: 10),
-              AccessibleChoiceField<String>(
-                key: const Key('scouting_pattern_choice'),
-                label: 'Route pattern *',
-                sheetTitle: 'Select scouting route',
-                value: _scoutingPattern,
-                leadingIcon: Icons.route_outlined,
-                options: const [
-                  AccessibleChoiceOption(
-                    value: DatabaseCodes.patternW,
-                    label: 'W pattern',
-                    description:
-                        'For safely walkable young maize where rows can be crossed.',
-                  ),
-                  AccessibleChoiceOption(
-                    value: DatabaseCodes.patternLadder,
-                    label: 'Ladder pattern',
-                    description:
-                        'For taller maize or fields where crossing rows is difficult.',
-                  ),
-                ],
-                onChanged: isExisting
-                    ? null
-                    : (value) {
-                        setState(() {
-                          _scoutingPattern = value;
-                          _patternManuallySelected = true;
-                        });
-                      },
-              ),
-              if (!isExisting && _scoutingPattern != _recommendedPattern) ...[
-                const SizedBox(height: 10),
-                TextFormField(
-                  key: const Key('pattern_override_reason_input'),
-                  controller: _patternReasonController,
-                  decoration: const InputDecoration(
-                    labelText:
-                        'Why is another route safer or more practical? *',
-                    border: OutlineInputBorder(),
-                  ),
-                  maxLines: 2,
-                  validator: (value) =>
-                      _scoutingPattern != _recommendedPattern &&
-                          (value == null || value.trim().isEmpty)
-                      ? 'Explain why the recommended pattern is not suitable.'
-                      : null,
-                ),
-              ],
+              _AutomaticRouteCard(pattern: routePattern),
               const SizedBox(height: 20),
-              if (!isExisting) ...[
-                const _SectionTitle('Recent rain and field condition'),
-                AccessibleChoiceField<String>(
-                  key: const Key('rain_last_48_hours_choice'),
-                  label: 'Did rain wet this field in the last 48 hours? *',
-                  sheetTitle: 'Rain during the last 48 hours',
-                  value: _rainLast48Hours,
-                  leadingIcon: Icons.water_drop_outlined,
-                  options: const [
-                    AccessibleChoiceOption(value: 'yes', label: 'Yes'),
-                    AccessibleChoiceOption(value: 'no', label: 'No'),
-                    AccessibleChoiceOption(
-                      value: 'not_sure',
-                      label: 'I am not sure',
-                    ),
-                  ],
-                  onChanged: (value) =>
-                      setState(() => _rainLast48Hours = value),
-                ),
-                const SizedBox(height: 12),
-                AccessibleChoiceField<String>(
-                  key: const Key('field_surface_condition_choice'),
-                  label: 'What is the field surface like now?',
-                  sheetTitle: 'Current field surface',
-                  value: _fieldSurfaceCondition,
-                  leadingIcon: Icons.landscape_outlined,
-                  hintText: 'Optional',
-                  options: const [
-                    AccessibleChoiceOption(
-                      value: 'dry',
-                      label: 'Mostly dry and firm',
-                    ),
-                    AccessibleChoiceOption(
-                      value: 'damp',
-                      label: 'Damp but easy to walk',
-                    ),
-                    AccessibleChoiceOption(
-                      value: 'muddy',
-                      label: 'Muddy or slippery',
-                    ),
-                    AccessibleChoiceOption(
-                      value: 'standing_water',
-                      label: 'Standing water is present',
-                    ),
-                    AccessibleChoiceOption(
-                      value: 'not_sure',
-                      label: 'I am not sure',
-                    ),
-                  ],
-                  onChanged: (value) =>
-                      setState(() => _fieldSurfaceCondition = value),
-                ),
-              ],
+              const _SectionTitle('Recent rain'),
+              _RecentWeatherContent(
+                state: _weatherLookupState,
+                snapshot: _recentRain,
+                rainLast48Hours: _rainLast48Hours,
+                onChanged: (value) => setState(() => _rainLast48Hours = value),
+                onRetry: () => _startWeatherLookup(workspace),
+              ),
               const SizedBox(height: 22),
               const _SectionTitle('Field-entry safety check'),
               const _SafetyExplanation(),
@@ -700,23 +652,135 @@ class _LockedValue extends StatelessWidget {
   }
 }
 
-class _RecommendationBanner extends StatelessWidget {
-  const _RecommendationBanner({required this.pattern});
+class _AutomaticRouteCard extends StatelessWidget {
+  const _AutomaticRouteCard({required this.pattern});
 
   final String pattern;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      key: const Key('automatic_scouting_route'),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       decoration: BoxDecoration(
-        color: const Color(0xFFE3F2FD),
-        borderRadius: BorderRadius.circular(10),
+        color: AppColors.primaryLight,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.outlineVariant),
       ),
-      child: Text(
-        'Recommended: ${AssessmentProtocolSelector.patternLabel(pattern)} for this growth stage.',
-        style: const TextStyle(height: 1.35),
+      child: Row(
+        children: [
+          const Icon(Icons.route_outlined, color: AppColors.primary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              AssessmentProtocolSelector.patternLabel(pattern),
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+          const Icon(Icons.lock_outline, size: 19),
+        ],
       ),
+    );
+  }
+}
+
+enum _WeatherLookupState { idle, loading, available, unavailable }
+
+class _RecentWeatherContent extends StatelessWidget {
+  const _RecentWeatherContent({
+    required this.state,
+    required this.snapshot,
+    required this.rainLast48Hours,
+    required this.onChanged,
+    required this.onRetry,
+  });
+
+  final _WeatherLookupState state;
+  final RecentRainSnapshot? snapshot;
+  final String? rainLast48Hours;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    if (state == _WeatherLookupState.loading ||
+        state == _WeatherLookupState.idle) {
+      return const Row(
+        children: [
+          SizedBox.square(
+            dimension: 18,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          SizedBox(width: 10),
+          Text('Checking recent weather…'),
+        ],
+      );
+    }
+    if (state == _WeatherLookupState.available && snapshot != null) {
+      return Container(
+        key: const Key('automatic_recent_weather'),
+        padding: const EdgeInsets.all(13),
+        decoration: BoxDecoration(
+          color: AppColors.primaryLight,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.water_drop_outlined, color: AppColors.primary),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Rain in the last 2 days: '
+                '${snapshot!.precipitationMm.toStringAsFixed(1)} mm\n'
+                'That is about ${snapshot!.precipitationMm.toStringAsFixed(1)} litres of rain per square metre.',
+                style: const TextStyle(height: 1.35),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(
+              Icons.cloud_off_outlined,
+              size: 18,
+              color: AppColors.textSecondary,
+            ),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text(
+                'Recent weather could not be retrieved. Add it only if known.',
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
+            ),
+            IconButton(
+              key: const Key('retry_recent_weather_button'),
+              tooltip: 'Retry weather',
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        AccessibleChoiceField<String>(
+          key: const Key('rain_last_48_hours_choice'),
+          label: 'Did rain wet this field in the last 48 hours?',
+          sheetTitle: 'Rain during the last 48 hours',
+          value: rainLast48Hours,
+          leadingIcon: Icons.water_drop_outlined,
+          hintText: 'Add what you know (optional)',
+          options: const [
+            AccessibleChoiceOption(value: 'yes', label: 'Yes'),
+            AccessibleChoiceOption(value: 'no', label: 'No'),
+            AccessibleChoiceOption(value: 'not_sure', label: 'I am not sure'),
+          ],
+          onChanged: onChanged,
+        ),
+      ],
     );
   }
 }

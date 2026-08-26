@@ -7,6 +7,7 @@ import '../data/local/database_codes.dart';
 import '../data/repositories/assessment_repository.dart';
 import '../data/repositories/field_repository.dart';
 import '../data/repositories/people_repository.dart';
+import '../services/assessment_protocol_selector.dart';
 
 class AssessmentWorkspaceProvider extends ChangeNotifier {
   AssessmentWorkspaceProvider(this._assessments, this._people);
@@ -138,6 +139,7 @@ class AssessmentWorkspaceProvider extends ChangeNotifier {
     String? safetySource,
     String? safetyNotes,
     bool safetyInputsVerified = false,
+    String? weatherContext,
   }) async {
     final assessment = _currentAssessment;
     if (assessment == null) {
@@ -153,6 +155,12 @@ class AssessmentWorkspaceProvider extends ChangeNotifier {
 
     _setSaving(true);
     try {
+      if (weatherContext != null) {
+        await _assessments.updateWeatherContext(
+          assessmentId: assessment.id,
+          weatherContext: weatherContext,
+        );
+      }
       await _recordSafetyAndStartWhenAllowed(
         assessment: assessment,
         safetyStatus: safetyStatus,
@@ -161,6 +169,33 @@ class AssessmentWorkspaceProvider extends ChangeNotifier {
         safetyInputsVerified: safetyInputsVerified,
       );
       _currentAssessment = await _assessments.assessmentById(assessment.id);
+      return _currentAssessment!;
+    } catch (error) {
+      _error = error;
+      rethrow;
+    } finally {
+      _setSaving(false);
+    }
+  }
+
+  Future<AssessmentRecord> correctGrowthStage(String growthStage) async {
+    final assessment = _currentAssessment;
+    if (assessment == null) {
+      throw StateError('There is no assessment to correct.');
+    }
+    _setSaving(true);
+    try {
+      _currentAssessment = await _assessments
+          .correctGrowthStageBeforeObservations(
+            assessmentId: assessment.id,
+            growthStage: growthStage,
+            assessmentMode: AssessmentProtocolSelector.assessmentModeFor(
+              growthStage,
+            ),
+            scoutingPattern: AssessmentProtocolSelector.recommendedPatternFor(
+              growthStage,
+            ),
+          );
       return _currentAssessment!;
     } catch (error) {
       _error = error;
@@ -187,7 +222,9 @@ class AssessmentWorkspaceProvider extends ChangeNotifier {
     );
     if (safetyStatus == DatabaseCodes.noRecentTreatment ||
         safetyStatus == DatabaseCodes.safeIntervalCompleted) {
-      await _assessments.startAssessment(assessment.id);
+      if (DatabaseCodes.isGrowthStageImplemented(assessment.growthStage)) {
+        await _assessments.startAssessment(assessment.id);
+      }
     }
   }
 

@@ -2,14 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../data/repositories/field_repository.dart';
 import '../providers/field_workspace_provider.dart';
-import '../services/phone_location_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/accessible_choice_field.dart';
 import 'boundary_map_screen.dart';
 
 class CreateFieldScreen extends StatefulWidget {
-  const CreateFieldScreen({super.key});
+  const CreateFieldScreen({super.key, this.workspace});
+
+  final FieldWorkspaceRecord? workspace;
 
   @override
   State<CreateFieldScreen> createState() => _CreateFieldScreenState();
@@ -23,14 +25,16 @@ class _CreateFieldScreenState extends State<CreateFieldScreen> {
   final _provinceController = TextEditingController(text: 'Cagayan');
   final _locationNotesController = TextEditingController();
   final _varietyController = TextEditingController();
+  final _varietyFocusNode = FocusNode();
   final _plantingDateController = TextEditingController();
-  final PhoneLocationService _locationService = const PhoneLocationService();
 
   String? _barangay;
   DateTime? _plantingDate;
   String? _intendedUse;
-  AveragedPhoneLocation? _entranceLocation;
-  bool _isCapturingLocation = false;
+
+  bool get _isEditing => widget.workspace != null;
+  bool get _hasConfirmedOutline =>
+      widget.workspace?.hasApproximateOutline == true;
 
   static const List<String> _piatBarangays = [
     'Apayao',
@@ -63,6 +67,30 @@ class _CreateFieldScreenState extends State<CreateFieldScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    final workspace = widget.workspace;
+    if (workspace == null) return;
+    final field = workspace.field;
+    final boundary = workspace.boundary;
+    final cycle = workspace.cropCycle;
+    _nameController.text = field.name;
+    _areaController.text = boundary?.areaHectares.toStringAsFixed(2) ?? '';
+    _municipalityController.text = field.municipalityCity ?? 'Piat';
+    _provinceController.text = field.province ?? 'Cagayan';
+    _locationNotesController.text = field.locationDescription ?? '';
+    _varietyController.text = cycle?.varietyName ?? '';
+    _barangay = field.barangay;
+    _intendedUse = cycle?.intendedUse;
+    _plantingDate = cycle?.plantingDate?.toLocal();
+    if (_plantingDate != null) {
+      _plantingDateController.text = DateFormat(
+        'MMM d, yyyy',
+      ).format(_plantingDate!);
+    }
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
     _areaController.dispose();
@@ -70,6 +98,7 @@ class _CreateFieldScreenState extends State<CreateFieldScreen> {
     _provinceController.dispose();
     _locationNotesController.dispose();
     _varietyController.dispose();
+    _varietyFocusNode.dispose();
     _plantingDateController.dispose();
     super.dispose();
   }
@@ -95,27 +124,33 @@ class _CreateFieldScreenState extends State<CreateFieldScreen> {
 
     final provider = context.read<FieldWorkspaceProvider>();
     try {
-      await provider.createField(
-        name: _nameController.text,
-        estimatedAreaHectares: double.parse(_areaController.text.trim()),
-        barangay: _barangay,
-        municipalityCity: _municipalityController.text,
-        province: _provinceController.text,
-        locationDescription: _locationNotesController.text,
-        varietyName: _varietyController.text.trim(),
-        intendedUse: _intendedUse,
-        plantingDate: _plantingDate,
-        entranceLatitude: _entranceLocation?.latitude,
-        entranceLongitude: _entranceLocation?.longitude,
-        entranceAverageAccuracyM: _entranceLocation?.averageAccuracyMeters,
-        entranceWorstAccuracyM: _entranceLocation?.worstAccuracyMeters,
-        entranceConfidenceCode: _entranceLocation?.confidenceCode,
-      );
-      if (!mounted) return;
-      await Navigator.push<void>(
-        context,
-        MaterialPageRoute(builder: (_) => const FieldBoundarySetupScreen()),
-      );
+      if (_isEditing) {
+        await provider.updateFieldDetails(
+          fieldId: widget.workspace!.field.id,
+          name: _nameController.text,
+          areaHectares: double.parse(_areaController.text.trim()),
+          varietyName: _varietyController.text.trim(),
+          intendedUse: _intendedUse,
+          plantingDate: _plantingDate,
+        );
+      } else {
+        await provider.createField(
+          name: _nameController.text,
+          estimatedAreaHectares: double.parse(_areaController.text.trim()),
+          barangay: _barangay,
+          municipalityCity: _municipalityController.text,
+          province: _provinceController.text,
+          locationDescription: _locationNotesController.text,
+          varietyName: _varietyController.text.trim(),
+          intendedUse: _intendedUse,
+          plantingDate: _plantingDate,
+        );
+        if (!mounted) return;
+        await Navigator.push<void>(
+          context,
+          MaterialPageRoute(builder: (_) => const FieldBoundarySetupScreen()),
+        );
+      }
       if (!mounted) return;
       Navigator.pop(context, true);
     } catch (error) {
@@ -126,27 +161,6 @@ class _CreateFieldScreenState extends State<CreateFieldScreen> {
     }
   }
 
-  Future<void> _captureEntranceLocation() async {
-    setState(() => _isCapturingLocation = true);
-    try {
-      final location = await _locationService.captureAverage();
-      if (!mounted) return;
-      setState(() => _entranceLocation = location);
-    } on PhoneLocationException catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.message)));
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not record the entrance: $error')),
-      );
-    } finally {
-      if (mounted) setState(() => _isCapturingLocation = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final isSaving = context.select<FieldWorkspaceProvider, bool>(
@@ -154,7 +168,9 @@ class _CreateFieldScreenState extends State<CreateFieldScreen> {
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Add Maize Field')),
+      appBar: AppBar(
+        title: Text(_isEditing ? 'Edit Maize Field' : 'Add Maize Field'),
+      ),
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
@@ -162,14 +178,20 @@ class _CreateFieldScreenState extends State<CreateFieldScreen> {
             constraints: const BoxConstraints(minHeight: 56),
             child: ElevatedButton.icon(
               key: const Key('save_field_button'),
-              onPressed: isSaving || _isCapturingLocation ? null : _save,
+              onPressed: isSaving ? null : _save,
               icon: isSaving
                   ? const SizedBox.square(
                       dimension: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.save_outlined),
-              label: Text(isSaving ? 'Saving...' : 'Save Field'),
+              label: Text(
+                isSaving
+                    ? 'Saving...'
+                    : _isEditing
+                    ? 'Save changes'
+                    : 'Save Field',
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
@@ -204,14 +226,21 @@ class _CreateFieldScreenState extends State<CreateFieldScreen> {
               TextFormField(
                 key: const Key('field_area_input'),
                 controller: _areaController,
+                readOnly: _hasConfirmedOutline,
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
-                decoration: const InputDecoration(
-                  labelText: 'Estimated area (hectares) *',
+                decoration: InputDecoration(
+                  labelText: _hasConfirmedOutline
+                      ? 'Calculated outline area (hectares)'
+                      : 'Estimated area (hectares) *',
                   hintText: 'Example: 1.25',
                   suffixText: 'ha',
-                  border: OutlineInputBorder(),
+                  helperText: _hasConfirmedOutline
+                      ? 'To change this value, edit the field boundary.'
+                      : null,
+                  filled: _hasConfirmedOutline,
+                  border: const OutlineInputBorder(),
                 ),
                 validator: (value) {
                   final area = double.tryParse(value?.trim() ?? '');
@@ -222,7 +251,7 @@ class _CreateFieldScreenState extends State<CreateFieldScreen> {
                 },
               ),
               const SizedBox(height: 20),
-              const _SectionTitle('Location'),
+              _SectionTitle(_isEditing ? 'Confirmed location' : 'Location'),
               AccessibleChoiceField<String>(
                 key: const Key('field_barangay_choice'),
                 label: 'Barangay',
@@ -238,7 +267,12 @@ class _CreateFieldScreenState extends State<CreateFieldScreen> {
                       ),
                     )
                     .toList(growable: false),
-                onChanged: (value) => setState(() => _barangay = value),
+                helperText: _isEditing
+                    ? 'Permanent location confirmed when this field was created.'
+                    : null,
+                onChanged: _isEditing
+                    ? null
+                    : (value) => setState(() => _barangay = value),
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -263,17 +297,20 @@ class _CreateFieldScreenState extends State<CreateFieldScreen> {
               const SizedBox(height: 12),
               TextFormField(
                 controller: _locationNotesController,
-                decoration: const InputDecoration(
+                readOnly: _isEditing,
+                decoration: InputDecoration(
                   labelText: 'Landmark or location notes',
-                  border: OutlineInputBorder(),
+                  helperText: _isEditing ? 'Confirmed original location' : null,
+                  filled: _isEditing,
+                  border: const OutlineInputBorder(),
                 ),
                 maxLines: 2,
               ),
-              const SizedBox(height: 12),
-              _buildEntranceLocationCard(),
               const SizedBox(height: 20),
               const _SectionTitle('Current maize crop'),
               RawAutocomplete<String>(
+                textEditingController: _varietyController,
+                focusNode: _varietyFocusNode,
                 optionsBuilder: (TextEditingValue textEditingValue) {
                   if (textEditingValue.text.isEmpty) {
                     return _varietySuggestions;
@@ -289,9 +326,6 @@ class _CreateFieldScreenState extends State<CreateFieldScreen> {
                 },
                 fieldViewBuilder:
                     (context, controller, focusNode, onFieldSubmitted) {
-                      controller.addListener(() {
-                        _varietyController.text = controller.text;
-                      });
                       return TextFormField(
                         key: const Key('field_variety_input'),
                         controller: controller,
@@ -342,8 +376,6 @@ class _CreateFieldScreenState extends State<CreateFieldScreen> {
                 value: _intendedUse,
                 hintText: 'Select intended use (optional)',
                 leadingIcon: Icons.inventory_2_outlined,
-                helperText:
-                    'This helps interpret crop stage and harvest timing.',
                 options: const [
                   AccessibleChoiceOption(value: 'grain', label: 'Dry grain'),
                   AccessibleChoiceOption(
@@ -386,91 +418,17 @@ class _CreateFieldScreenState extends State<CreateFieldScreen> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFFFD54F)),
       ),
-      child: const Row(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info_outline, color: Color(0xFF8D6E00)),
-          SizedBox(width: 10),
+          const Icon(Icons.info_outline, color: Color(0xFF8D6E00)),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'This registers the field offline using the farmer-reported area. '
-              'After saving, add the field boundary to prepare its scouting map.',
-              style: TextStyle(color: Color(0xFF5D4A00), height: 1.35),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEntranceLocationCard() {
-    final location = _entranceLocation;
-    final hasLocation = location != null;
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: hasLocation ? const Color(0xFFEAF5EC) : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: hasLocation ? AppColors.primary : AppColors.outlineVariant,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                hasLocation
-                    ? Icons.location_on
-                    : Icons.add_location_alt_outlined,
-                color: AppColors.primary,
-              ),
-              const SizedBox(width: 8),
-              const Expanded(
-                child: Text(
-                  'Field entrance GPS',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-              if (hasLocation)
-                const Icon(Icons.check_circle, color: AppColors.primary),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            hasLocation
-                ? '${location.latitude.toStringAsFixed(6)}, '
-                      '${location.longitude.toStringAsFixed(6)}\n'
-                      '${location.sampleCount} reading(s), approximately '
-                      '${location.averageAccuracyMeters.toStringAsFixed(1)} m accuracy'
-                : 'Stand at an accessible field entrance and let WormWise average '
-                      'several phone GPS readings. You may skip this and add it later.',
-            style: const TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 12,
-              height: 1.35,
-            ),
-          ),
-          const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              key: const Key('capture_field_entrance_button'),
-              onPressed: _isCapturingLocation ? null : _captureEntranceLocation,
-              icon: _isCapturingLocation
-                  ? const SizedBox.square(
-                      dimension: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.my_location),
-              label: Text(
-                _isCapturingLocation
-                    ? 'Averaging GPS readings...'
-                    : hasLocation
-                    ? 'Record entrance again'
-                    : 'Record current location',
-              ),
+              _isEditing
+                  ? 'Update the field and crop details below. The originally confirmed location and barangay are permanent.'
+                  : 'This registers the field offline using the farmer-reported area. After saving, add the field boundary to prepare its scouting map.',
+              style: const TextStyle(color: Color(0xFF5D4A00), height: 1.35),
             ),
           ),
         ],

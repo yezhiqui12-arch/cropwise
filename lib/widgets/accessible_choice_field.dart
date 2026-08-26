@@ -78,6 +78,9 @@ class AccessibleChoiceField<T> extends StatelessWidget {
 
   Future<void> _openChoices(BuildContext context) async {
     if (onChanged == null) return;
+    FocusManager.instance.primaryFocus?.unfocus();
+    await Future<void>.delayed(Duration.zero);
+    if (!context.mounted) return;
     final groups = _choiceGroups();
     final selected = await showModalBottomSheet<T>(
       context: context,

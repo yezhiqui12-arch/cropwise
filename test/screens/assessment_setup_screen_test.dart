@@ -35,27 +35,35 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Assessment Setup'), findsOneWidget);
     expect(find.text('Guided assessment language'), findsNothing);
+    expect(
+      find.byKey(const Key('growth_stage_uncertain_checkbox')),
+      findsNothing,
+    );
 
     await tester.enterText(
       find.byKey(const Key('assessment_evaluator_input')),
       'Test Field Evaluator',
     );
 
-    final rainChoice = find.byKey(const Key('rain_last_48_hours_choice'));
     for (
       var attempt = 0;
-      attempt < 10 && rainChoice.evaluate().isEmpty;
+      attempt < 8 &&
+          find.byKey(const Key('automatic_scouting_route')).evaluate().isEmpty;
       attempt++
     ) {
-      await tester.drag(find.byType(ListView).last, const Offset(0, -300));
+      await tester.drag(find.byType(ListView).last, const Offset(0, -220));
       await tester.pump();
     }
-    await tester.ensureVisible(rainChoice);
     await tester.pumpAndSettle();
-    await tester.tap(rainChoice);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('No').last);
-    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('automatic_scouting_route')), findsOneWidget);
+    expect(find.byKey(const Key('scouting_pattern_choice')), findsNothing);
+    expect(
+      find.byKey(
+        const Key('field_surface_condition_choice'),
+        skipOffstage: false,
+      ),
+      findsNothing,
+    );
 
     final safetyOption = find.byKey(
       const Key('safety_no_recent_treatment_option'),
@@ -85,8 +93,9 @@ void main() {
     expect(assessment.status, DatabaseCodes.inProgress);
     expect(assessment.assessmentMode, DatabaseCodes.modeVeV6);
     expect(assessment.scoutingPattern, DatabaseCodes.patternW);
+    expect(assessment.growthStageUncertain, isFalse);
     expect(assessment.safetySummaryStatus, DatabaseCodes.noRecentTreatment);
-    expect(assessment.weatherContext, contains('rain_wet_field_last_48h=no'));
+    expect(assessment.weatherContext, isNull);
 
     final safetyCheck = await database
         .select(database.safetyChecks)
@@ -174,6 +183,53 @@ void main() {
         throwsA(isA<StateError>()),
       );
       expect(await database.select(database.assessments).get(), isEmpty);
+
+      provider.dispose();
+      await database.close();
+    },
+  );
+
+  test(
+    'unsupported reproductive stages remain drafts before progress records exist',
+    () async {
+      final database = AppDatabase(NativeDatabase.memory());
+      final fields = FieldRepository(database);
+      final created = await fields.createFieldWithBoundaryAndCycle(
+        name: 'Stage Gate Field',
+        geometryGeojson: '{"type":"Polygon","coordinates":[]}',
+        areaHectares: 0.7,
+        boundarySourceMethod: 'draw',
+        boundaryConfirmationStatus: 'user_confirmed',
+      );
+      final assessments = AssessmentRepository(database);
+      final provider =
+          AssessmentWorkspaceProvider(assessments, PeopleRepository(database))
+            ..bindFieldWorkspace(
+              FieldWorkspaceRecord(
+                field: created.field,
+                boundary: created.boundary,
+                cropCycle: created.cropCycle,
+              ),
+            );
+
+      final draft = await provider.createAssessment(
+        evaluatorName: 'Stage Gate Evaluator',
+        assessmentMode: DatabaseCodes.modeVtR2,
+        scoutingPattern: DatabaseCodes.patternLadder,
+        growthStage: 'vt_r2',
+        safetyStatus: DatabaseCodes.noRecentTreatment,
+        interventionHistoryStatus: 'no',
+        preferredLanguage: 'en',
+      );
+
+      expect(draft.status, DatabaseCodes.draft);
+      expect(
+        await database.select(database.assessmentBlockRuns).get(),
+        isEmpty,
+      );
+      expect(await database.select(database.stations).get(), isEmpty);
+      expect(await database.select(database.plantObservations).get(), isEmpty);
+      expect(assessments.startAssessment(draft.id), throwsA(isA<StateError>()));
 
       provider.dispose();
       await database.close();
