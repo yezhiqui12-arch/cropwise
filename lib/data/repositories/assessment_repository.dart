@@ -108,6 +108,91 @@ class AssessmentRepository {
 
   Future<AssessmentRecord> assessmentById(String id) => _assessmentById(id);
 
+  Future<void> updateWeatherContext({
+    required String assessmentId,
+    required String weatherContext,
+  }) async {
+    await database.transaction(() async {
+      final assessment = await _assessmentById(assessmentId);
+      if (assessment.weatherContext == weatherContext) return;
+      final now = DateTime.now().toUtc();
+      await (database.update(
+        database.assessments,
+      )..where((row) => row.id.equals(assessmentId))).write(
+        AssessmentsCompanion(
+          weatherContext: Value(weatherContext),
+          updatedAt: Value(now),
+          syncState: const Value(DatabaseCodes.queued),
+        ),
+      );
+      await _mutations.record(
+        entityType: 'assessments',
+        entityId: assessmentId,
+        action: 'weather_context_updated',
+        actorPersonId: assessment.evaluatorPersonId,
+        before: {'weather_context': assessment.weatherContext},
+        after: {'weather_context': weatherContext},
+      );
+    });
+  }
+
+  Future<AssessmentRecord> correctGrowthStageBeforeObservations({
+    required String assessmentId,
+    required String growthStage,
+    required String assessmentMode,
+    required String scoutingPattern,
+  }) async {
+    await database.transaction(() async {
+      final assessment = await _assessmentById(assessmentId);
+      final existingRuns = await (database.select(
+        database.assessmentBlockRuns,
+      )..where((row) => row.assessmentId.equals(assessmentId))).get();
+      if (existingRuns.isNotEmpty) {
+        throw StateError(
+          'Growth stage cannot be changed after field observations have started.',
+        );
+      }
+      final now = DateTime.now().toUtc();
+      final supported = DatabaseCodes.isGrowthStageImplemented(growthStage);
+      await (database.update(
+        database.assessments,
+      )..where((row) => row.id.equals(assessmentId))).write(
+        AssessmentsCompanion(
+          growthStage: Value(growthStage),
+          growthStageBestEstimate: const Value(null),
+          growthStageUncertain: const Value(false),
+          assessmentMode: Value(assessmentMode),
+          scoutingPattern: Value(scoutingPattern),
+          status: Value(
+            supported ? DatabaseCodes.inProgress : DatabaseCodes.draft,
+          ),
+          updatedAt: Value(now),
+          syncState: const Value(DatabaseCodes.queued),
+        ),
+      );
+      await _mutations.record(
+        entityType: 'assessments',
+        entityId: assessmentId,
+        action: 'growth_stage_corrected',
+        actorPersonId: assessment.evaluatorPersonId,
+        before: {
+          'growth_stage': assessment.growthStage,
+          'growth_stage_uncertain': assessment.growthStageUncertain,
+          'assessment_mode': assessment.assessmentMode,
+          'scouting_pattern': assessment.scoutingPattern,
+        },
+        after: {
+          'growth_stage': growthStage,
+          'growth_stage_uncertain': false,
+          'assessment_mode': assessmentMode,
+          'scouting_pattern': scoutingPattern,
+          'status': supported ? DatabaseCodes.inProgress : DatabaseCodes.draft,
+        },
+      );
+    });
+    return _assessmentById(assessmentId);
+  }
+
   Future<SafetyCheckRecord> recordSafetyCheck({
     required String assessmentId,
     required String checkedByPersonId,
@@ -188,6 +273,11 @@ class AssessmentRepository {
         assessment.safetySummaryStatus == DatabaseCodes.safeIntervalCompleted;
     if (!allowed) {
       throw UnsafeFieldEntryException(assessment.safetySummaryStatus);
+    }
+    if (!DatabaseCodes.isGrowthStageImplemented(assessment.growthStage)) {
+      throw StateError(
+        'The ${assessment.growthStage} assessment workflow is not yet available. The setup draft remains saved.',
+      );
     }
 
     await database.transaction(() async {

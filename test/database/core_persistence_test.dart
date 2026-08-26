@@ -350,7 +350,7 @@ Future<_AssessmentFixture> _createAssessmentFixture({
   required PeopleRepository people,
   required FieldRepository fields,
   required AssessmentRepository assessments,
-  String growthStage = 'v4',
+  String growthStage = 'v3_v6',
 }) async {
   final evaluator = await people.create(
     displayName: 'Assessment Evaluator',

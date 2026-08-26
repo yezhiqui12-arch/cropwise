@@ -27,6 +27,7 @@ class VegetativePlantSave {
     this.notAssessableReason,
     this.naturalEnemyQuickStatus = DatabaseCodes.naturalEnemyNotCollected,
     this.persistentPlantIdentifier,
+    this.sourcePlantingUnitObservationId,
     this.evaluatorNotes,
     this.actorPersonId,
     this.deviceId,
@@ -56,6 +57,10 @@ class VegetativePlantSave {
   final bool? uncertainEvidence;
   final String naturalEnemyQuickStatus;
   final String? persistentPlantIdentifier;
+
+  /// Optional explicit link to the planting unit containing this same
+  /// physical seedling. It never copies or derives biological answers.
+  final String? sourcePlantingUnitObservationId;
   final String? evaluatorNotes;
   final String? actorPersonId;
   final String? deviceId;
@@ -142,6 +147,41 @@ class AtomicPlantSaveService {
           );
       final now = DateTime.now().toUtc();
 
+      if (input.sourcePlantingUnitObservationId != null) {
+        final linkedUnit =
+            await (database.select(database.plantingUnitObservations)..where(
+                  (row) =>
+                      row.id.equals(input.sourcePlantingUnitObservationId!),
+                ))
+                .getSingleOrNull();
+        if (linkedUnit == null || linkedUnit.stationId != input.stationId) {
+          throw ArgumentError(
+            'A linked planting unit must exist in the same station.',
+          );
+        }
+        final alreadyLinked =
+            await (database.selectOnly(database.plantObservations)
+                  ..addColumns([database.plantObservations.id.count()])
+                  ..where(
+                    database.plantObservations.sourcePlantingUnitObservationId
+                            .equals(linkedUnit.id) &
+                        (previousPlant == null
+                            ? const Constant(true)
+                            : database.plantObservations.id
+                                  .equals(previousPlant.id)
+                                  .not()),
+                  ))
+                .map(
+                  (row) => row.read(database.plantObservations.id.count()) ?? 0,
+                )
+                .getSingle();
+        if (alreadyLinked >= (linkedUnit.observedSeedlingCount ?? 0)) {
+          throw StateError(
+            'All living seedlings recorded for this planting unit are already linked.',
+          );
+        }
+      }
+
       if (previousPlant == null) {
         await database
             .into(database.plantObservations)
@@ -150,6 +190,9 @@ class AtomicPlantSaveService {
                 id: plantId,
                 stationId: input.stationId,
                 sequenceNumber: input.plantPosition,
+                sourcePlantingUnitObservationId: Value(
+                  input.sourcePlantingUnitObservationId,
+                ),
                 persistentPlantIdentifier: Value(
                   input.persistentPlantIdentifier,
                 ),
@@ -173,6 +216,9 @@ class AtomicPlantSaveService {
           database.plantObservations,
         )..where((row) => row.id.equals(plantId))).write(
           PlantObservationsCompanion(
+            sourcePlantingUnitObservationId: Value(
+              input.sourcePlantingUnitObservationId,
+            ),
             persistentPlantIdentifier: Value(input.persistentPlantIdentifier),
             assessable: Value(input.assessable),
             notAssessableReason: Value(input.notAssessableReason),
@@ -243,6 +289,8 @@ class AtomicPlantSaveService {
           stationId: input.stationId,
           plantPosition: input.plantPosition,
           plantObservationId: plantId,
+          sourcePlantingUnitObservationId:
+              input.sourcePlantingUnitObservationId,
           requiredViewTypes: input.requiredEvidenceViewTypes,
           actorPersonId: input.actorPersonId ?? '',
           pilotActiveDurationMs: input.pilotActiveDurationMs,
@@ -363,6 +411,8 @@ class AtomicPlantSaveService {
     return {
       'station_id': plant.stationId,
       'plant_position': plant.sequenceNumber,
+      'source_planting_unit_observation_id':
+          plant.sourcePlantingUnitObservationId,
       'assessable': plant.assessable,
       'not_assessable_reason': plant.notAssessableReason,
       'plant_status': plant.plantStatus,

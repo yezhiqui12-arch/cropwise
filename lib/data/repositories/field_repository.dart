@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../local/app_database.dart';
+import '../local/database_codes.dart';
 import '../local/local_id.dart';
 import 'local_mutation_recorder.dart';
 
@@ -14,6 +15,16 @@ class CreatedFieldCycle {
   final FieldRecord field;
   final BoundaryRecord boundary;
   final CropCycleRecord cropCycle;
+}
+
+class ExpiredFieldDeletionCandidate {
+  const ExpiredFieldDeletionCandidate({
+    required this.field,
+    required this.media,
+  });
+
+  final FieldRecord field;
+  final List<EvidenceMediaRecord> media;
 }
 
 class FieldWorkspaceRecord {
@@ -77,6 +88,31 @@ class FieldRepository {
         );
   }
 
+  Future<void> clearPreferredFieldId() {
+    return (database.delete(database.appPreferences)
+          ..where((row) => row.preferenceKey.equals(_activeFieldPreferenceKey)))
+        .go();
+  }
+
+  Future<String?> readPreferenceValue(String key) async {
+    final preference = await (database.select(
+      database.appPreferences,
+    )..where((row) => row.preferenceKey.equals(key))).getSingleOrNull();
+    return preference?.preferenceValue;
+  }
+
+  Future<void> savePreferenceValue(String key, String value) {
+    return database
+        .into(database.appPreferences)
+        .insertOnConflictUpdate(
+          AppPreferencesCompanion.insert(
+            preferenceKey: key,
+            preferenceValue: value,
+            updatedAt: Value(DateTime.now().toUtc()),
+          ),
+        );
+  }
+
   Stream<List<FieldRecord>> watchActiveFields() {
     final query = database.select(database.fields)
       ..where((row) => row.isArchived.equals(false) & row.deletedAt.isNull())
@@ -116,6 +152,271 @@ class FieldRepository {
           )
           .toList(growable: false),
     );
+  }
+
+  Stream<List<FieldWorkspaceRecord>> watchArchivedFieldWorkspaces() {
+    final query =
+        database.select(database.fields).join([
+            leftOuterJoin(
+              database.fieldBoundaryVersions,
+              database.fieldBoundaryVersions.id.equalsExp(
+                database.fields.activeBoundaryVersionId,
+              ),
+            ),
+            leftOuterJoin(
+              database.cropCycles,
+              database.cropCycles.fieldId.equalsExp(database.fields.id) &
+                  database.cropCycles.status.equals('active'),
+            ),
+          ])
+          ..where(
+            database.fields.isArchived.equals(true) &
+                database.fields.deletedAt.isNull(),
+          )
+          ..orderBy([OrderingTerm.asc(database.fields.name)]);
+
+    return query.watch().map(
+      (rows) => rows
+          .map(
+            (row) => FieldWorkspaceRecord(
+              field: row.readTable(database.fields),
+              boundary: row.readTableOrNull(database.fieldBoundaryVersions),
+              cropCycle: row.readTableOrNull(database.cropCycles),
+            ),
+          )
+          .toList(growable: false),
+    );
+  }
+
+  Stream<List<FieldWorkspaceRecord>> watchRecentlyDeletedFieldWorkspaces() =>
+      watchArchivedFieldWorkspaces();
+
+  Future<void> renameField({
+    required String fieldId,
+    required String name,
+    String? actorPersonId,
+    String? deviceId,
+  }) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) {
+      throw ArgumentError.value(name, 'name', 'Must not be empty');
+    }
+    await database.transaction(() async {
+      final before = await (database.select(
+        database.fields,
+      )..where((row) => row.id.equals(fieldId))).getSingle();
+      await (database.update(
+        database.fields,
+      )..where((row) => row.id.equals(fieldId))).write(
+        FieldsCompanion(
+          name: Value(trimmed),
+          updatedAt: Value(DateTime.now().toUtc()),
+          syncState: const Value('queued'),
+        ),
+      );
+      await _mutations.record(
+        entityType: 'fields',
+        entityId: fieldId,
+        action: 'rename',
+        actorPersonId: actorPersonId,
+        deviceId: deviceId,
+        before: {'name': before.name},
+        after: {'name': trimmed},
+      );
+    });
+  }
+
+  Future<void> updateFieldDetails({
+    required String fieldId,
+    required String name,
+    String? varietyName,
+    String? intendedUse,
+    DateTime? plantingDate,
+    String? actorPersonId,
+    String? deviceId,
+  }) async {
+    final previous = await (database.select(
+      database.fields,
+    )..where((row) => row.id.equals(fieldId))).getSingle();
+    final cycle =
+        await (database.select(database.cropCycles)..where(
+              (row) =>
+                  row.fieldId.equals(fieldId) & row.status.equals('active'),
+            ))
+            .getSingleOrNull();
+    final trimmedName = name.trim();
+    if (trimmedName.isEmpty) throw ArgumentError.value(name, 'name');
+    final updatedAt = DateTime.now().toUtc();
+
+    await database.transaction(() async {
+      await (database.update(
+        database.fields,
+      )..where((row) => row.id.equals(fieldId))).write(
+        FieldsCompanion(
+          name: Value(trimmedName),
+          updatedAt: Value(updatedAt),
+          syncState: const Value('queued'),
+          deviceId: Value(deviceId),
+        ),
+      );
+      if (cycle != null) {
+        await (database.update(
+          database.cropCycles,
+        )..where((row) => row.id.equals(cycle.id))).write(
+          CropCyclesCompanion(
+            varietyName: Value(_trimmedOrNull(varietyName)),
+            intendedUse: Value(_trimmedOrNull(intendedUse)),
+            plantingDate: Value(plantingDate?.toUtc()),
+            plantingDatePrecision: Value(
+              plantingDate == null ? 'unknown' : 'exact_day',
+            ),
+            updatedAt: Value(updatedAt),
+            syncState: const Value('queued'),
+            deviceId: Value(deviceId),
+          ),
+        );
+      }
+      await _mutations.record(
+        entityType: 'fields',
+        entityId: fieldId,
+        action: 'update_details',
+        actorPersonId: actorPersonId,
+        deviceId: deviceId,
+        before: {'name': previous.name},
+        after: {'name': trimmedName},
+      );
+    });
+  }
+
+  String? _trimmedOrNull(String? value) {
+    final trimmed = value?.trim();
+    return trimmed == null || trimmed.isEmpty ? null : trimmed;
+  }
+
+  Future<void> setFieldArchived({
+    required String fieldId,
+    required bool archived,
+    String? actorPersonId,
+    String? deviceId,
+  }) async {
+    await database.transaction(() async {
+      final before = await (database.select(
+        database.fields,
+      )..where((row) => row.id.equals(fieldId))).getSingle();
+      await (database.update(
+        database.fields,
+      )..where((row) => row.id.equals(fieldId))).write(
+        FieldsCompanion(
+          isArchived: Value(archived),
+          updatedAt: Value(DateTime.now().toUtc()),
+          syncState: const Value('queued'),
+        ),
+      );
+      await _mutations.record(
+        entityType: 'fields',
+        entityId: fieldId,
+        action: archived ? 'delete_requested' : 'restore',
+        actorPersonId: actorPersonId,
+        deviceId: deviceId,
+        before: {'is_archived': before.isArchived},
+        after: {
+          'is_archived': archived,
+          if (archived)
+            'scheduled_permanent_deletion_at': DateTime.now()
+                .toUtc()
+                .add(const Duration(days: 30))
+                .toIso8601String(),
+        },
+      );
+    });
+  }
+
+  Future<List<ExpiredFieldDeletionCandidate>> expiredDeletionCandidates(
+    DateTime nowUtc,
+  ) async {
+    final cutoff = nowUtc.toUtc().subtract(const Duration(days: 30));
+    final fields =
+        await (database.select(database.fields)..where(
+              (row) =>
+                  row.isArchived.equals(true) &
+                  row.deletedAt.isNull() &
+                  row.updatedAt.isSmallerOrEqualValue(cutoff),
+            ))
+            .get();
+    final result = <ExpiredFieldDeletionCandidate>[];
+    for (final field in fields) {
+      final cycles = await (database.select(
+        database.cropCycles,
+      )..where((row) => row.fieldId.equals(field.id))).get();
+      final cycleIds = cycles.map((record) => record.id).toList();
+      final assessments = cycleIds.isEmpty
+          ? const <AssessmentRecord>[]
+          : await (database.select(
+              database.assessments,
+            )..where((row) => row.cropCycleId.isIn(cycleIds))).get();
+      final assessmentIds = assessments.map((record) => record.id).toList();
+      final media = assessmentIds.isEmpty
+          ? const <EvidenceMediaRecord>[]
+          : await (database.select(database.evidenceMedia)..where(
+                  (row) =>
+                      row.assessmentId.isIn(assessmentIds) &
+                      row.deletedAt.isNull(),
+                ))
+                .get();
+      result.add(ExpiredFieldDeletionCandidate(field: field, media: media));
+    }
+    return result;
+  }
+
+  Future<void> finalizeExpiredDeletion({
+    required ExpiredFieldDeletionCandidate candidate,
+    required DateTime deletedAtUtc,
+  }) async {
+    final deletedAt = deletedAtUtc.toUtc();
+    await database.transaction(() async {
+      final current = await (database.select(
+        database.fields,
+      )..where((row) => row.id.equals(candidate.field.id))).getSingle();
+      if (!current.isArchived || current.deletedAt != null) return;
+      if (current.updatedAt.isAfter(
+        deletedAt.subtract(const Duration(days: 30)),
+      )) {
+        return;
+      }
+      final mediaIds = candidate.media.map((record) => record.id).toList();
+      if (mediaIds.isNotEmpty) {
+        await (database.update(
+          database.evidenceMedia,
+        )..where((row) => row.id.isIn(mediaIds))).write(
+          EvidenceMediaCompanion(
+            deletedAt: Value(deletedAt),
+            storageState: const Value(DatabaseCodes.evidenceStorageDeleted),
+            updatedAt: Value(deletedAt),
+            syncState: const Value('queued'),
+          ),
+        );
+      }
+      await (database.update(
+        database.fields,
+      )..where((row) => row.id.equals(current.id))).write(
+        FieldsCompanion(
+          deletedAt: Value(deletedAt),
+          updatedAt: Value(deletedAt),
+          syncState: const Value('queued'),
+        ),
+      );
+      await _mutations.record(
+        entityType: 'fields',
+        entityId: current.id,
+        action: 'permanently_deleted',
+        before: {'is_archived': true, 'deleted_at': null},
+        after: {
+          'deleted_at': deletedAt.toIso8601String(),
+          'evidence_files_removed': mediaIds.length,
+          'metadata_tombstone_retained': true,
+        },
+      );
+    });
   }
 
   Future<CreatedFieldCycle> createFieldWithBoundaryAndCycle({

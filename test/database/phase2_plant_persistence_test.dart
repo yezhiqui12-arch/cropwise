@@ -16,12 +16,13 @@ const _fieldPolygon =
 
 void main() {
   test(
-    'schema v2 migrates through v4 without rewriting old observations',
+    'schema v2 migrates through v6 without rewriting old observations',
     () async {
       final database = AppDatabase(
         NativeDatabase.memory(
           setup: (rawDatabase) {
             rawDatabase.execute(_v2PlantObservationsSql);
+            rawDatabase.execute(_v2PlantingUnitObservationsSql);
             rawDatabase.execute(_v2VegetativeObservationsSql);
             rawDatabase.execute(_v2EvidenceMediaSql);
             rawDatabase.execute("""
@@ -60,7 +61,7 @@ void main() {
                 ..where((row) => row.plantObservationId.equals('legacy-plant')))
               .getSingle();
 
-      expect(version.read<int>('user_version'), 4);
+      expect(version.read<int>('user_version'), 6);
       expect(plant.plantStatus, 'uncertain');
       expect(plant.currentFawEvidence, isNull);
       expect(plant.oldDamagePresent, isTrue);
@@ -436,6 +437,33 @@ const _v2PlantObservationsSql = """
     gps_accuracy_m REAL,
     captured_at INTEGER,
     evaluator_notes TEXT,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+    updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+    deleted_at INTEGER,
+    device_id TEXT,
+    sync_state TEXT NOT NULL DEFAULT 'local_only',
+    server_version INTEGER NOT NULL DEFAULT 0,
+    UNIQUE (station_id, sequence_number)
+  )
+""";
+
+const _v2PlantingUnitObservationsSql = """
+  CREATE TABLE planting_unit_observations (
+    id TEXT PRIMARY KEY,
+    station_id TEXT NOT NULL,
+    sequence_number INTEGER NOT NULL,
+    assessable INTEGER NOT NULL DEFAULT 1,
+    not_assessable_reason TEXT,
+    occupancy_status TEXT,
+    observed_seedling_count INTEGER,
+    intended_seedling_count INTEGER,
+    visible_cutting INTEGER,
+    visible_seedling_injury INTEGER,
+    confirmed_faw_present INTEGER,
+    injury_consistent_with_faw INTEGER,
+    alternative_cause_code TEXT,
+    notes TEXT,
+    captured_at INTEGER,
     created_at INTEGER NOT NULL DEFAULT (unixepoch()),
     updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
     deleted_at INTEGER,

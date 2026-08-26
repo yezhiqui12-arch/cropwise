@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as image_lib;
@@ -84,23 +85,45 @@ void main() {
     },
   );
 
-  test('VE-V2 and later stages never enter the V3-V12 plant form', () async {
-    for (final stage in ['ve', 'v2', 'vt_r2', 'r3_r6']) {
-      final fixture = await _createFixture(database, growthStage: stage);
-      final provider = Station1WorkflowProvider(
-        assessmentId: fixture.assessment.id,
-        workflowRepository: Station1WorkflowRepository(database),
-        assessmentRepository: AssessmentRepository(database),
-        plantSaveService: AtomicPlantSaveService(database),
-      );
+  test(
+    'legacy later-stage records never enter the V3-V12 plant form',
+    () async {
+      for (final stage in ['vt_r2', 'r3_r6']) {
+        final fixture = await _createFixture(
+          database,
+          growthStage: stage,
+          startAssessment: false,
+        );
+        await (database.update(
+          database.assessments,
+        )..where((row) => row.id.equals(fixture.assessment.id))).write(
+          AssessmentsCompanion(
+            status: const Value(DatabaseCodes.inProgress),
+            startedAt: Value(DateTime.now().toUtc()),
+          ),
+        );
+        final provider = Station1WorkflowProvider(
+          assessmentId: fixture.assessment.id,
+          workflowRepository: Station1WorkflowRepository(database),
+          assessmentRepository: AssessmentRepository(database),
+          plantSaveService: AtomicPlantSaveService(database),
+        );
 
-      await provider.initialize();
+        await provider.initialize();
 
-      expect(provider.state, Station1ViewState.unsupportedStage, reason: stage);
-      expect(await database.select(database.fieldBlocks).get(), isEmpty);
-      expect(await database.select(database.plantObservations).get(), isEmpty);
-    }
-  });
+        expect(
+          provider.state,
+          Station1ViewState.unsupportedStage,
+          reason: stage,
+        );
+        expect(await database.select(database.fieldBlocks).get(), isEmpty);
+        expect(
+          await database.select(database.plantObservations).get(),
+          isEmpty,
+        );
+      }
+    },
+  );
 
   test(
     'unconfirmed outline is defensively rejected without deleting draft',

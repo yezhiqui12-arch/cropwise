@@ -8,6 +8,7 @@ import 'package:wormwise/data/repositories/field_repository.dart';
 import 'package:wormwise/data/repositories/people_repository.dart';
 import 'package:wormwise/data/repositories/scouting_workflow_repository.dart';
 import 'package:wormwise/data/services/atomic_plant_save_service.dart';
+import 'package:wormwise/data/services/atomic_ve_v2_save_service.dart';
 import 'package:wormwise/data/services/assessment_completion_validator.dart';
 import 'package:wormwise/data/services/five_station_completion_service.dart';
 import 'package:wormwise/providers/five_station_workflow_provider.dart';
@@ -204,8 +205,6 @@ void main() {
         reasonCode: DatabaseCodes.evidenceFallbackNoCamera,
       );
       await provider.continueAfterStationContext();
-      expect(provider.state, Station1ViewState.plantSelection);
-      await provider.beginTenConsecutivePlants();
       expect(provider.state, Station1ViewState.plantCapture);
 
       for (var position = 1; position <= 10; position++) {
@@ -461,6 +460,8 @@ void main() {
 
       await provider.completeTestStation();
       expect(provider.state, Station1ViewState.betweenStations);
+      expect(provider.completedStationNumbers, contains(1));
+      expect(provider.completedStationLocations, isNot(contains(1)));
       provider.dispose();
     },
   );
@@ -514,6 +515,92 @@ void main() {
           .toList();
       expect(stationReviews, hasLength(5));
       expect(await database.select(database.metricResults).get(), isEmpty);
+      provider.dispose();
+    },
+  );
+
+  test(
+    'VE-V2 progresses through five isolated stations and completes the block',
+    () async {
+      final fixture = await _createFixture(database, growthStage: 've');
+      final workflow = ScoutingWorkflowRepository(database);
+      final evidence = EvidenceCaptureRepository(database);
+      final completion = FiveStationCompletionService(database);
+      FiveStationWorkflowProvider buildProvider() =>
+          FiveStationWorkflowProvider(
+            assessmentId: fixture.assessment.id,
+            workflowRepository: workflow,
+            assessmentRepository: AssessmentRepository(database),
+            plantSaveService: AtomicPlantSaveService(
+              database,
+              evidenceRepository: evidence,
+            ),
+            completionService: completion,
+            veV2SaveService: AtomicVeV2SaveService(database),
+            evidenceCoordinator: EvidenceCaptureCoordinator(
+              repository: evidence,
+              storage: EvidenceStorageService(),
+            ),
+            testMode: true,
+            debugFeaturesEnabled: true,
+          );
+      var provider = buildProvider();
+      await provider.initialize();
+      expect(provider.state, Station1ViewState.blockPreparation);
+
+      await provider.completeTestStation();
+      expect(provider.state, Station1ViewState.betweenStations);
+      expect(provider.stationNumber, 1);
+      await provider.navigateBackWithinWorkflow();
+      expect(provider.state, Station1ViewState.veV2StationReview);
+      await provider.continueToNextStation();
+      expect(provider.stationNumber, 2);
+      provider.dispose();
+
+      provider = buildProvider();
+      await provider.initialize();
+      expect(provider.state, Station1ViewState.resumeCheck);
+      await provider.submitResumeCheck(
+        condition: ResumeCondition.unchanged,
+        safeToContinue: true,
+      );
+      expect(provider.stationNumber, 2);
+      expect(provider.state, Station1ViewState.stationLocation);
+
+      await provider.completeAllRemainingTestStations();
+
+      expect(provider.stationNumber, 5);
+      expect(provider.state, Station1ViewState.blockReview);
+      expect(provider.blockSnapshot!.allStationsReviewed, isTrue);
+      expect(await database.select(database.stations).get(), hasLength(5));
+      expect(
+        await database.select(database.veV2StationInspections).get(),
+        hasLength(5),
+      );
+      expect(
+        await database.select(database.plantingUnitObservations).get(),
+        hasLength(50),
+      );
+      expect(
+        await database.select(database.plantObservations).get(),
+        hasLength(50),
+      );
+      expect(
+        (await completion.validateBlock(provider.prepared!.run.id)).issues,
+        isEmpty,
+      );
+
+      await provider.openStationFromBlockReview(3);
+      expect(provider.state, Station1ViewState.veV2StationReview);
+      await provider.navigateBackWithinWorkflow();
+      expect(provider.state, Station1ViewState.blockReview);
+
+      await provider.completeCurrentBlock();
+      expect(provider.state, Station1ViewState.samplingComplete);
+      expect(
+        (await workflow.assessmentById(fixture.assessment.id)).status,
+        DatabaseCodes.completed,
+      );
       provider.dispose();
     },
   );
@@ -617,6 +704,7 @@ class _Fixture {
 Future<_Fixture> _createFixture(
   AppDatabase database, {
   double areaHectares = 0.8,
+  String growthStage = 'v3_v6',
 }) async {
   final evaluator = await PeopleRepository(
     database,
@@ -637,7 +725,7 @@ Future<_Fixture> _createFixture(
     evaluatorPersonId: evaluator.id,
     assessmentMode: DatabaseCodes.modeVeV6,
     scoutingPattern: DatabaseCodes.patternW,
-    growthStage: 'v3_v6',
+    growthStage: growthStage,
     protocolVersion: 'increment-a-test',
     formulaVersion: 'increment-a-test',
   );

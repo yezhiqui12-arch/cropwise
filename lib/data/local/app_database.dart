@@ -280,9 +280,26 @@ class PlantingUnitObservations extends SyncableTable {
   IntColumn get intendedSeedlingCount => integer().nullable()();
   BoolColumn get visibleCutting => boolean().nullable()();
   BoolColumn get visibleSeedlingInjury => boolean().nullable()();
+  TextColumn get primaryCondition => text().nullable()();
+  BoolColumn get recognizableRemnantPresent => boolean().nullable()();
+  BoolColumn get visibleSevering => boolean().nullable()();
+  TextColumn get injuryLocation => text().nullable()();
+  TextColumn get injuryFreshness => text().nullable()();
+  BoolColumn get larvaVisible => boolean().nullable()();
+  TextColumn get larvalSize => text().nullable()();
+  BoolColumn get freshFrass => boolean().nullable()();
+  BoolColumn get rotPresent => boolean().nullable()();
+  BoolColumn get tunnelingPresent => boolean().nullable()();
+  BoolColumn get discolorationPresent => boolean().nullable()();
+  BoolColumn get otherNonFawEvidence => boolean().nullable()();
   BoolColumn get confirmedFawPresent => boolean().nullable()();
   BoolColumn get injuryConsistentWithFaw => boolean().nullable()();
   TextColumn get alternativeCauseCode => text().nullable()();
+  TextColumn get alternativeCauseCodesJson => text().nullable()();
+  TextColumn get evaluatorPrimaryInterpretation => text().nullable()();
+  TextColumn get evaluatorConfidence => text().nullable()();
+  IntColumn get inspectionDurationMs => integer().nullable()();
+  IntColumn get correctionCount => integer().withDefault(const Constant(0))();
   TextColumn get notes => text().nullable()();
   DateTimeColumn get capturedAt => dateTime().nullable()();
 
@@ -296,6 +313,8 @@ class PlantingUnitObservations extends SyncableTable {
 class PlantObservations extends SyncableTable {
   TextColumn get stationId => text().references(Stations, #id)();
   IntColumn get sequenceNumber => integer()();
+  TextColumn get sourcePlantingUnitObservationId =>
+      text().nullable().references(PlantingUnitObservations, #id)();
   TextColumn get persistentPlantIdentifier => text().nullable()();
   BoolColumn get assessable => boolean().withDefault(const Constant(true))();
   TextColumn get notAssessableReason => text().nullable()();
@@ -317,6 +336,30 @@ class PlantObservations extends SyncableTable {
   List<Set<Column<Object>>> get uniqueKeys => [
     {stationId, sequenceNumber},
   ];
+}
+
+@DataClassName('VeV2StationInspectionRecord')
+class VeV2StationInspections extends SyncableTable {
+  TextColumn get stationId => text().references(Stations, #id).unique()();
+  BoolColumn get emergenceContinuing => boolean().nullable()();
+  BoolColumn get delayedEmergencePlausible => boolean().nullable()();
+  BoolColumn get plantingUnitSequenceAssessable =>
+      boolean().withDefault(const Constant(true))();
+  TextColumn get sequenceNotAssessableReason => text().nullable()();
+  TextColumn get rowDirectionCode => text().nullable()();
+  BoolColumn get stationContextMeetsRowPurpose => boolean().nullable()();
+  TextColumn get protocolVersion =>
+      text().withDefault(const Constant('ve_v2_station_pilot_v1'))();
+  DateTimeColumn get startedAt => dateTime().nullable()();
+  DateTimeColumn get completedAt => dateTime().nullable()();
+  IntColumn get plantingUnitEntryDurationMs =>
+      integer().withDefault(const Constant(0))();
+  IntColumn get livingSeedlingEntryDurationMs =>
+      integer().withDefault(const Constant(0))();
+  IntColumn get correctionCount => integer().withDefault(const Constant(0))();
+  IntColumn get repeatedPhysicalCheckCount =>
+      integer().withDefault(const Constant(0))();
+  IntColumn get evaluatorWorkloadRating => integer().nullable()();
 }
 
 @DataClassName('VegetativeObservationRecord')
@@ -415,6 +458,8 @@ class EvidenceCaptureSessions extends SyncableTable {
   IntColumn get plantPosition => integer().nullable()();
   TextColumn get plantObservationId =>
       text().nullable().references(PlantObservations, #id)();
+  TextColumn get sourcePlantingUnitObservationId =>
+      text().nullable().references(PlantingUnitObservations, #id)();
   TextColumn get requirementsVersion =>
       text().withDefault(const Constant('camera_phase_a_v1'))();
   TextColumn get collectionMode => text().withDefault(
@@ -570,6 +615,7 @@ class AppPreferences extends Table {
     Stations,
     PlantingUnitObservations,
     PlantObservations,
+    VeV2StationInspections,
     VegetativeObservations,
     ReproductiveObservations,
     EarObservations,
@@ -596,7 +642,7 @@ class AppDatabase extends _$AppDatabase {
       );
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -639,6 +685,90 @@ class AppDatabase extends _$AppDatabase {
         await customStatement(
           "UPDATE evidence_media SET storage_state = 'ready' "
           'WHERE capture_session_id IS NULL',
+        );
+      }
+      if (from < 5) {
+        await migrator.createTable(veV2StationInspections);
+        await migrator.addColumn(
+          plantingUnitObservations,
+          plantingUnitObservations.primaryCondition,
+        );
+        await migrator.addColumn(
+          plantingUnitObservations,
+          plantingUnitObservations.recognizableRemnantPresent,
+        );
+        await migrator.addColumn(
+          plantingUnitObservations,
+          plantingUnitObservations.visibleSevering,
+        );
+        await migrator.addColumn(
+          plantingUnitObservations,
+          plantingUnitObservations.injuryLocation,
+        );
+        await migrator.addColumn(
+          plantingUnitObservations,
+          plantingUnitObservations.injuryFreshness,
+        );
+        await migrator.addColumn(
+          plantingUnitObservations,
+          plantingUnitObservations.larvaVisible,
+        );
+        await migrator.addColumn(
+          plantingUnitObservations,
+          plantingUnitObservations.larvalSize,
+        );
+        await migrator.addColumn(
+          plantingUnitObservations,
+          plantingUnitObservations.freshFrass,
+        );
+        await migrator.addColumn(
+          plantingUnitObservations,
+          plantingUnitObservations.rotPresent,
+        );
+        await migrator.addColumn(
+          plantingUnitObservations,
+          plantingUnitObservations.tunnelingPresent,
+        );
+        await migrator.addColumn(
+          plantingUnitObservations,
+          plantingUnitObservations.discolorationPresent,
+        );
+        await migrator.addColumn(
+          plantingUnitObservations,
+          plantingUnitObservations.otherNonFawEvidence,
+        );
+        await migrator.addColumn(
+          plantingUnitObservations,
+          plantingUnitObservations.alternativeCauseCodesJson,
+        );
+        await migrator.addColumn(
+          plantingUnitObservations,
+          plantingUnitObservations.evaluatorPrimaryInterpretation,
+        );
+        await migrator.addColumn(
+          plantingUnitObservations,
+          plantingUnitObservations.evaluatorConfidence,
+        );
+        await migrator.addColumn(
+          plantingUnitObservations,
+          plantingUnitObservations.inspectionDurationMs,
+        );
+        await migrator.addColumn(
+          plantingUnitObservations,
+          plantingUnitObservations.correctionCount,
+        );
+        await migrator.addColumn(
+          plantObservations,
+          plantObservations.sourcePlantingUnitObservationId,
+        );
+      }
+      // Databases upgraded from before v4 create the current evidence-session
+      // table above, which already includes this column. Only v4/v5 databases
+      // need the additive migration.
+      if (from >= 4 && from < 6) {
+        await migrator.addColumn(
+          evidenceCaptureSessions,
+          evidenceCaptureSessions.sourcePlantingUnitObservationId,
         );
       }
     },

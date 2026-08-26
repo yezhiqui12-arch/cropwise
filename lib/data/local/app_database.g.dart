@@ -14223,6 +14223,160 @@ class $PlantingUnitObservationsTable extends PlantingUnitObservations
           'CHECK ("visible_seedling_injury" IN (0, 1))',
         ),
       );
+  static const VerificationMeta _primaryConditionMeta = const VerificationMeta(
+    'primaryCondition',
+  );
+  @override
+  late final GeneratedColumn<String> primaryCondition = GeneratedColumn<String>(
+    'primary_condition',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _recognizableRemnantPresentMeta =
+      const VerificationMeta('recognizableRemnantPresent');
+  @override
+  late final GeneratedColumn<bool> recognizableRemnantPresent =
+      GeneratedColumn<bool>(
+        'recognizable_remnant_present',
+        aliasedName,
+        true,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("recognizable_remnant_present" IN (0, 1))',
+        ),
+      );
+  static const VerificationMeta _visibleSeveringMeta = const VerificationMeta(
+    'visibleSevering',
+  );
+  @override
+  late final GeneratedColumn<bool> visibleSevering = GeneratedColumn<bool>(
+    'visible_severing',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("visible_severing" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _injuryLocationMeta = const VerificationMeta(
+    'injuryLocation',
+  );
+  @override
+  late final GeneratedColumn<String> injuryLocation = GeneratedColumn<String>(
+    'injury_location',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _injuryFreshnessMeta = const VerificationMeta(
+    'injuryFreshness',
+  );
+  @override
+  late final GeneratedColumn<String> injuryFreshness = GeneratedColumn<String>(
+    'injury_freshness',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _larvaVisibleMeta = const VerificationMeta(
+    'larvaVisible',
+  );
+  @override
+  late final GeneratedColumn<bool> larvaVisible = GeneratedColumn<bool>(
+    'larva_visible',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("larva_visible" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _larvalSizeMeta = const VerificationMeta(
+    'larvalSize',
+  );
+  @override
+  late final GeneratedColumn<String> larvalSize = GeneratedColumn<String>(
+    'larval_size',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _freshFrassMeta = const VerificationMeta(
+    'freshFrass',
+  );
+  @override
+  late final GeneratedColumn<bool> freshFrass = GeneratedColumn<bool>(
+    'fresh_frass',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("fresh_frass" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _rotPresentMeta = const VerificationMeta(
+    'rotPresent',
+  );
+  @override
+  late final GeneratedColumn<bool> rotPresent = GeneratedColumn<bool>(
+    'rot_present',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("rot_present" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _tunnelingPresentMeta = const VerificationMeta(
+    'tunnelingPresent',
+  );
+  @override
+  late final GeneratedColumn<bool> tunnelingPresent = GeneratedColumn<bool>(
+    'tunneling_present',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("tunneling_present" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _discolorationPresentMeta =
+      const VerificationMeta('discolorationPresent');
+  @override
+  late final GeneratedColumn<bool> discolorationPresent = GeneratedColumn<bool>(
+    'discoloration_present',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("discoloration_present" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _otherNonFawEvidenceMeta =
+      const VerificationMeta('otherNonFawEvidence');
+  @override
+  late final GeneratedColumn<bool> otherNonFawEvidence = GeneratedColumn<bool>(
+    'other_non_faw_evidence',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("other_non_faw_evidence" IN (0, 1))',
+    ),
+  );
   static const VerificationMeta _confirmedFawPresentMeta =
       const VerificationMeta('confirmedFawPresent');
   @override
@@ -14261,6 +14415,61 @@ class $PlantingUnitObservationsTable extends PlantingUnitObservations
         type: DriftSqlType.string,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _alternativeCauseCodesJsonMeta =
+      const VerificationMeta('alternativeCauseCodesJson');
+  @override
+  late final GeneratedColumn<String> alternativeCauseCodesJson =
+      GeneratedColumn<String>(
+        'alternative_cause_codes_json',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _evaluatorPrimaryInterpretationMeta =
+      const VerificationMeta('evaluatorPrimaryInterpretation');
+  @override
+  late final GeneratedColumn<String> evaluatorPrimaryInterpretation =
+      GeneratedColumn<String>(
+        'evaluator_primary_interpretation',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _evaluatorConfidenceMeta =
+      const VerificationMeta('evaluatorConfidence');
+  @override
+  late final GeneratedColumn<String> evaluatorConfidence =
+      GeneratedColumn<String>(
+        'evaluator_confidence',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _inspectionDurationMsMeta =
+      const VerificationMeta('inspectionDurationMs');
+  @override
+  late final GeneratedColumn<int> inspectionDurationMs = GeneratedColumn<int>(
+    'inspection_duration_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _correctionCountMeta = const VerificationMeta(
+    'correctionCount',
+  );
+  @override
+  late final GeneratedColumn<int> correctionCount = GeneratedColumn<int>(
+    'correction_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _notesMeta = const VerificationMeta('notes');
   @override
   late final GeneratedColumn<String> notes = GeneratedColumn<String>(
@@ -14299,9 +14508,26 @@ class $PlantingUnitObservationsTable extends PlantingUnitObservations
     intendedSeedlingCount,
     visibleCutting,
     visibleSeedlingInjury,
+    primaryCondition,
+    recognizableRemnantPresent,
+    visibleSevering,
+    injuryLocation,
+    injuryFreshness,
+    larvaVisible,
+    larvalSize,
+    freshFrass,
+    rotPresent,
+    tunnelingPresent,
+    discolorationPresent,
+    otherNonFawEvidence,
     confirmedFawPresent,
     injuryConsistentWithFaw,
     alternativeCauseCode,
+    alternativeCauseCodesJson,
+    evaluatorPrimaryInterpretation,
+    evaluatorConfidence,
+    inspectionDurationMs,
+    correctionCount,
     notes,
     capturedAt,
   ];
@@ -14440,6 +14666,105 @@ class $PlantingUnitObservationsTable extends PlantingUnitObservations
         ),
       );
     }
+    if (data.containsKey('primary_condition')) {
+      context.handle(
+        _primaryConditionMeta,
+        primaryCondition.isAcceptableOrUnknown(
+          data['primary_condition']!,
+          _primaryConditionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('recognizable_remnant_present')) {
+      context.handle(
+        _recognizableRemnantPresentMeta,
+        recognizableRemnantPresent.isAcceptableOrUnknown(
+          data['recognizable_remnant_present']!,
+          _recognizableRemnantPresentMeta,
+        ),
+      );
+    }
+    if (data.containsKey('visible_severing')) {
+      context.handle(
+        _visibleSeveringMeta,
+        visibleSevering.isAcceptableOrUnknown(
+          data['visible_severing']!,
+          _visibleSeveringMeta,
+        ),
+      );
+    }
+    if (data.containsKey('injury_location')) {
+      context.handle(
+        _injuryLocationMeta,
+        injuryLocation.isAcceptableOrUnknown(
+          data['injury_location']!,
+          _injuryLocationMeta,
+        ),
+      );
+    }
+    if (data.containsKey('injury_freshness')) {
+      context.handle(
+        _injuryFreshnessMeta,
+        injuryFreshness.isAcceptableOrUnknown(
+          data['injury_freshness']!,
+          _injuryFreshnessMeta,
+        ),
+      );
+    }
+    if (data.containsKey('larva_visible')) {
+      context.handle(
+        _larvaVisibleMeta,
+        larvaVisible.isAcceptableOrUnknown(
+          data['larva_visible']!,
+          _larvaVisibleMeta,
+        ),
+      );
+    }
+    if (data.containsKey('larval_size')) {
+      context.handle(
+        _larvalSizeMeta,
+        larvalSize.isAcceptableOrUnknown(data['larval_size']!, _larvalSizeMeta),
+      );
+    }
+    if (data.containsKey('fresh_frass')) {
+      context.handle(
+        _freshFrassMeta,
+        freshFrass.isAcceptableOrUnknown(data['fresh_frass']!, _freshFrassMeta),
+      );
+    }
+    if (data.containsKey('rot_present')) {
+      context.handle(
+        _rotPresentMeta,
+        rotPresent.isAcceptableOrUnknown(data['rot_present']!, _rotPresentMeta),
+      );
+    }
+    if (data.containsKey('tunneling_present')) {
+      context.handle(
+        _tunnelingPresentMeta,
+        tunnelingPresent.isAcceptableOrUnknown(
+          data['tunneling_present']!,
+          _tunnelingPresentMeta,
+        ),
+      );
+    }
+    if (data.containsKey('discoloration_present')) {
+      context.handle(
+        _discolorationPresentMeta,
+        discolorationPresent.isAcceptableOrUnknown(
+          data['discoloration_present']!,
+          _discolorationPresentMeta,
+        ),
+      );
+    }
+    if (data.containsKey('other_non_faw_evidence')) {
+      context.handle(
+        _otherNonFawEvidenceMeta,
+        otherNonFawEvidence.isAcceptableOrUnknown(
+          data['other_non_faw_evidence']!,
+          _otherNonFawEvidenceMeta,
+        ),
+      );
+    }
     if (data.containsKey('confirmed_faw_present')) {
       context.handle(
         _confirmedFawPresentMeta,
@@ -14464,6 +14789,51 @@ class $PlantingUnitObservationsTable extends PlantingUnitObservations
         alternativeCauseCode.isAcceptableOrUnknown(
           data['alternative_cause_code']!,
           _alternativeCauseCodeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('alternative_cause_codes_json')) {
+      context.handle(
+        _alternativeCauseCodesJsonMeta,
+        alternativeCauseCodesJson.isAcceptableOrUnknown(
+          data['alternative_cause_codes_json']!,
+          _alternativeCauseCodesJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('evaluator_primary_interpretation')) {
+      context.handle(
+        _evaluatorPrimaryInterpretationMeta,
+        evaluatorPrimaryInterpretation.isAcceptableOrUnknown(
+          data['evaluator_primary_interpretation']!,
+          _evaluatorPrimaryInterpretationMeta,
+        ),
+      );
+    }
+    if (data.containsKey('evaluator_confidence')) {
+      context.handle(
+        _evaluatorConfidenceMeta,
+        evaluatorConfidence.isAcceptableOrUnknown(
+          data['evaluator_confidence']!,
+          _evaluatorConfidenceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('inspection_duration_ms')) {
+      context.handle(
+        _inspectionDurationMsMeta,
+        inspectionDurationMs.isAcceptableOrUnknown(
+          data['inspection_duration_ms']!,
+          _inspectionDurationMsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('correction_count')) {
+      context.handle(
+        _correctionCountMeta,
+        correctionCount.isAcceptableOrUnknown(
+          data['correction_count']!,
+          _correctionCountMeta,
         ),
       );
     }
@@ -14559,6 +14929,54 @@ class $PlantingUnitObservationsTable extends PlantingUnitObservations
         DriftSqlType.bool,
         data['${effectivePrefix}visible_seedling_injury'],
       ),
+      primaryCondition: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}primary_condition'],
+      ),
+      recognizableRemnantPresent: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}recognizable_remnant_present'],
+      ),
+      visibleSevering: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}visible_severing'],
+      ),
+      injuryLocation: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}injury_location'],
+      ),
+      injuryFreshness: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}injury_freshness'],
+      ),
+      larvaVisible: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}larva_visible'],
+      ),
+      larvalSize: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}larval_size'],
+      ),
+      freshFrass: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}fresh_frass'],
+      ),
+      rotPresent: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}rot_present'],
+      ),
+      tunnelingPresent: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}tunneling_present'],
+      ),
+      discolorationPresent: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}discoloration_present'],
+      ),
+      otherNonFawEvidence: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}other_non_faw_evidence'],
+      ),
       confirmedFawPresent: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}confirmed_faw_present'],
@@ -14571,6 +14989,26 @@ class $PlantingUnitObservationsTable extends PlantingUnitObservations
         DriftSqlType.string,
         data['${effectivePrefix}alternative_cause_code'],
       ),
+      alternativeCauseCodesJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}alternative_cause_codes_json'],
+      ),
+      evaluatorPrimaryInterpretation: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}evaluator_primary_interpretation'],
+      ),
+      evaluatorConfidence: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}evaluator_confidence'],
+      ),
+      inspectionDurationMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}inspection_duration_ms'],
+      ),
+      correctionCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}correction_count'],
+      )!,
       notes: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}notes'],
@@ -14606,9 +15044,26 @@ class PlantingUnitObservationRecord extends DataClass
   final int? intendedSeedlingCount;
   final bool? visibleCutting;
   final bool? visibleSeedlingInjury;
+  final String? primaryCondition;
+  final bool? recognizableRemnantPresent;
+  final bool? visibleSevering;
+  final String? injuryLocation;
+  final String? injuryFreshness;
+  final bool? larvaVisible;
+  final String? larvalSize;
+  final bool? freshFrass;
+  final bool? rotPresent;
+  final bool? tunnelingPresent;
+  final bool? discolorationPresent;
+  final bool? otherNonFawEvidence;
   final bool? confirmedFawPresent;
   final bool? injuryConsistentWithFaw;
   final String? alternativeCauseCode;
+  final String? alternativeCauseCodesJson;
+  final String? evaluatorPrimaryInterpretation;
+  final String? evaluatorConfidence;
+  final int? inspectionDurationMs;
+  final int correctionCount;
   final String? notes;
   final DateTime? capturedAt;
   const PlantingUnitObservationRecord({
@@ -14628,9 +15083,26 @@ class PlantingUnitObservationRecord extends DataClass
     this.intendedSeedlingCount,
     this.visibleCutting,
     this.visibleSeedlingInjury,
+    this.primaryCondition,
+    this.recognizableRemnantPresent,
+    this.visibleSevering,
+    this.injuryLocation,
+    this.injuryFreshness,
+    this.larvaVisible,
+    this.larvalSize,
+    this.freshFrass,
+    this.rotPresent,
+    this.tunnelingPresent,
+    this.discolorationPresent,
+    this.otherNonFawEvidence,
     this.confirmedFawPresent,
     this.injuryConsistentWithFaw,
     this.alternativeCauseCode,
+    this.alternativeCauseCodesJson,
+    this.evaluatorPrimaryInterpretation,
+    this.evaluatorConfidence,
+    this.inspectionDurationMs,
+    required this.correctionCount,
     this.notes,
     this.capturedAt,
   });
@@ -14669,6 +15141,44 @@ class PlantingUnitObservationRecord extends DataClass
     if (!nullToAbsent || visibleSeedlingInjury != null) {
       map['visible_seedling_injury'] = Variable<bool>(visibleSeedlingInjury);
     }
+    if (!nullToAbsent || primaryCondition != null) {
+      map['primary_condition'] = Variable<String>(primaryCondition);
+    }
+    if (!nullToAbsent || recognizableRemnantPresent != null) {
+      map['recognizable_remnant_present'] = Variable<bool>(
+        recognizableRemnantPresent,
+      );
+    }
+    if (!nullToAbsent || visibleSevering != null) {
+      map['visible_severing'] = Variable<bool>(visibleSevering);
+    }
+    if (!nullToAbsent || injuryLocation != null) {
+      map['injury_location'] = Variable<String>(injuryLocation);
+    }
+    if (!nullToAbsent || injuryFreshness != null) {
+      map['injury_freshness'] = Variable<String>(injuryFreshness);
+    }
+    if (!nullToAbsent || larvaVisible != null) {
+      map['larva_visible'] = Variable<bool>(larvaVisible);
+    }
+    if (!nullToAbsent || larvalSize != null) {
+      map['larval_size'] = Variable<String>(larvalSize);
+    }
+    if (!nullToAbsent || freshFrass != null) {
+      map['fresh_frass'] = Variable<bool>(freshFrass);
+    }
+    if (!nullToAbsent || rotPresent != null) {
+      map['rot_present'] = Variable<bool>(rotPresent);
+    }
+    if (!nullToAbsent || tunnelingPresent != null) {
+      map['tunneling_present'] = Variable<bool>(tunnelingPresent);
+    }
+    if (!nullToAbsent || discolorationPresent != null) {
+      map['discoloration_present'] = Variable<bool>(discolorationPresent);
+    }
+    if (!nullToAbsent || otherNonFawEvidence != null) {
+      map['other_non_faw_evidence'] = Variable<bool>(otherNonFawEvidence);
+    }
     if (!nullToAbsent || confirmedFawPresent != null) {
       map['confirmed_faw_present'] = Variable<bool>(confirmedFawPresent);
     }
@@ -14680,6 +15190,23 @@ class PlantingUnitObservationRecord extends DataClass
     if (!nullToAbsent || alternativeCauseCode != null) {
       map['alternative_cause_code'] = Variable<String>(alternativeCauseCode);
     }
+    if (!nullToAbsent || alternativeCauseCodesJson != null) {
+      map['alternative_cause_codes_json'] = Variable<String>(
+        alternativeCauseCodesJson,
+      );
+    }
+    if (!nullToAbsent || evaluatorPrimaryInterpretation != null) {
+      map['evaluator_primary_interpretation'] = Variable<String>(
+        evaluatorPrimaryInterpretation,
+      );
+    }
+    if (!nullToAbsent || evaluatorConfidence != null) {
+      map['evaluator_confidence'] = Variable<String>(evaluatorConfidence);
+    }
+    if (!nullToAbsent || inspectionDurationMs != null) {
+      map['inspection_duration_ms'] = Variable<int>(inspectionDurationMs);
+    }
+    map['correction_count'] = Variable<int>(correctionCount);
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
     }
@@ -14723,6 +15250,43 @@ class PlantingUnitObservationRecord extends DataClass
       visibleSeedlingInjury: visibleSeedlingInjury == null && nullToAbsent
           ? const Value.absent()
           : Value(visibleSeedlingInjury),
+      primaryCondition: primaryCondition == null && nullToAbsent
+          ? const Value.absent()
+          : Value(primaryCondition),
+      recognizableRemnantPresent:
+          recognizableRemnantPresent == null && nullToAbsent
+          ? const Value.absent()
+          : Value(recognizableRemnantPresent),
+      visibleSevering: visibleSevering == null && nullToAbsent
+          ? const Value.absent()
+          : Value(visibleSevering),
+      injuryLocation: injuryLocation == null && nullToAbsent
+          ? const Value.absent()
+          : Value(injuryLocation),
+      injuryFreshness: injuryFreshness == null && nullToAbsent
+          ? const Value.absent()
+          : Value(injuryFreshness),
+      larvaVisible: larvaVisible == null && nullToAbsent
+          ? const Value.absent()
+          : Value(larvaVisible),
+      larvalSize: larvalSize == null && nullToAbsent
+          ? const Value.absent()
+          : Value(larvalSize),
+      freshFrass: freshFrass == null && nullToAbsent
+          ? const Value.absent()
+          : Value(freshFrass),
+      rotPresent: rotPresent == null && nullToAbsent
+          ? const Value.absent()
+          : Value(rotPresent),
+      tunnelingPresent: tunnelingPresent == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tunnelingPresent),
+      discolorationPresent: discolorationPresent == null && nullToAbsent
+          ? const Value.absent()
+          : Value(discolorationPresent),
+      otherNonFawEvidence: otherNonFawEvidence == null && nullToAbsent
+          ? const Value.absent()
+          : Value(otherNonFawEvidence),
       confirmedFawPresent: confirmedFawPresent == null && nullToAbsent
           ? const Value.absent()
           : Value(confirmedFawPresent),
@@ -14732,6 +15296,21 @@ class PlantingUnitObservationRecord extends DataClass
       alternativeCauseCode: alternativeCauseCode == null && nullToAbsent
           ? const Value.absent()
           : Value(alternativeCauseCode),
+      alternativeCauseCodesJson:
+          alternativeCauseCodesJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(alternativeCauseCodesJson),
+      evaluatorPrimaryInterpretation:
+          evaluatorPrimaryInterpretation == null && nullToAbsent
+          ? const Value.absent()
+          : Value(evaluatorPrimaryInterpretation),
+      evaluatorConfidence: evaluatorConfidence == null && nullToAbsent
+          ? const Value.absent()
+          : Value(evaluatorConfidence),
+      inspectionDurationMs: inspectionDurationMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(inspectionDurationMs),
+      correctionCount: Value(correctionCount),
       notes: notes == null && nullToAbsent
           ? const Value.absent()
           : Value(notes),
@@ -14771,6 +15350,24 @@ class PlantingUnitObservationRecord extends DataClass
       visibleSeedlingInjury: serializer.fromJson<bool?>(
         json['visibleSeedlingInjury'],
       ),
+      primaryCondition: serializer.fromJson<String?>(json['primaryCondition']),
+      recognizableRemnantPresent: serializer.fromJson<bool?>(
+        json['recognizableRemnantPresent'],
+      ),
+      visibleSevering: serializer.fromJson<bool?>(json['visibleSevering']),
+      injuryLocation: serializer.fromJson<String?>(json['injuryLocation']),
+      injuryFreshness: serializer.fromJson<String?>(json['injuryFreshness']),
+      larvaVisible: serializer.fromJson<bool?>(json['larvaVisible']),
+      larvalSize: serializer.fromJson<String?>(json['larvalSize']),
+      freshFrass: serializer.fromJson<bool?>(json['freshFrass']),
+      rotPresent: serializer.fromJson<bool?>(json['rotPresent']),
+      tunnelingPresent: serializer.fromJson<bool?>(json['tunnelingPresent']),
+      discolorationPresent: serializer.fromJson<bool?>(
+        json['discolorationPresent'],
+      ),
+      otherNonFawEvidence: serializer.fromJson<bool?>(
+        json['otherNonFawEvidence'],
+      ),
       confirmedFawPresent: serializer.fromJson<bool?>(
         json['confirmedFawPresent'],
       ),
@@ -14780,6 +15377,19 @@ class PlantingUnitObservationRecord extends DataClass
       alternativeCauseCode: serializer.fromJson<String?>(
         json['alternativeCauseCode'],
       ),
+      alternativeCauseCodesJson: serializer.fromJson<String?>(
+        json['alternativeCauseCodesJson'],
+      ),
+      evaluatorPrimaryInterpretation: serializer.fromJson<String?>(
+        json['evaluatorPrimaryInterpretation'],
+      ),
+      evaluatorConfidence: serializer.fromJson<String?>(
+        json['evaluatorConfidence'],
+      ),
+      inspectionDurationMs: serializer.fromJson<int?>(
+        json['inspectionDurationMs'],
+      ),
+      correctionCount: serializer.fromJson<int>(json['correctionCount']),
       notes: serializer.fromJson<String?>(json['notes']),
       capturedAt: serializer.fromJson<DateTime?>(json['capturedAt']),
     );
@@ -14804,11 +15414,34 @@ class PlantingUnitObservationRecord extends DataClass
       'intendedSeedlingCount': serializer.toJson<int?>(intendedSeedlingCount),
       'visibleCutting': serializer.toJson<bool?>(visibleCutting),
       'visibleSeedlingInjury': serializer.toJson<bool?>(visibleSeedlingInjury),
+      'primaryCondition': serializer.toJson<String?>(primaryCondition),
+      'recognizableRemnantPresent': serializer.toJson<bool?>(
+        recognizableRemnantPresent,
+      ),
+      'visibleSevering': serializer.toJson<bool?>(visibleSevering),
+      'injuryLocation': serializer.toJson<String?>(injuryLocation),
+      'injuryFreshness': serializer.toJson<String?>(injuryFreshness),
+      'larvaVisible': serializer.toJson<bool?>(larvaVisible),
+      'larvalSize': serializer.toJson<String?>(larvalSize),
+      'freshFrass': serializer.toJson<bool?>(freshFrass),
+      'rotPresent': serializer.toJson<bool?>(rotPresent),
+      'tunnelingPresent': serializer.toJson<bool?>(tunnelingPresent),
+      'discolorationPresent': serializer.toJson<bool?>(discolorationPresent),
+      'otherNonFawEvidence': serializer.toJson<bool?>(otherNonFawEvidence),
       'confirmedFawPresent': serializer.toJson<bool?>(confirmedFawPresent),
       'injuryConsistentWithFaw': serializer.toJson<bool?>(
         injuryConsistentWithFaw,
       ),
       'alternativeCauseCode': serializer.toJson<String?>(alternativeCauseCode),
+      'alternativeCauseCodesJson': serializer.toJson<String?>(
+        alternativeCauseCodesJson,
+      ),
+      'evaluatorPrimaryInterpretation': serializer.toJson<String?>(
+        evaluatorPrimaryInterpretation,
+      ),
+      'evaluatorConfidence': serializer.toJson<String?>(evaluatorConfidence),
+      'inspectionDurationMs': serializer.toJson<int?>(inspectionDurationMs),
+      'correctionCount': serializer.toJson<int>(correctionCount),
       'notes': serializer.toJson<String?>(notes),
       'capturedAt': serializer.toJson<DateTime?>(capturedAt),
     };
@@ -14831,9 +15464,26 @@ class PlantingUnitObservationRecord extends DataClass
     Value<int?> intendedSeedlingCount = const Value.absent(),
     Value<bool?> visibleCutting = const Value.absent(),
     Value<bool?> visibleSeedlingInjury = const Value.absent(),
+    Value<String?> primaryCondition = const Value.absent(),
+    Value<bool?> recognizableRemnantPresent = const Value.absent(),
+    Value<bool?> visibleSevering = const Value.absent(),
+    Value<String?> injuryLocation = const Value.absent(),
+    Value<String?> injuryFreshness = const Value.absent(),
+    Value<bool?> larvaVisible = const Value.absent(),
+    Value<String?> larvalSize = const Value.absent(),
+    Value<bool?> freshFrass = const Value.absent(),
+    Value<bool?> rotPresent = const Value.absent(),
+    Value<bool?> tunnelingPresent = const Value.absent(),
+    Value<bool?> discolorationPresent = const Value.absent(),
+    Value<bool?> otherNonFawEvidence = const Value.absent(),
     Value<bool?> confirmedFawPresent = const Value.absent(),
     Value<bool?> injuryConsistentWithFaw = const Value.absent(),
     Value<String?> alternativeCauseCode = const Value.absent(),
+    Value<String?> alternativeCauseCodesJson = const Value.absent(),
+    Value<String?> evaluatorPrimaryInterpretation = const Value.absent(),
+    Value<String?> evaluatorConfidence = const Value.absent(),
+    Value<int?> inspectionDurationMs = const Value.absent(),
+    int? correctionCount,
     Value<String?> notes = const Value.absent(),
     Value<DateTime?> capturedAt = const Value.absent(),
   }) => PlantingUnitObservationRecord(
@@ -14865,6 +15515,34 @@ class PlantingUnitObservationRecord extends DataClass
     visibleSeedlingInjury: visibleSeedlingInjury.present
         ? visibleSeedlingInjury.value
         : this.visibleSeedlingInjury,
+    primaryCondition: primaryCondition.present
+        ? primaryCondition.value
+        : this.primaryCondition,
+    recognizableRemnantPresent: recognizableRemnantPresent.present
+        ? recognizableRemnantPresent.value
+        : this.recognizableRemnantPresent,
+    visibleSevering: visibleSevering.present
+        ? visibleSevering.value
+        : this.visibleSevering,
+    injuryLocation: injuryLocation.present
+        ? injuryLocation.value
+        : this.injuryLocation,
+    injuryFreshness: injuryFreshness.present
+        ? injuryFreshness.value
+        : this.injuryFreshness,
+    larvaVisible: larvaVisible.present ? larvaVisible.value : this.larvaVisible,
+    larvalSize: larvalSize.present ? larvalSize.value : this.larvalSize,
+    freshFrass: freshFrass.present ? freshFrass.value : this.freshFrass,
+    rotPresent: rotPresent.present ? rotPresent.value : this.rotPresent,
+    tunnelingPresent: tunnelingPresent.present
+        ? tunnelingPresent.value
+        : this.tunnelingPresent,
+    discolorationPresent: discolorationPresent.present
+        ? discolorationPresent.value
+        : this.discolorationPresent,
+    otherNonFawEvidence: otherNonFawEvidence.present
+        ? otherNonFawEvidence.value
+        : this.otherNonFawEvidence,
     confirmedFawPresent: confirmedFawPresent.present
         ? confirmedFawPresent.value
         : this.confirmedFawPresent,
@@ -14874,6 +15552,19 @@ class PlantingUnitObservationRecord extends DataClass
     alternativeCauseCode: alternativeCauseCode.present
         ? alternativeCauseCode.value
         : this.alternativeCauseCode,
+    alternativeCauseCodesJson: alternativeCauseCodesJson.present
+        ? alternativeCauseCodesJson.value
+        : this.alternativeCauseCodesJson,
+    evaluatorPrimaryInterpretation: evaluatorPrimaryInterpretation.present
+        ? evaluatorPrimaryInterpretation.value
+        : this.evaluatorPrimaryInterpretation,
+    evaluatorConfidence: evaluatorConfidence.present
+        ? evaluatorConfidence.value
+        : this.evaluatorConfidence,
+    inspectionDurationMs: inspectionDurationMs.present
+        ? inspectionDurationMs.value
+        : this.inspectionDurationMs,
+    correctionCount: correctionCount ?? this.correctionCount,
     notes: notes.present ? notes.value : this.notes,
     capturedAt: capturedAt.present ? capturedAt.value : this.capturedAt,
   );
@@ -14915,6 +15606,42 @@ class PlantingUnitObservationRecord extends DataClass
       visibleSeedlingInjury: data.visibleSeedlingInjury.present
           ? data.visibleSeedlingInjury.value
           : this.visibleSeedlingInjury,
+      primaryCondition: data.primaryCondition.present
+          ? data.primaryCondition.value
+          : this.primaryCondition,
+      recognizableRemnantPresent: data.recognizableRemnantPresent.present
+          ? data.recognizableRemnantPresent.value
+          : this.recognizableRemnantPresent,
+      visibleSevering: data.visibleSevering.present
+          ? data.visibleSevering.value
+          : this.visibleSevering,
+      injuryLocation: data.injuryLocation.present
+          ? data.injuryLocation.value
+          : this.injuryLocation,
+      injuryFreshness: data.injuryFreshness.present
+          ? data.injuryFreshness.value
+          : this.injuryFreshness,
+      larvaVisible: data.larvaVisible.present
+          ? data.larvaVisible.value
+          : this.larvaVisible,
+      larvalSize: data.larvalSize.present
+          ? data.larvalSize.value
+          : this.larvalSize,
+      freshFrass: data.freshFrass.present
+          ? data.freshFrass.value
+          : this.freshFrass,
+      rotPresent: data.rotPresent.present
+          ? data.rotPresent.value
+          : this.rotPresent,
+      tunnelingPresent: data.tunnelingPresent.present
+          ? data.tunnelingPresent.value
+          : this.tunnelingPresent,
+      discolorationPresent: data.discolorationPresent.present
+          ? data.discolorationPresent.value
+          : this.discolorationPresent,
+      otherNonFawEvidence: data.otherNonFawEvidence.present
+          ? data.otherNonFawEvidence.value
+          : this.otherNonFawEvidence,
       confirmedFawPresent: data.confirmedFawPresent.present
           ? data.confirmedFawPresent.value
           : this.confirmedFawPresent,
@@ -14924,6 +15651,22 @@ class PlantingUnitObservationRecord extends DataClass
       alternativeCauseCode: data.alternativeCauseCode.present
           ? data.alternativeCauseCode.value
           : this.alternativeCauseCode,
+      alternativeCauseCodesJson: data.alternativeCauseCodesJson.present
+          ? data.alternativeCauseCodesJson.value
+          : this.alternativeCauseCodesJson,
+      evaluatorPrimaryInterpretation:
+          data.evaluatorPrimaryInterpretation.present
+          ? data.evaluatorPrimaryInterpretation.value
+          : this.evaluatorPrimaryInterpretation,
+      evaluatorConfidence: data.evaluatorConfidence.present
+          ? data.evaluatorConfidence.value
+          : this.evaluatorConfidence,
+      inspectionDurationMs: data.inspectionDurationMs.present
+          ? data.inspectionDurationMs.value
+          : this.inspectionDurationMs,
+      correctionCount: data.correctionCount.present
+          ? data.correctionCount.value
+          : this.correctionCount,
       notes: data.notes.present ? data.notes.value : this.notes,
       capturedAt: data.capturedAt.present
           ? data.capturedAt.value
@@ -14950,9 +15693,28 @@ class PlantingUnitObservationRecord extends DataClass
           ..write('intendedSeedlingCount: $intendedSeedlingCount, ')
           ..write('visibleCutting: $visibleCutting, ')
           ..write('visibleSeedlingInjury: $visibleSeedlingInjury, ')
+          ..write('primaryCondition: $primaryCondition, ')
+          ..write('recognizableRemnantPresent: $recognizableRemnantPresent, ')
+          ..write('visibleSevering: $visibleSevering, ')
+          ..write('injuryLocation: $injuryLocation, ')
+          ..write('injuryFreshness: $injuryFreshness, ')
+          ..write('larvaVisible: $larvaVisible, ')
+          ..write('larvalSize: $larvalSize, ')
+          ..write('freshFrass: $freshFrass, ')
+          ..write('rotPresent: $rotPresent, ')
+          ..write('tunnelingPresent: $tunnelingPresent, ')
+          ..write('discolorationPresent: $discolorationPresent, ')
+          ..write('otherNonFawEvidence: $otherNonFawEvidence, ')
           ..write('confirmedFawPresent: $confirmedFawPresent, ')
           ..write('injuryConsistentWithFaw: $injuryConsistentWithFaw, ')
           ..write('alternativeCauseCode: $alternativeCauseCode, ')
+          ..write('alternativeCauseCodesJson: $alternativeCauseCodesJson, ')
+          ..write(
+            'evaluatorPrimaryInterpretation: $evaluatorPrimaryInterpretation, ',
+          )
+          ..write('evaluatorConfidence: $evaluatorConfidence, ')
+          ..write('inspectionDurationMs: $inspectionDurationMs, ')
+          ..write('correctionCount: $correctionCount, ')
           ..write('notes: $notes, ')
           ..write('capturedAt: $capturedAt')
           ..write(')'))
@@ -14977,9 +15739,26 @@ class PlantingUnitObservationRecord extends DataClass
     intendedSeedlingCount,
     visibleCutting,
     visibleSeedlingInjury,
+    primaryCondition,
+    recognizableRemnantPresent,
+    visibleSevering,
+    injuryLocation,
+    injuryFreshness,
+    larvaVisible,
+    larvalSize,
+    freshFrass,
+    rotPresent,
+    tunnelingPresent,
+    discolorationPresent,
+    otherNonFawEvidence,
     confirmedFawPresent,
     injuryConsistentWithFaw,
     alternativeCauseCode,
+    alternativeCauseCodesJson,
+    evaluatorPrimaryInterpretation,
+    evaluatorConfidence,
+    inspectionDurationMs,
+    correctionCount,
     notes,
     capturedAt,
   ]);
@@ -15003,9 +15782,27 @@ class PlantingUnitObservationRecord extends DataClass
           other.intendedSeedlingCount == this.intendedSeedlingCount &&
           other.visibleCutting == this.visibleCutting &&
           other.visibleSeedlingInjury == this.visibleSeedlingInjury &&
+          other.primaryCondition == this.primaryCondition &&
+          other.recognizableRemnantPresent == this.recognizableRemnantPresent &&
+          other.visibleSevering == this.visibleSevering &&
+          other.injuryLocation == this.injuryLocation &&
+          other.injuryFreshness == this.injuryFreshness &&
+          other.larvaVisible == this.larvaVisible &&
+          other.larvalSize == this.larvalSize &&
+          other.freshFrass == this.freshFrass &&
+          other.rotPresent == this.rotPresent &&
+          other.tunnelingPresent == this.tunnelingPresent &&
+          other.discolorationPresent == this.discolorationPresent &&
+          other.otherNonFawEvidence == this.otherNonFawEvidence &&
           other.confirmedFawPresent == this.confirmedFawPresent &&
           other.injuryConsistentWithFaw == this.injuryConsistentWithFaw &&
           other.alternativeCauseCode == this.alternativeCauseCode &&
+          other.alternativeCauseCodesJson == this.alternativeCauseCodesJson &&
+          other.evaluatorPrimaryInterpretation ==
+              this.evaluatorPrimaryInterpretation &&
+          other.evaluatorConfidence == this.evaluatorConfidence &&
+          other.inspectionDurationMs == this.inspectionDurationMs &&
+          other.correctionCount == this.correctionCount &&
           other.notes == this.notes &&
           other.capturedAt == this.capturedAt);
 }
@@ -15028,9 +15825,26 @@ class PlantingUnitObservationsCompanion
   final Value<int?> intendedSeedlingCount;
   final Value<bool?> visibleCutting;
   final Value<bool?> visibleSeedlingInjury;
+  final Value<String?> primaryCondition;
+  final Value<bool?> recognizableRemnantPresent;
+  final Value<bool?> visibleSevering;
+  final Value<String?> injuryLocation;
+  final Value<String?> injuryFreshness;
+  final Value<bool?> larvaVisible;
+  final Value<String?> larvalSize;
+  final Value<bool?> freshFrass;
+  final Value<bool?> rotPresent;
+  final Value<bool?> tunnelingPresent;
+  final Value<bool?> discolorationPresent;
+  final Value<bool?> otherNonFawEvidence;
   final Value<bool?> confirmedFawPresent;
   final Value<bool?> injuryConsistentWithFaw;
   final Value<String?> alternativeCauseCode;
+  final Value<String?> alternativeCauseCodesJson;
+  final Value<String?> evaluatorPrimaryInterpretation;
+  final Value<String?> evaluatorConfidence;
+  final Value<int?> inspectionDurationMs;
+  final Value<int> correctionCount;
   final Value<String?> notes;
   final Value<DateTime?> capturedAt;
   final Value<int> rowid;
@@ -15051,9 +15865,26 @@ class PlantingUnitObservationsCompanion
     this.intendedSeedlingCount = const Value.absent(),
     this.visibleCutting = const Value.absent(),
     this.visibleSeedlingInjury = const Value.absent(),
+    this.primaryCondition = const Value.absent(),
+    this.recognizableRemnantPresent = const Value.absent(),
+    this.visibleSevering = const Value.absent(),
+    this.injuryLocation = const Value.absent(),
+    this.injuryFreshness = const Value.absent(),
+    this.larvaVisible = const Value.absent(),
+    this.larvalSize = const Value.absent(),
+    this.freshFrass = const Value.absent(),
+    this.rotPresent = const Value.absent(),
+    this.tunnelingPresent = const Value.absent(),
+    this.discolorationPresent = const Value.absent(),
+    this.otherNonFawEvidence = const Value.absent(),
     this.confirmedFawPresent = const Value.absent(),
     this.injuryConsistentWithFaw = const Value.absent(),
     this.alternativeCauseCode = const Value.absent(),
+    this.alternativeCauseCodesJson = const Value.absent(),
+    this.evaluatorPrimaryInterpretation = const Value.absent(),
+    this.evaluatorConfidence = const Value.absent(),
+    this.inspectionDurationMs = const Value.absent(),
+    this.correctionCount = const Value.absent(),
     this.notes = const Value.absent(),
     this.capturedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -15075,9 +15906,26 @@ class PlantingUnitObservationsCompanion
     this.intendedSeedlingCount = const Value.absent(),
     this.visibleCutting = const Value.absent(),
     this.visibleSeedlingInjury = const Value.absent(),
+    this.primaryCondition = const Value.absent(),
+    this.recognizableRemnantPresent = const Value.absent(),
+    this.visibleSevering = const Value.absent(),
+    this.injuryLocation = const Value.absent(),
+    this.injuryFreshness = const Value.absent(),
+    this.larvaVisible = const Value.absent(),
+    this.larvalSize = const Value.absent(),
+    this.freshFrass = const Value.absent(),
+    this.rotPresent = const Value.absent(),
+    this.tunnelingPresent = const Value.absent(),
+    this.discolorationPresent = const Value.absent(),
+    this.otherNonFawEvidence = const Value.absent(),
     this.confirmedFawPresent = const Value.absent(),
     this.injuryConsistentWithFaw = const Value.absent(),
     this.alternativeCauseCode = const Value.absent(),
+    this.alternativeCauseCodesJson = const Value.absent(),
+    this.evaluatorPrimaryInterpretation = const Value.absent(),
+    this.evaluatorConfidence = const Value.absent(),
+    this.inspectionDurationMs = const Value.absent(),
+    this.correctionCount = const Value.absent(),
     this.notes = const Value.absent(),
     this.capturedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -15101,9 +15949,26 @@ class PlantingUnitObservationsCompanion
     Expression<int>? intendedSeedlingCount,
     Expression<bool>? visibleCutting,
     Expression<bool>? visibleSeedlingInjury,
+    Expression<String>? primaryCondition,
+    Expression<bool>? recognizableRemnantPresent,
+    Expression<bool>? visibleSevering,
+    Expression<String>? injuryLocation,
+    Expression<String>? injuryFreshness,
+    Expression<bool>? larvaVisible,
+    Expression<String>? larvalSize,
+    Expression<bool>? freshFrass,
+    Expression<bool>? rotPresent,
+    Expression<bool>? tunnelingPresent,
+    Expression<bool>? discolorationPresent,
+    Expression<bool>? otherNonFawEvidence,
     Expression<bool>? confirmedFawPresent,
     Expression<bool>? injuryConsistentWithFaw,
     Expression<String>? alternativeCauseCode,
+    Expression<String>? alternativeCauseCodesJson,
+    Expression<String>? evaluatorPrimaryInterpretation,
+    Expression<String>? evaluatorConfidence,
+    Expression<int>? inspectionDurationMs,
+    Expression<int>? correctionCount,
     Expression<String>? notes,
     Expression<DateTime>? capturedAt,
     Expression<int>? rowid,
@@ -15129,12 +15994,36 @@ class PlantingUnitObservationsCompanion
       if (visibleCutting != null) 'visible_cutting': visibleCutting,
       if (visibleSeedlingInjury != null)
         'visible_seedling_injury': visibleSeedlingInjury,
+      if (primaryCondition != null) 'primary_condition': primaryCondition,
+      if (recognizableRemnantPresent != null)
+        'recognizable_remnant_present': recognizableRemnantPresent,
+      if (visibleSevering != null) 'visible_severing': visibleSevering,
+      if (injuryLocation != null) 'injury_location': injuryLocation,
+      if (injuryFreshness != null) 'injury_freshness': injuryFreshness,
+      if (larvaVisible != null) 'larva_visible': larvaVisible,
+      if (larvalSize != null) 'larval_size': larvalSize,
+      if (freshFrass != null) 'fresh_frass': freshFrass,
+      if (rotPresent != null) 'rot_present': rotPresent,
+      if (tunnelingPresent != null) 'tunneling_present': tunnelingPresent,
+      if (discolorationPresent != null)
+        'discoloration_present': discolorationPresent,
+      if (otherNonFawEvidence != null)
+        'other_non_faw_evidence': otherNonFawEvidence,
       if (confirmedFawPresent != null)
         'confirmed_faw_present': confirmedFawPresent,
       if (injuryConsistentWithFaw != null)
         'injury_consistent_with_faw': injuryConsistentWithFaw,
       if (alternativeCauseCode != null)
         'alternative_cause_code': alternativeCauseCode,
+      if (alternativeCauseCodesJson != null)
+        'alternative_cause_codes_json': alternativeCauseCodesJson,
+      if (evaluatorPrimaryInterpretation != null)
+        'evaluator_primary_interpretation': evaluatorPrimaryInterpretation,
+      if (evaluatorConfidence != null)
+        'evaluator_confidence': evaluatorConfidence,
+      if (inspectionDurationMs != null)
+        'inspection_duration_ms': inspectionDurationMs,
+      if (correctionCount != null) 'correction_count': correctionCount,
       if (notes != null) 'notes': notes,
       if (capturedAt != null) 'captured_at': capturedAt,
       if (rowid != null) 'rowid': rowid,
@@ -15158,9 +16047,26 @@ class PlantingUnitObservationsCompanion
     Value<int?>? intendedSeedlingCount,
     Value<bool?>? visibleCutting,
     Value<bool?>? visibleSeedlingInjury,
+    Value<String?>? primaryCondition,
+    Value<bool?>? recognizableRemnantPresent,
+    Value<bool?>? visibleSevering,
+    Value<String?>? injuryLocation,
+    Value<String?>? injuryFreshness,
+    Value<bool?>? larvaVisible,
+    Value<String?>? larvalSize,
+    Value<bool?>? freshFrass,
+    Value<bool?>? rotPresent,
+    Value<bool?>? tunnelingPresent,
+    Value<bool?>? discolorationPresent,
+    Value<bool?>? otherNonFawEvidence,
     Value<bool?>? confirmedFawPresent,
     Value<bool?>? injuryConsistentWithFaw,
     Value<String?>? alternativeCauseCode,
+    Value<String?>? alternativeCauseCodesJson,
+    Value<String?>? evaluatorPrimaryInterpretation,
+    Value<String?>? evaluatorConfidence,
+    Value<int?>? inspectionDurationMs,
+    Value<int>? correctionCount,
     Value<String?>? notes,
     Value<DateTime?>? capturedAt,
     Value<int>? rowid,
@@ -15185,10 +16091,30 @@ class PlantingUnitObservationsCompanion
       visibleCutting: visibleCutting ?? this.visibleCutting,
       visibleSeedlingInjury:
           visibleSeedlingInjury ?? this.visibleSeedlingInjury,
+      primaryCondition: primaryCondition ?? this.primaryCondition,
+      recognizableRemnantPresent:
+          recognizableRemnantPresent ?? this.recognizableRemnantPresent,
+      visibleSevering: visibleSevering ?? this.visibleSevering,
+      injuryLocation: injuryLocation ?? this.injuryLocation,
+      injuryFreshness: injuryFreshness ?? this.injuryFreshness,
+      larvaVisible: larvaVisible ?? this.larvaVisible,
+      larvalSize: larvalSize ?? this.larvalSize,
+      freshFrass: freshFrass ?? this.freshFrass,
+      rotPresent: rotPresent ?? this.rotPresent,
+      tunnelingPresent: tunnelingPresent ?? this.tunnelingPresent,
+      discolorationPresent: discolorationPresent ?? this.discolorationPresent,
+      otherNonFawEvidence: otherNonFawEvidence ?? this.otherNonFawEvidence,
       confirmedFawPresent: confirmedFawPresent ?? this.confirmedFawPresent,
       injuryConsistentWithFaw:
           injuryConsistentWithFaw ?? this.injuryConsistentWithFaw,
       alternativeCauseCode: alternativeCauseCode ?? this.alternativeCauseCode,
+      alternativeCauseCodesJson:
+          alternativeCauseCodesJson ?? this.alternativeCauseCodesJson,
+      evaluatorPrimaryInterpretation:
+          evaluatorPrimaryInterpretation ?? this.evaluatorPrimaryInterpretation,
+      evaluatorConfidence: evaluatorConfidence ?? this.evaluatorConfidence,
+      inspectionDurationMs: inspectionDurationMs ?? this.inspectionDurationMs,
+      correctionCount: correctionCount ?? this.correctionCount,
       notes: notes ?? this.notes,
       capturedAt: capturedAt ?? this.capturedAt,
       rowid: rowid ?? this.rowid,
@@ -15254,6 +16180,44 @@ class PlantingUnitObservationsCompanion
         visibleSeedlingInjury.value,
       );
     }
+    if (primaryCondition.present) {
+      map['primary_condition'] = Variable<String>(primaryCondition.value);
+    }
+    if (recognizableRemnantPresent.present) {
+      map['recognizable_remnant_present'] = Variable<bool>(
+        recognizableRemnantPresent.value,
+      );
+    }
+    if (visibleSevering.present) {
+      map['visible_severing'] = Variable<bool>(visibleSevering.value);
+    }
+    if (injuryLocation.present) {
+      map['injury_location'] = Variable<String>(injuryLocation.value);
+    }
+    if (injuryFreshness.present) {
+      map['injury_freshness'] = Variable<String>(injuryFreshness.value);
+    }
+    if (larvaVisible.present) {
+      map['larva_visible'] = Variable<bool>(larvaVisible.value);
+    }
+    if (larvalSize.present) {
+      map['larval_size'] = Variable<String>(larvalSize.value);
+    }
+    if (freshFrass.present) {
+      map['fresh_frass'] = Variable<bool>(freshFrass.value);
+    }
+    if (rotPresent.present) {
+      map['rot_present'] = Variable<bool>(rotPresent.value);
+    }
+    if (tunnelingPresent.present) {
+      map['tunneling_present'] = Variable<bool>(tunnelingPresent.value);
+    }
+    if (discolorationPresent.present) {
+      map['discoloration_present'] = Variable<bool>(discolorationPresent.value);
+    }
+    if (otherNonFawEvidence.present) {
+      map['other_non_faw_evidence'] = Variable<bool>(otherNonFawEvidence.value);
+    }
     if (confirmedFawPresent.present) {
       map['confirmed_faw_present'] = Variable<bool>(confirmedFawPresent.value);
     }
@@ -15266,6 +16230,25 @@ class PlantingUnitObservationsCompanion
       map['alternative_cause_code'] = Variable<String>(
         alternativeCauseCode.value,
       );
+    }
+    if (alternativeCauseCodesJson.present) {
+      map['alternative_cause_codes_json'] = Variable<String>(
+        alternativeCauseCodesJson.value,
+      );
+    }
+    if (evaluatorPrimaryInterpretation.present) {
+      map['evaluator_primary_interpretation'] = Variable<String>(
+        evaluatorPrimaryInterpretation.value,
+      );
+    }
+    if (evaluatorConfidence.present) {
+      map['evaluator_confidence'] = Variable<String>(evaluatorConfidence.value);
+    }
+    if (inspectionDurationMs.present) {
+      map['inspection_duration_ms'] = Variable<int>(inspectionDurationMs.value);
+    }
+    if (correctionCount.present) {
+      map['correction_count'] = Variable<int>(correctionCount.value);
     }
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
@@ -15298,9 +16281,28 @@ class PlantingUnitObservationsCompanion
           ..write('intendedSeedlingCount: $intendedSeedlingCount, ')
           ..write('visibleCutting: $visibleCutting, ')
           ..write('visibleSeedlingInjury: $visibleSeedlingInjury, ')
+          ..write('primaryCondition: $primaryCondition, ')
+          ..write('recognizableRemnantPresent: $recognizableRemnantPresent, ')
+          ..write('visibleSevering: $visibleSevering, ')
+          ..write('injuryLocation: $injuryLocation, ')
+          ..write('injuryFreshness: $injuryFreshness, ')
+          ..write('larvaVisible: $larvaVisible, ')
+          ..write('larvalSize: $larvalSize, ')
+          ..write('freshFrass: $freshFrass, ')
+          ..write('rotPresent: $rotPresent, ')
+          ..write('tunnelingPresent: $tunnelingPresent, ')
+          ..write('discolorationPresent: $discolorationPresent, ')
+          ..write('otherNonFawEvidence: $otherNonFawEvidence, ')
           ..write('confirmedFawPresent: $confirmedFawPresent, ')
           ..write('injuryConsistentWithFaw: $injuryConsistentWithFaw, ')
           ..write('alternativeCauseCode: $alternativeCauseCode, ')
+          ..write('alternativeCauseCodesJson: $alternativeCauseCodesJson, ')
+          ..write(
+            'evaluatorPrimaryInterpretation: $evaluatorPrimaryInterpretation, ',
+          )
+          ..write('evaluatorConfidence: $evaluatorConfidence, ')
+          ..write('inspectionDurationMs: $inspectionDurationMs, ')
+          ..write('correctionCount: $correctionCount, ')
           ..write('notes: $notes, ')
           ..write('capturedAt: $capturedAt, ')
           ..write('rowid: $rowid')
@@ -15419,6 +16421,20 @@ class $PlantObservationsTable extends PlantObservations
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _sourcePlantingUnitObservationIdMeta =
+      const VerificationMeta('sourcePlantingUnitObservationId');
+  @override
+  late final GeneratedColumn<String> sourcePlantingUnitObservationId =
+      GeneratedColumn<String>(
+        'source_planting_unit_observation_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'REFERENCES planting_unit_observations (id)',
+        ),
+      );
   static const VerificationMeta _persistentPlantIdentifierMeta =
       const VerificationMeta('persistentPlantIdentifier');
   @override
@@ -15611,6 +16627,7 @@ class $PlantObservationsTable extends PlantObservations
     serverVersion,
     stationId,
     sequenceNumber,
+    sourcePlantingUnitObservationId,
     persistentPlantIdentifier,
     assessable,
     notAssessableReason,
@@ -15701,6 +16718,15 @@ class $PlantObservationsTable extends PlantObservations
       );
     } else if (isInserting) {
       context.missing(_sequenceNumberMeta);
+    }
+    if (data.containsKey('source_planting_unit_observation_id')) {
+      context.handle(
+        _sourcePlantingUnitObservationIdMeta,
+        sourcePlantingUnitObservationId.isAcceptableOrUnknown(
+          data['source_planting_unit_observation_id']!,
+          _sourcePlantingUnitObservationIdMeta,
+        ),
+      );
     }
     if (data.containsKey('persistent_plant_identifier')) {
       context.handle(
@@ -15878,6 +16904,10 @@ class $PlantObservationsTable extends PlantObservations
         DriftSqlType.int,
         data['${effectivePrefix}sequence_number'],
       )!,
+      sourcePlantingUnitObservationId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_planting_unit_observation_id'],
+      ),
       persistentPlantIdentifier: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}persistent_plant_identifier'],
@@ -15958,6 +16988,7 @@ class PlantObservationRecord extends DataClass
   final int serverVersion;
   final String stationId;
   final int sequenceNumber;
+  final String? sourcePlantingUnitObservationId;
   final String? persistentPlantIdentifier;
   final bool assessable;
   final String? notAssessableReason;
@@ -15983,6 +17014,7 @@ class PlantObservationRecord extends DataClass
     required this.serverVersion,
     required this.stationId,
     required this.sequenceNumber,
+    this.sourcePlantingUnitObservationId,
     this.persistentPlantIdentifier,
     required this.assessable,
     this.notAssessableReason,
@@ -16015,6 +17047,11 @@ class PlantObservationRecord extends DataClass
     map['server_version'] = Variable<int>(serverVersion);
     map['station_id'] = Variable<String>(stationId);
     map['sequence_number'] = Variable<int>(sequenceNumber);
+    if (!nullToAbsent || sourcePlantingUnitObservationId != null) {
+      map['source_planting_unit_observation_id'] = Variable<String>(
+        sourcePlantingUnitObservationId,
+      );
+    }
     if (!nullToAbsent || persistentPlantIdentifier != null) {
       map['persistent_plant_identifier'] = Variable<String>(
         persistentPlantIdentifier,
@@ -16074,6 +17111,10 @@ class PlantObservationRecord extends DataClass
       serverVersion: Value(serverVersion),
       stationId: Value(stationId),
       sequenceNumber: Value(sequenceNumber),
+      sourcePlantingUnitObservationId:
+          sourcePlantingUnitObservationId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourcePlantingUnitObservationId),
       persistentPlantIdentifier:
           persistentPlantIdentifier == null && nullToAbsent
           ? const Value.absent()
@@ -16130,6 +17171,9 @@ class PlantObservationRecord extends DataClass
       serverVersion: serializer.fromJson<int>(json['serverVersion']),
       stationId: serializer.fromJson<String>(json['stationId']),
       sequenceNumber: serializer.fromJson<int>(json['sequenceNumber']),
+      sourcePlantingUnitObservationId: serializer.fromJson<String?>(
+        json['sourcePlantingUnitObservationId'],
+      ),
       persistentPlantIdentifier: serializer.fromJson<String?>(
         json['persistentPlantIdentifier'],
       ),
@@ -16172,6 +17216,9 @@ class PlantObservationRecord extends DataClass
       'serverVersion': serializer.toJson<int>(serverVersion),
       'stationId': serializer.toJson<String>(stationId),
       'sequenceNumber': serializer.toJson<int>(sequenceNumber),
+      'sourcePlantingUnitObservationId': serializer.toJson<String?>(
+        sourcePlantingUnitObservationId,
+      ),
       'persistentPlantIdentifier': serializer.toJson<String?>(
         persistentPlantIdentifier,
       ),
@@ -16208,6 +17255,7 @@ class PlantObservationRecord extends DataClass
     int? serverVersion,
     String? stationId,
     int? sequenceNumber,
+    Value<String?> sourcePlantingUnitObservationId = const Value.absent(),
     Value<String?> persistentPlantIdentifier = const Value.absent(),
     bool? assessable,
     Value<String?> notAssessableReason = const Value.absent(),
@@ -16233,6 +17281,9 @@ class PlantObservationRecord extends DataClass
     serverVersion: serverVersion ?? this.serverVersion,
     stationId: stationId ?? this.stationId,
     sequenceNumber: sequenceNumber ?? this.sequenceNumber,
+    sourcePlantingUnitObservationId: sourcePlantingUnitObservationId.present
+        ? sourcePlantingUnitObservationId.value
+        : this.sourcePlantingUnitObservationId,
     persistentPlantIdentifier: persistentPlantIdentifier.present
         ? persistentPlantIdentifier.value
         : this.persistentPlantIdentifier,
@@ -16279,6 +17330,10 @@ class PlantObservationRecord extends DataClass
       sequenceNumber: data.sequenceNumber.present
           ? data.sequenceNumber.value
           : this.sequenceNumber,
+      sourcePlantingUnitObservationId:
+          data.sourcePlantingUnitObservationId.present
+          ? data.sourcePlantingUnitObservationId.value
+          : this.sourcePlantingUnitObservationId,
       persistentPlantIdentifier: data.persistentPlantIdentifier.present
           ? data.persistentPlantIdentifier.value
           : this.persistentPlantIdentifier,
@@ -16335,6 +17390,9 @@ class PlantObservationRecord extends DataClass
           ..write('serverVersion: $serverVersion, ')
           ..write('stationId: $stationId, ')
           ..write('sequenceNumber: $sequenceNumber, ')
+          ..write(
+            'sourcePlantingUnitObservationId: $sourcePlantingUnitObservationId, ',
+          )
           ..write('persistentPlantIdentifier: $persistentPlantIdentifier, ')
           ..write('assessable: $assessable, ')
           ..write('notAssessableReason: $notAssessableReason, ')
@@ -16365,6 +17423,7 @@ class PlantObservationRecord extends DataClass
     serverVersion,
     stationId,
     sequenceNumber,
+    sourcePlantingUnitObservationId,
     persistentPlantIdentifier,
     assessable,
     notAssessableReason,
@@ -16394,6 +17453,8 @@ class PlantObservationRecord extends DataClass
           other.serverVersion == this.serverVersion &&
           other.stationId == this.stationId &&
           other.sequenceNumber == this.sequenceNumber &&
+          other.sourcePlantingUnitObservationId ==
+              this.sourcePlantingUnitObservationId &&
           other.persistentPlantIdentifier == this.persistentPlantIdentifier &&
           other.assessable == this.assessable &&
           other.notAssessableReason == this.notAssessableReason &&
@@ -16422,6 +17483,7 @@ class PlantObservationsCompanion
   final Value<int> serverVersion;
   final Value<String> stationId;
   final Value<int> sequenceNumber;
+  final Value<String?> sourcePlantingUnitObservationId;
   final Value<String?> persistentPlantIdentifier;
   final Value<bool> assessable;
   final Value<String?> notAssessableReason;
@@ -16448,6 +17510,7 @@ class PlantObservationsCompanion
     this.serverVersion = const Value.absent(),
     this.stationId = const Value.absent(),
     this.sequenceNumber = const Value.absent(),
+    this.sourcePlantingUnitObservationId = const Value.absent(),
     this.persistentPlantIdentifier = const Value.absent(),
     this.assessable = const Value.absent(),
     this.notAssessableReason = const Value.absent(),
@@ -16475,6 +17538,7 @@ class PlantObservationsCompanion
     this.serverVersion = const Value.absent(),
     required String stationId,
     required int sequenceNumber,
+    this.sourcePlantingUnitObservationId = const Value.absent(),
     this.persistentPlantIdentifier = const Value.absent(),
     this.assessable = const Value.absent(),
     this.notAssessableReason = const Value.absent(),
@@ -16506,6 +17570,7 @@ class PlantObservationsCompanion
     Expression<int>? serverVersion,
     Expression<String>? stationId,
     Expression<int>? sequenceNumber,
+    Expression<String>? sourcePlantingUnitObservationId,
     Expression<String>? persistentPlantIdentifier,
     Expression<bool>? assessable,
     Expression<String>? notAssessableReason,
@@ -16533,6 +17598,8 @@ class PlantObservationsCompanion
       if (serverVersion != null) 'server_version': serverVersion,
       if (stationId != null) 'station_id': stationId,
       if (sequenceNumber != null) 'sequence_number': sequenceNumber,
+      if (sourcePlantingUnitObservationId != null)
+        'source_planting_unit_observation_id': sourcePlantingUnitObservationId,
       if (persistentPlantIdentifier != null)
         'persistent_plant_identifier': persistentPlantIdentifier,
       if (assessable != null) 'assessable': assessable,
@@ -16568,6 +17635,7 @@ class PlantObservationsCompanion
     Value<int>? serverVersion,
     Value<String>? stationId,
     Value<int>? sequenceNumber,
+    Value<String?>? sourcePlantingUnitObservationId,
     Value<String?>? persistentPlantIdentifier,
     Value<bool>? assessable,
     Value<String?>? notAssessableReason,
@@ -16595,6 +17663,9 @@ class PlantObservationsCompanion
       serverVersion: serverVersion ?? this.serverVersion,
       stationId: stationId ?? this.stationId,
       sequenceNumber: sequenceNumber ?? this.sequenceNumber,
+      sourcePlantingUnitObservationId:
+          sourcePlantingUnitObservationId ??
+          this.sourcePlantingUnitObservationId,
       persistentPlantIdentifier:
           persistentPlantIdentifier ?? this.persistentPlantIdentifier,
       assessable: assessable ?? this.assessable,
@@ -16647,6 +17718,11 @@ class PlantObservationsCompanion
     }
     if (sequenceNumber.present) {
       map['sequence_number'] = Variable<int>(sequenceNumber.value);
+    }
+    if (sourcePlantingUnitObservationId.present) {
+      map['source_planting_unit_observation_id'] = Variable<String>(
+        sourcePlantingUnitObservationId.value,
+      );
     }
     if (persistentPlantIdentifier.present) {
       map['persistent_plant_identifier'] = Variable<String>(
@@ -16721,6 +17797,9 @@ class PlantObservationsCompanion
           ..write('serverVersion: $serverVersion, ')
           ..write('stationId: $stationId, ')
           ..write('sequenceNumber: $sequenceNumber, ')
+          ..write(
+            'sourcePlantingUnitObservationId: $sourcePlantingUnitObservationId, ',
+          )
           ..write('persistentPlantIdentifier: $persistentPlantIdentifier, ')
           ..write('assessable: $assessable, ')
           ..write('notAssessableReason: $notAssessableReason, ')
@@ -16736,6 +17815,1389 @@ class PlantObservationsCompanion
           ..write('gpsAccuracyM: $gpsAccuracyM, ')
           ..write('capturedAt: $capturedAt, ')
           ..write('evaluatorNotes: $evaluatorNotes, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $VeV2StationInspectionsTable extends VeV2StationInspections
+    with TableInfo<$VeV2StationInspectionsTable, VeV2StationInspectionRecord> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $VeV2StationInspectionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deviceIdMeta = const VerificationMeta(
+    'deviceId',
+  );
+  @override
+  late final GeneratedColumn<String> deviceId = GeneratedColumn<String>(
+    'device_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _syncStateMeta = const VerificationMeta(
+    'syncState',
+  );
+  @override
+  late final GeneratedColumn<String> syncState = GeneratedColumn<String>(
+    'sync_state',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(DatabaseCodes.localOnly),
+  );
+  static const VerificationMeta _serverVersionMeta = const VerificationMeta(
+    'serverVersion',
+  );
+  @override
+  late final GeneratedColumn<int> serverVersion = GeneratedColumn<int>(
+    'server_version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _stationIdMeta = const VerificationMeta(
+    'stationId',
+  );
+  @override
+  late final GeneratedColumn<String> stationId = GeneratedColumn<String>(
+    'station_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'UNIQUE REFERENCES stations (id)',
+    ),
+  );
+  static const VerificationMeta _emergenceContinuingMeta =
+      const VerificationMeta('emergenceContinuing');
+  @override
+  late final GeneratedColumn<bool> emergenceContinuing = GeneratedColumn<bool>(
+    'emergence_continuing',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("emergence_continuing" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _delayedEmergencePlausibleMeta =
+      const VerificationMeta('delayedEmergencePlausible');
+  @override
+  late final GeneratedColumn<bool> delayedEmergencePlausible =
+      GeneratedColumn<bool>(
+        'delayed_emergence_plausible',
+        aliasedName,
+        true,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("delayed_emergence_plausible" IN (0, 1))',
+        ),
+      );
+  static const VerificationMeta _plantingUnitSequenceAssessableMeta =
+      const VerificationMeta('plantingUnitSequenceAssessable');
+  @override
+  late final GeneratedColumn<bool> plantingUnitSequenceAssessable =
+      GeneratedColumn<bool>(
+        'planting_unit_sequence_assessable',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("planting_unit_sequence_assessable" IN (0, 1))',
+        ),
+        defaultValue: const Constant(true),
+      );
+  static const VerificationMeta _sequenceNotAssessableReasonMeta =
+      const VerificationMeta('sequenceNotAssessableReason');
+  @override
+  late final GeneratedColumn<String> sequenceNotAssessableReason =
+      GeneratedColumn<String>(
+        'sequence_not_assessable_reason',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _rowDirectionCodeMeta = const VerificationMeta(
+    'rowDirectionCode',
+  );
+  @override
+  late final GeneratedColumn<String> rowDirectionCode = GeneratedColumn<String>(
+    'row_direction_code',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _stationContextMeetsRowPurposeMeta =
+      const VerificationMeta('stationContextMeetsRowPurpose');
+  @override
+  late final GeneratedColumn<bool> stationContextMeetsRowPurpose =
+      GeneratedColumn<bool>(
+        'station_context_meets_row_purpose',
+        aliasedName,
+        true,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("station_context_meets_row_purpose" IN (0, 1))',
+        ),
+      );
+  static const VerificationMeta _protocolVersionMeta = const VerificationMeta(
+    'protocolVersion',
+  );
+  @override
+  late final GeneratedColumn<String> protocolVersion = GeneratedColumn<String>(
+    'protocol_version',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('ve_v2_station_pilot_v1'),
+  );
+  static const VerificationMeta _startedAtMeta = const VerificationMeta(
+    'startedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> startedAt = GeneratedColumn<DateTime>(
+    'started_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _completedAtMeta = const VerificationMeta(
+    'completedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> completedAt = GeneratedColumn<DateTime>(
+    'completed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _plantingUnitEntryDurationMsMeta =
+      const VerificationMeta('plantingUnitEntryDurationMs');
+  @override
+  late final GeneratedColumn<int> plantingUnitEntryDurationMs =
+      GeneratedColumn<int>(
+        'planting_unit_entry_duration_ms',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(0),
+      );
+  static const VerificationMeta _livingSeedlingEntryDurationMsMeta =
+      const VerificationMeta('livingSeedlingEntryDurationMs');
+  @override
+  late final GeneratedColumn<int> livingSeedlingEntryDurationMs =
+      GeneratedColumn<int>(
+        'living_seedling_entry_duration_ms',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(0),
+      );
+  static const VerificationMeta _correctionCountMeta = const VerificationMeta(
+    'correctionCount',
+  );
+  @override
+  late final GeneratedColumn<int> correctionCount = GeneratedColumn<int>(
+    'correction_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _repeatedPhysicalCheckCountMeta =
+      const VerificationMeta('repeatedPhysicalCheckCount');
+  @override
+  late final GeneratedColumn<int> repeatedPhysicalCheckCount =
+      GeneratedColumn<int>(
+        'repeated_physical_check_count',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(0),
+      );
+  static const VerificationMeta _evaluatorWorkloadRatingMeta =
+      const VerificationMeta('evaluatorWorkloadRating');
+  @override
+  late final GeneratedColumn<int> evaluatorWorkloadRating =
+      GeneratedColumn<int>(
+        'evaluator_workload_rating',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    deviceId,
+    syncState,
+    serverVersion,
+    stationId,
+    emergenceContinuing,
+    delayedEmergencePlausible,
+    plantingUnitSequenceAssessable,
+    sequenceNotAssessableReason,
+    rowDirectionCode,
+    stationContextMeetsRowPurpose,
+    protocolVersion,
+    startedAt,
+    completedAt,
+    plantingUnitEntryDurationMs,
+    livingSeedlingEntryDurationMs,
+    correctionCount,
+    repeatedPhysicalCheckCount,
+    evaluatorWorkloadRating,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 've_v2_station_inspections';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<VeV2StationInspectionRecord> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('device_id')) {
+      context.handle(
+        _deviceIdMeta,
+        deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta),
+      );
+    }
+    if (data.containsKey('sync_state')) {
+      context.handle(
+        _syncStateMeta,
+        syncState.isAcceptableOrUnknown(data['sync_state']!, _syncStateMeta),
+      );
+    }
+    if (data.containsKey('server_version')) {
+      context.handle(
+        _serverVersionMeta,
+        serverVersion.isAcceptableOrUnknown(
+          data['server_version']!,
+          _serverVersionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('station_id')) {
+      context.handle(
+        _stationIdMeta,
+        stationId.isAcceptableOrUnknown(data['station_id']!, _stationIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_stationIdMeta);
+    }
+    if (data.containsKey('emergence_continuing')) {
+      context.handle(
+        _emergenceContinuingMeta,
+        emergenceContinuing.isAcceptableOrUnknown(
+          data['emergence_continuing']!,
+          _emergenceContinuingMeta,
+        ),
+      );
+    }
+    if (data.containsKey('delayed_emergence_plausible')) {
+      context.handle(
+        _delayedEmergencePlausibleMeta,
+        delayedEmergencePlausible.isAcceptableOrUnknown(
+          data['delayed_emergence_plausible']!,
+          _delayedEmergencePlausibleMeta,
+        ),
+      );
+    }
+    if (data.containsKey('planting_unit_sequence_assessable')) {
+      context.handle(
+        _plantingUnitSequenceAssessableMeta,
+        plantingUnitSequenceAssessable.isAcceptableOrUnknown(
+          data['planting_unit_sequence_assessable']!,
+          _plantingUnitSequenceAssessableMeta,
+        ),
+      );
+    }
+    if (data.containsKey('sequence_not_assessable_reason')) {
+      context.handle(
+        _sequenceNotAssessableReasonMeta,
+        sequenceNotAssessableReason.isAcceptableOrUnknown(
+          data['sequence_not_assessable_reason']!,
+          _sequenceNotAssessableReasonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('row_direction_code')) {
+      context.handle(
+        _rowDirectionCodeMeta,
+        rowDirectionCode.isAcceptableOrUnknown(
+          data['row_direction_code']!,
+          _rowDirectionCodeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('station_context_meets_row_purpose')) {
+      context.handle(
+        _stationContextMeetsRowPurposeMeta,
+        stationContextMeetsRowPurpose.isAcceptableOrUnknown(
+          data['station_context_meets_row_purpose']!,
+          _stationContextMeetsRowPurposeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('protocol_version')) {
+      context.handle(
+        _protocolVersionMeta,
+        protocolVersion.isAcceptableOrUnknown(
+          data['protocol_version']!,
+          _protocolVersionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('started_at')) {
+      context.handle(
+        _startedAtMeta,
+        startedAt.isAcceptableOrUnknown(data['started_at']!, _startedAtMeta),
+      );
+    }
+    if (data.containsKey('completed_at')) {
+      context.handle(
+        _completedAtMeta,
+        completedAt.isAcceptableOrUnknown(
+          data['completed_at']!,
+          _completedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('planting_unit_entry_duration_ms')) {
+      context.handle(
+        _plantingUnitEntryDurationMsMeta,
+        plantingUnitEntryDurationMs.isAcceptableOrUnknown(
+          data['planting_unit_entry_duration_ms']!,
+          _plantingUnitEntryDurationMsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('living_seedling_entry_duration_ms')) {
+      context.handle(
+        _livingSeedlingEntryDurationMsMeta,
+        livingSeedlingEntryDurationMs.isAcceptableOrUnknown(
+          data['living_seedling_entry_duration_ms']!,
+          _livingSeedlingEntryDurationMsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('correction_count')) {
+      context.handle(
+        _correctionCountMeta,
+        correctionCount.isAcceptableOrUnknown(
+          data['correction_count']!,
+          _correctionCountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('repeated_physical_check_count')) {
+      context.handle(
+        _repeatedPhysicalCheckCountMeta,
+        repeatedPhysicalCheckCount.isAcceptableOrUnknown(
+          data['repeated_physical_check_count']!,
+          _repeatedPhysicalCheckCountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('evaluator_workload_rating')) {
+      context.handle(
+        _evaluatorWorkloadRatingMeta,
+        evaluatorWorkloadRating.isAcceptableOrUnknown(
+          data['evaluator_workload_rating']!,
+          _evaluatorWorkloadRatingMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  VeV2StationInspectionRecord map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return VeV2StationInspectionRecord(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      deviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_id'],
+      ),
+      syncState: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_state'],
+      )!,
+      serverVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}server_version'],
+      )!,
+      stationId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}station_id'],
+      )!,
+      emergenceContinuing: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}emergence_continuing'],
+      ),
+      delayedEmergencePlausible: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}delayed_emergence_plausible'],
+      ),
+      plantingUnitSequenceAssessable: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}planting_unit_sequence_assessable'],
+      )!,
+      sequenceNotAssessableReason: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sequence_not_assessable_reason'],
+      ),
+      rowDirectionCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}row_direction_code'],
+      ),
+      stationContextMeetsRowPurpose: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}station_context_meets_row_purpose'],
+      ),
+      protocolVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}protocol_version'],
+      )!,
+      startedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}started_at'],
+      ),
+      completedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}completed_at'],
+      ),
+      plantingUnitEntryDurationMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}planting_unit_entry_duration_ms'],
+      )!,
+      livingSeedlingEntryDurationMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}living_seedling_entry_duration_ms'],
+      )!,
+      correctionCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}correction_count'],
+      )!,
+      repeatedPhysicalCheckCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}repeated_physical_check_count'],
+      )!,
+      evaluatorWorkloadRating: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}evaluator_workload_rating'],
+      ),
+    );
+  }
+
+  @override
+  $VeV2StationInspectionsTable createAlias(String alias) {
+    return $VeV2StationInspectionsTable(attachedDatabase, alias);
+  }
+}
+
+class VeV2StationInspectionRecord extends DataClass
+    implements Insertable<VeV2StationInspectionRecord> {
+  final String id;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+  final String? deviceId;
+  final String syncState;
+  final int serverVersion;
+  final String stationId;
+  final bool? emergenceContinuing;
+  final bool? delayedEmergencePlausible;
+  final bool plantingUnitSequenceAssessable;
+  final String? sequenceNotAssessableReason;
+  final String? rowDirectionCode;
+  final bool? stationContextMeetsRowPurpose;
+  final String protocolVersion;
+  final DateTime? startedAt;
+  final DateTime? completedAt;
+  final int plantingUnitEntryDurationMs;
+  final int livingSeedlingEntryDurationMs;
+  final int correctionCount;
+  final int repeatedPhysicalCheckCount;
+  final int? evaluatorWorkloadRating;
+  const VeV2StationInspectionRecord({
+    required this.id,
+    required this.createdAt,
+    required this.updatedAt,
+    this.deletedAt,
+    this.deviceId,
+    required this.syncState,
+    required this.serverVersion,
+    required this.stationId,
+    this.emergenceContinuing,
+    this.delayedEmergencePlausible,
+    required this.plantingUnitSequenceAssessable,
+    this.sequenceNotAssessableReason,
+    this.rowDirectionCode,
+    this.stationContextMeetsRowPurpose,
+    required this.protocolVersion,
+    this.startedAt,
+    this.completedAt,
+    required this.plantingUnitEntryDurationMs,
+    required this.livingSeedlingEntryDurationMs,
+    required this.correctionCount,
+    required this.repeatedPhysicalCheckCount,
+    this.evaluatorWorkloadRating,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    if (!nullToAbsent || deviceId != null) {
+      map['device_id'] = Variable<String>(deviceId);
+    }
+    map['sync_state'] = Variable<String>(syncState);
+    map['server_version'] = Variable<int>(serverVersion);
+    map['station_id'] = Variable<String>(stationId);
+    if (!nullToAbsent || emergenceContinuing != null) {
+      map['emergence_continuing'] = Variable<bool>(emergenceContinuing);
+    }
+    if (!nullToAbsent || delayedEmergencePlausible != null) {
+      map['delayed_emergence_plausible'] = Variable<bool>(
+        delayedEmergencePlausible,
+      );
+    }
+    map['planting_unit_sequence_assessable'] = Variable<bool>(
+      plantingUnitSequenceAssessable,
+    );
+    if (!nullToAbsent || sequenceNotAssessableReason != null) {
+      map['sequence_not_assessable_reason'] = Variable<String>(
+        sequenceNotAssessableReason,
+      );
+    }
+    if (!nullToAbsent || rowDirectionCode != null) {
+      map['row_direction_code'] = Variable<String>(rowDirectionCode);
+    }
+    if (!nullToAbsent || stationContextMeetsRowPurpose != null) {
+      map['station_context_meets_row_purpose'] = Variable<bool>(
+        stationContextMeetsRowPurpose,
+      );
+    }
+    map['protocol_version'] = Variable<String>(protocolVersion);
+    if (!nullToAbsent || startedAt != null) {
+      map['started_at'] = Variable<DateTime>(startedAt);
+    }
+    if (!nullToAbsent || completedAt != null) {
+      map['completed_at'] = Variable<DateTime>(completedAt);
+    }
+    map['planting_unit_entry_duration_ms'] = Variable<int>(
+      plantingUnitEntryDurationMs,
+    );
+    map['living_seedling_entry_duration_ms'] = Variable<int>(
+      livingSeedlingEntryDurationMs,
+    );
+    map['correction_count'] = Variable<int>(correctionCount);
+    map['repeated_physical_check_count'] = Variable<int>(
+      repeatedPhysicalCheckCount,
+    );
+    if (!nullToAbsent || evaluatorWorkloadRating != null) {
+      map['evaluator_workload_rating'] = Variable<int>(evaluatorWorkloadRating);
+    }
+    return map;
+  }
+
+  VeV2StationInspectionsCompanion toCompanion(bool nullToAbsent) {
+    return VeV2StationInspectionsCompanion(
+      id: Value(id),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      deviceId: deviceId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deviceId),
+      syncState: Value(syncState),
+      serverVersion: Value(serverVersion),
+      stationId: Value(stationId),
+      emergenceContinuing: emergenceContinuing == null && nullToAbsent
+          ? const Value.absent()
+          : Value(emergenceContinuing),
+      delayedEmergencePlausible:
+          delayedEmergencePlausible == null && nullToAbsent
+          ? const Value.absent()
+          : Value(delayedEmergencePlausible),
+      plantingUnitSequenceAssessable: Value(plantingUnitSequenceAssessable),
+      sequenceNotAssessableReason:
+          sequenceNotAssessableReason == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sequenceNotAssessableReason),
+      rowDirectionCode: rowDirectionCode == null && nullToAbsent
+          ? const Value.absent()
+          : Value(rowDirectionCode),
+      stationContextMeetsRowPurpose:
+          stationContextMeetsRowPurpose == null && nullToAbsent
+          ? const Value.absent()
+          : Value(stationContextMeetsRowPurpose),
+      protocolVersion: Value(protocolVersion),
+      startedAt: startedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(startedAt),
+      completedAt: completedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(completedAt),
+      plantingUnitEntryDurationMs: Value(plantingUnitEntryDurationMs),
+      livingSeedlingEntryDurationMs: Value(livingSeedlingEntryDurationMs),
+      correctionCount: Value(correctionCount),
+      repeatedPhysicalCheckCount: Value(repeatedPhysicalCheckCount),
+      evaluatorWorkloadRating: evaluatorWorkloadRating == null && nullToAbsent
+          ? const Value.absent()
+          : Value(evaluatorWorkloadRating),
+    );
+  }
+
+  factory VeV2StationInspectionRecord.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return VeV2StationInspectionRecord(
+      id: serializer.fromJson<String>(json['id']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      deviceId: serializer.fromJson<String?>(json['deviceId']),
+      syncState: serializer.fromJson<String>(json['syncState']),
+      serverVersion: serializer.fromJson<int>(json['serverVersion']),
+      stationId: serializer.fromJson<String>(json['stationId']),
+      emergenceContinuing: serializer.fromJson<bool?>(
+        json['emergenceContinuing'],
+      ),
+      delayedEmergencePlausible: serializer.fromJson<bool?>(
+        json['delayedEmergencePlausible'],
+      ),
+      plantingUnitSequenceAssessable: serializer.fromJson<bool>(
+        json['plantingUnitSequenceAssessable'],
+      ),
+      sequenceNotAssessableReason: serializer.fromJson<String?>(
+        json['sequenceNotAssessableReason'],
+      ),
+      rowDirectionCode: serializer.fromJson<String?>(json['rowDirectionCode']),
+      stationContextMeetsRowPurpose: serializer.fromJson<bool?>(
+        json['stationContextMeetsRowPurpose'],
+      ),
+      protocolVersion: serializer.fromJson<String>(json['protocolVersion']),
+      startedAt: serializer.fromJson<DateTime?>(json['startedAt']),
+      completedAt: serializer.fromJson<DateTime?>(json['completedAt']),
+      plantingUnitEntryDurationMs: serializer.fromJson<int>(
+        json['plantingUnitEntryDurationMs'],
+      ),
+      livingSeedlingEntryDurationMs: serializer.fromJson<int>(
+        json['livingSeedlingEntryDurationMs'],
+      ),
+      correctionCount: serializer.fromJson<int>(json['correctionCount']),
+      repeatedPhysicalCheckCount: serializer.fromJson<int>(
+        json['repeatedPhysicalCheckCount'],
+      ),
+      evaluatorWorkloadRating: serializer.fromJson<int?>(
+        json['evaluatorWorkloadRating'],
+      ),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'deviceId': serializer.toJson<String?>(deviceId),
+      'syncState': serializer.toJson<String>(syncState),
+      'serverVersion': serializer.toJson<int>(serverVersion),
+      'stationId': serializer.toJson<String>(stationId),
+      'emergenceContinuing': serializer.toJson<bool?>(emergenceContinuing),
+      'delayedEmergencePlausible': serializer.toJson<bool?>(
+        delayedEmergencePlausible,
+      ),
+      'plantingUnitSequenceAssessable': serializer.toJson<bool>(
+        plantingUnitSequenceAssessable,
+      ),
+      'sequenceNotAssessableReason': serializer.toJson<String?>(
+        sequenceNotAssessableReason,
+      ),
+      'rowDirectionCode': serializer.toJson<String?>(rowDirectionCode),
+      'stationContextMeetsRowPurpose': serializer.toJson<bool?>(
+        stationContextMeetsRowPurpose,
+      ),
+      'protocolVersion': serializer.toJson<String>(protocolVersion),
+      'startedAt': serializer.toJson<DateTime?>(startedAt),
+      'completedAt': serializer.toJson<DateTime?>(completedAt),
+      'plantingUnitEntryDurationMs': serializer.toJson<int>(
+        plantingUnitEntryDurationMs,
+      ),
+      'livingSeedlingEntryDurationMs': serializer.toJson<int>(
+        livingSeedlingEntryDurationMs,
+      ),
+      'correctionCount': serializer.toJson<int>(correctionCount),
+      'repeatedPhysicalCheckCount': serializer.toJson<int>(
+        repeatedPhysicalCheckCount,
+      ),
+      'evaluatorWorkloadRating': serializer.toJson<int?>(
+        evaluatorWorkloadRating,
+      ),
+    };
+  }
+
+  VeV2StationInspectionRecord copyWith({
+    String? id,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    Value<DateTime?> deletedAt = const Value.absent(),
+    Value<String?> deviceId = const Value.absent(),
+    String? syncState,
+    int? serverVersion,
+    String? stationId,
+    Value<bool?> emergenceContinuing = const Value.absent(),
+    Value<bool?> delayedEmergencePlausible = const Value.absent(),
+    bool? plantingUnitSequenceAssessable,
+    Value<String?> sequenceNotAssessableReason = const Value.absent(),
+    Value<String?> rowDirectionCode = const Value.absent(),
+    Value<bool?> stationContextMeetsRowPurpose = const Value.absent(),
+    String? protocolVersion,
+    Value<DateTime?> startedAt = const Value.absent(),
+    Value<DateTime?> completedAt = const Value.absent(),
+    int? plantingUnitEntryDurationMs,
+    int? livingSeedlingEntryDurationMs,
+    int? correctionCount,
+    int? repeatedPhysicalCheckCount,
+    Value<int?> evaluatorWorkloadRating = const Value.absent(),
+  }) => VeV2StationInspectionRecord(
+    id: id ?? this.id,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    deviceId: deviceId.present ? deviceId.value : this.deviceId,
+    syncState: syncState ?? this.syncState,
+    serverVersion: serverVersion ?? this.serverVersion,
+    stationId: stationId ?? this.stationId,
+    emergenceContinuing: emergenceContinuing.present
+        ? emergenceContinuing.value
+        : this.emergenceContinuing,
+    delayedEmergencePlausible: delayedEmergencePlausible.present
+        ? delayedEmergencePlausible.value
+        : this.delayedEmergencePlausible,
+    plantingUnitSequenceAssessable:
+        plantingUnitSequenceAssessable ?? this.plantingUnitSequenceAssessable,
+    sequenceNotAssessableReason: sequenceNotAssessableReason.present
+        ? sequenceNotAssessableReason.value
+        : this.sequenceNotAssessableReason,
+    rowDirectionCode: rowDirectionCode.present
+        ? rowDirectionCode.value
+        : this.rowDirectionCode,
+    stationContextMeetsRowPurpose: stationContextMeetsRowPurpose.present
+        ? stationContextMeetsRowPurpose.value
+        : this.stationContextMeetsRowPurpose,
+    protocolVersion: protocolVersion ?? this.protocolVersion,
+    startedAt: startedAt.present ? startedAt.value : this.startedAt,
+    completedAt: completedAt.present ? completedAt.value : this.completedAt,
+    plantingUnitEntryDurationMs:
+        plantingUnitEntryDurationMs ?? this.plantingUnitEntryDurationMs,
+    livingSeedlingEntryDurationMs:
+        livingSeedlingEntryDurationMs ?? this.livingSeedlingEntryDurationMs,
+    correctionCount: correctionCount ?? this.correctionCount,
+    repeatedPhysicalCheckCount:
+        repeatedPhysicalCheckCount ?? this.repeatedPhysicalCheckCount,
+    evaluatorWorkloadRating: evaluatorWorkloadRating.present
+        ? evaluatorWorkloadRating.value
+        : this.evaluatorWorkloadRating,
+  );
+  VeV2StationInspectionRecord copyWithCompanion(
+    VeV2StationInspectionsCompanion data,
+  ) {
+    return VeV2StationInspectionRecord(
+      id: data.id.present ? data.id.value : this.id,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+      syncState: data.syncState.present ? data.syncState.value : this.syncState,
+      serverVersion: data.serverVersion.present
+          ? data.serverVersion.value
+          : this.serverVersion,
+      stationId: data.stationId.present ? data.stationId.value : this.stationId,
+      emergenceContinuing: data.emergenceContinuing.present
+          ? data.emergenceContinuing.value
+          : this.emergenceContinuing,
+      delayedEmergencePlausible: data.delayedEmergencePlausible.present
+          ? data.delayedEmergencePlausible.value
+          : this.delayedEmergencePlausible,
+      plantingUnitSequenceAssessable:
+          data.plantingUnitSequenceAssessable.present
+          ? data.plantingUnitSequenceAssessable.value
+          : this.plantingUnitSequenceAssessable,
+      sequenceNotAssessableReason: data.sequenceNotAssessableReason.present
+          ? data.sequenceNotAssessableReason.value
+          : this.sequenceNotAssessableReason,
+      rowDirectionCode: data.rowDirectionCode.present
+          ? data.rowDirectionCode.value
+          : this.rowDirectionCode,
+      stationContextMeetsRowPurpose: data.stationContextMeetsRowPurpose.present
+          ? data.stationContextMeetsRowPurpose.value
+          : this.stationContextMeetsRowPurpose,
+      protocolVersion: data.protocolVersion.present
+          ? data.protocolVersion.value
+          : this.protocolVersion,
+      startedAt: data.startedAt.present ? data.startedAt.value : this.startedAt,
+      completedAt: data.completedAt.present
+          ? data.completedAt.value
+          : this.completedAt,
+      plantingUnitEntryDurationMs: data.plantingUnitEntryDurationMs.present
+          ? data.plantingUnitEntryDurationMs.value
+          : this.plantingUnitEntryDurationMs,
+      livingSeedlingEntryDurationMs: data.livingSeedlingEntryDurationMs.present
+          ? data.livingSeedlingEntryDurationMs.value
+          : this.livingSeedlingEntryDurationMs,
+      correctionCount: data.correctionCount.present
+          ? data.correctionCount.value
+          : this.correctionCount,
+      repeatedPhysicalCheckCount: data.repeatedPhysicalCheckCount.present
+          ? data.repeatedPhysicalCheckCount.value
+          : this.repeatedPhysicalCheckCount,
+      evaluatorWorkloadRating: data.evaluatorWorkloadRating.present
+          ? data.evaluatorWorkloadRating.value
+          : this.evaluatorWorkloadRating,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('VeV2StationInspectionRecord(')
+          ..write('id: $id, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('syncState: $syncState, ')
+          ..write('serverVersion: $serverVersion, ')
+          ..write('stationId: $stationId, ')
+          ..write('emergenceContinuing: $emergenceContinuing, ')
+          ..write('delayedEmergencePlausible: $delayedEmergencePlausible, ')
+          ..write(
+            'plantingUnitSequenceAssessable: $plantingUnitSequenceAssessable, ',
+          )
+          ..write('sequenceNotAssessableReason: $sequenceNotAssessableReason, ')
+          ..write('rowDirectionCode: $rowDirectionCode, ')
+          ..write(
+            'stationContextMeetsRowPurpose: $stationContextMeetsRowPurpose, ',
+          )
+          ..write('protocolVersion: $protocolVersion, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('completedAt: $completedAt, ')
+          ..write('plantingUnitEntryDurationMs: $plantingUnitEntryDurationMs, ')
+          ..write(
+            'livingSeedlingEntryDurationMs: $livingSeedlingEntryDurationMs, ',
+          )
+          ..write('correctionCount: $correctionCount, ')
+          ..write('repeatedPhysicalCheckCount: $repeatedPhysicalCheckCount, ')
+          ..write('evaluatorWorkloadRating: $evaluatorWorkloadRating')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+    id,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    deviceId,
+    syncState,
+    serverVersion,
+    stationId,
+    emergenceContinuing,
+    delayedEmergencePlausible,
+    plantingUnitSequenceAssessable,
+    sequenceNotAssessableReason,
+    rowDirectionCode,
+    stationContextMeetsRowPurpose,
+    protocolVersion,
+    startedAt,
+    completedAt,
+    plantingUnitEntryDurationMs,
+    livingSeedlingEntryDurationMs,
+    correctionCount,
+    repeatedPhysicalCheckCount,
+    evaluatorWorkloadRating,
+  ]);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is VeV2StationInspectionRecord &&
+          other.id == this.id &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.deviceId == this.deviceId &&
+          other.syncState == this.syncState &&
+          other.serverVersion == this.serverVersion &&
+          other.stationId == this.stationId &&
+          other.emergenceContinuing == this.emergenceContinuing &&
+          other.delayedEmergencePlausible == this.delayedEmergencePlausible &&
+          other.plantingUnitSequenceAssessable ==
+              this.plantingUnitSequenceAssessable &&
+          other.sequenceNotAssessableReason ==
+              this.sequenceNotAssessableReason &&
+          other.rowDirectionCode == this.rowDirectionCode &&
+          other.stationContextMeetsRowPurpose ==
+              this.stationContextMeetsRowPurpose &&
+          other.protocolVersion == this.protocolVersion &&
+          other.startedAt == this.startedAt &&
+          other.completedAt == this.completedAt &&
+          other.plantingUnitEntryDurationMs ==
+              this.plantingUnitEntryDurationMs &&
+          other.livingSeedlingEntryDurationMs ==
+              this.livingSeedlingEntryDurationMs &&
+          other.correctionCount == this.correctionCount &&
+          other.repeatedPhysicalCheckCount == this.repeatedPhysicalCheckCount &&
+          other.evaluatorWorkloadRating == this.evaluatorWorkloadRating);
+}
+
+class VeV2StationInspectionsCompanion
+    extends UpdateCompanion<VeV2StationInspectionRecord> {
+  final Value<String> id;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<String?> deviceId;
+  final Value<String> syncState;
+  final Value<int> serverVersion;
+  final Value<String> stationId;
+  final Value<bool?> emergenceContinuing;
+  final Value<bool?> delayedEmergencePlausible;
+  final Value<bool> plantingUnitSequenceAssessable;
+  final Value<String?> sequenceNotAssessableReason;
+  final Value<String?> rowDirectionCode;
+  final Value<bool?> stationContextMeetsRowPurpose;
+  final Value<String> protocolVersion;
+  final Value<DateTime?> startedAt;
+  final Value<DateTime?> completedAt;
+  final Value<int> plantingUnitEntryDurationMs;
+  final Value<int> livingSeedlingEntryDurationMs;
+  final Value<int> correctionCount;
+  final Value<int> repeatedPhysicalCheckCount;
+  final Value<int?> evaluatorWorkloadRating;
+  final Value<int> rowid;
+  const VeV2StationInspectionsCompanion({
+    this.id = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.syncState = const Value.absent(),
+    this.serverVersion = const Value.absent(),
+    this.stationId = const Value.absent(),
+    this.emergenceContinuing = const Value.absent(),
+    this.delayedEmergencePlausible = const Value.absent(),
+    this.plantingUnitSequenceAssessable = const Value.absent(),
+    this.sequenceNotAssessableReason = const Value.absent(),
+    this.rowDirectionCode = const Value.absent(),
+    this.stationContextMeetsRowPurpose = const Value.absent(),
+    this.protocolVersion = const Value.absent(),
+    this.startedAt = const Value.absent(),
+    this.completedAt = const Value.absent(),
+    this.plantingUnitEntryDurationMs = const Value.absent(),
+    this.livingSeedlingEntryDurationMs = const Value.absent(),
+    this.correctionCount = const Value.absent(),
+    this.repeatedPhysicalCheckCount = const Value.absent(),
+    this.evaluatorWorkloadRating = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  VeV2StationInspectionsCompanion.insert({
+    required String id,
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.syncState = const Value.absent(),
+    this.serverVersion = const Value.absent(),
+    required String stationId,
+    this.emergenceContinuing = const Value.absent(),
+    this.delayedEmergencePlausible = const Value.absent(),
+    this.plantingUnitSequenceAssessable = const Value.absent(),
+    this.sequenceNotAssessableReason = const Value.absent(),
+    this.rowDirectionCode = const Value.absent(),
+    this.stationContextMeetsRowPurpose = const Value.absent(),
+    this.protocolVersion = const Value.absent(),
+    this.startedAt = const Value.absent(),
+    this.completedAt = const Value.absent(),
+    this.plantingUnitEntryDurationMs = const Value.absent(),
+    this.livingSeedlingEntryDurationMs = const Value.absent(),
+    this.correctionCount = const Value.absent(),
+    this.repeatedPhysicalCheckCount = const Value.absent(),
+    this.evaluatorWorkloadRating = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       stationId = Value(stationId);
+  static Insertable<VeV2StationInspectionRecord> custom({
+    Expression<String>? id,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<String>? deviceId,
+    Expression<String>? syncState,
+    Expression<int>? serverVersion,
+    Expression<String>? stationId,
+    Expression<bool>? emergenceContinuing,
+    Expression<bool>? delayedEmergencePlausible,
+    Expression<bool>? plantingUnitSequenceAssessable,
+    Expression<String>? sequenceNotAssessableReason,
+    Expression<String>? rowDirectionCode,
+    Expression<bool>? stationContextMeetsRowPurpose,
+    Expression<String>? protocolVersion,
+    Expression<DateTime>? startedAt,
+    Expression<DateTime>? completedAt,
+    Expression<int>? plantingUnitEntryDurationMs,
+    Expression<int>? livingSeedlingEntryDurationMs,
+    Expression<int>? correctionCount,
+    Expression<int>? repeatedPhysicalCheckCount,
+    Expression<int>? evaluatorWorkloadRating,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (deviceId != null) 'device_id': deviceId,
+      if (syncState != null) 'sync_state': syncState,
+      if (serverVersion != null) 'server_version': serverVersion,
+      if (stationId != null) 'station_id': stationId,
+      if (emergenceContinuing != null)
+        'emergence_continuing': emergenceContinuing,
+      if (delayedEmergencePlausible != null)
+        'delayed_emergence_plausible': delayedEmergencePlausible,
+      if (plantingUnitSequenceAssessable != null)
+        'planting_unit_sequence_assessable': plantingUnitSequenceAssessable,
+      if (sequenceNotAssessableReason != null)
+        'sequence_not_assessable_reason': sequenceNotAssessableReason,
+      if (rowDirectionCode != null) 'row_direction_code': rowDirectionCode,
+      if (stationContextMeetsRowPurpose != null)
+        'station_context_meets_row_purpose': stationContextMeetsRowPurpose,
+      if (protocolVersion != null) 'protocol_version': protocolVersion,
+      if (startedAt != null) 'started_at': startedAt,
+      if (completedAt != null) 'completed_at': completedAt,
+      if (plantingUnitEntryDurationMs != null)
+        'planting_unit_entry_duration_ms': plantingUnitEntryDurationMs,
+      if (livingSeedlingEntryDurationMs != null)
+        'living_seedling_entry_duration_ms': livingSeedlingEntryDurationMs,
+      if (correctionCount != null) 'correction_count': correctionCount,
+      if (repeatedPhysicalCheckCount != null)
+        'repeated_physical_check_count': repeatedPhysicalCheckCount,
+      if (evaluatorWorkloadRating != null)
+        'evaluator_workload_rating': evaluatorWorkloadRating,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  VeV2StationInspectionsCompanion copyWith({
+    Value<String>? id,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<String?>? deviceId,
+    Value<String>? syncState,
+    Value<int>? serverVersion,
+    Value<String>? stationId,
+    Value<bool?>? emergenceContinuing,
+    Value<bool?>? delayedEmergencePlausible,
+    Value<bool>? plantingUnitSequenceAssessable,
+    Value<String?>? sequenceNotAssessableReason,
+    Value<String?>? rowDirectionCode,
+    Value<bool?>? stationContextMeetsRowPurpose,
+    Value<String>? protocolVersion,
+    Value<DateTime?>? startedAt,
+    Value<DateTime?>? completedAt,
+    Value<int>? plantingUnitEntryDurationMs,
+    Value<int>? livingSeedlingEntryDurationMs,
+    Value<int>? correctionCount,
+    Value<int>? repeatedPhysicalCheckCount,
+    Value<int?>? evaluatorWorkloadRating,
+    Value<int>? rowid,
+  }) {
+    return VeV2StationInspectionsCompanion(
+      id: id ?? this.id,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      deviceId: deviceId ?? this.deviceId,
+      syncState: syncState ?? this.syncState,
+      serverVersion: serverVersion ?? this.serverVersion,
+      stationId: stationId ?? this.stationId,
+      emergenceContinuing: emergenceContinuing ?? this.emergenceContinuing,
+      delayedEmergencePlausible:
+          delayedEmergencePlausible ?? this.delayedEmergencePlausible,
+      plantingUnitSequenceAssessable:
+          plantingUnitSequenceAssessable ?? this.plantingUnitSequenceAssessable,
+      sequenceNotAssessableReason:
+          sequenceNotAssessableReason ?? this.sequenceNotAssessableReason,
+      rowDirectionCode: rowDirectionCode ?? this.rowDirectionCode,
+      stationContextMeetsRowPurpose:
+          stationContextMeetsRowPurpose ?? this.stationContextMeetsRowPurpose,
+      protocolVersion: protocolVersion ?? this.protocolVersion,
+      startedAt: startedAt ?? this.startedAt,
+      completedAt: completedAt ?? this.completedAt,
+      plantingUnitEntryDurationMs:
+          plantingUnitEntryDurationMs ?? this.plantingUnitEntryDurationMs,
+      livingSeedlingEntryDurationMs:
+          livingSeedlingEntryDurationMs ?? this.livingSeedlingEntryDurationMs,
+      correctionCount: correctionCount ?? this.correctionCount,
+      repeatedPhysicalCheckCount:
+          repeatedPhysicalCheckCount ?? this.repeatedPhysicalCheckCount,
+      evaluatorWorkloadRating:
+          evaluatorWorkloadRating ?? this.evaluatorWorkloadRating,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (deviceId.present) {
+      map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (syncState.present) {
+      map['sync_state'] = Variable<String>(syncState.value);
+    }
+    if (serverVersion.present) {
+      map['server_version'] = Variable<int>(serverVersion.value);
+    }
+    if (stationId.present) {
+      map['station_id'] = Variable<String>(stationId.value);
+    }
+    if (emergenceContinuing.present) {
+      map['emergence_continuing'] = Variable<bool>(emergenceContinuing.value);
+    }
+    if (delayedEmergencePlausible.present) {
+      map['delayed_emergence_plausible'] = Variable<bool>(
+        delayedEmergencePlausible.value,
+      );
+    }
+    if (plantingUnitSequenceAssessable.present) {
+      map['planting_unit_sequence_assessable'] = Variable<bool>(
+        plantingUnitSequenceAssessable.value,
+      );
+    }
+    if (sequenceNotAssessableReason.present) {
+      map['sequence_not_assessable_reason'] = Variable<String>(
+        sequenceNotAssessableReason.value,
+      );
+    }
+    if (rowDirectionCode.present) {
+      map['row_direction_code'] = Variable<String>(rowDirectionCode.value);
+    }
+    if (stationContextMeetsRowPurpose.present) {
+      map['station_context_meets_row_purpose'] = Variable<bool>(
+        stationContextMeetsRowPurpose.value,
+      );
+    }
+    if (protocolVersion.present) {
+      map['protocol_version'] = Variable<String>(protocolVersion.value);
+    }
+    if (startedAt.present) {
+      map['started_at'] = Variable<DateTime>(startedAt.value);
+    }
+    if (completedAt.present) {
+      map['completed_at'] = Variable<DateTime>(completedAt.value);
+    }
+    if (plantingUnitEntryDurationMs.present) {
+      map['planting_unit_entry_duration_ms'] = Variable<int>(
+        plantingUnitEntryDurationMs.value,
+      );
+    }
+    if (livingSeedlingEntryDurationMs.present) {
+      map['living_seedling_entry_duration_ms'] = Variable<int>(
+        livingSeedlingEntryDurationMs.value,
+      );
+    }
+    if (correctionCount.present) {
+      map['correction_count'] = Variable<int>(correctionCount.value);
+    }
+    if (repeatedPhysicalCheckCount.present) {
+      map['repeated_physical_check_count'] = Variable<int>(
+        repeatedPhysicalCheckCount.value,
+      );
+    }
+    if (evaluatorWorkloadRating.present) {
+      map['evaluator_workload_rating'] = Variable<int>(
+        evaluatorWorkloadRating.value,
+      );
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('VeV2StationInspectionsCompanion(')
+          ..write('id: $id, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('syncState: $syncState, ')
+          ..write('serverVersion: $serverVersion, ')
+          ..write('stationId: $stationId, ')
+          ..write('emergenceContinuing: $emergenceContinuing, ')
+          ..write('delayedEmergencePlausible: $delayedEmergencePlausible, ')
+          ..write(
+            'plantingUnitSequenceAssessable: $plantingUnitSequenceAssessable, ',
+          )
+          ..write('sequenceNotAssessableReason: $sequenceNotAssessableReason, ')
+          ..write('rowDirectionCode: $rowDirectionCode, ')
+          ..write(
+            'stationContextMeetsRowPurpose: $stationContextMeetsRowPurpose, ',
+          )
+          ..write('protocolVersion: $protocolVersion, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('completedAt: $completedAt, ')
+          ..write('plantingUnitEntryDurationMs: $plantingUnitEntryDurationMs, ')
+          ..write(
+            'livingSeedlingEntryDurationMs: $livingSeedlingEntryDurationMs, ',
+          )
+          ..write('correctionCount: $correctionCount, ')
+          ..write('repeatedPhysicalCheckCount: $repeatedPhysicalCheckCount, ')
+          ..write('evaluatorWorkloadRating: $evaluatorWorkloadRating, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -20276,6 +22738,20 @@ class $EvidenceCaptureSessionsTable extends EvidenceCaptureSessions
           'REFERENCES plant_observations (id)',
         ),
       );
+  static const VerificationMeta _sourcePlantingUnitObservationIdMeta =
+      const VerificationMeta('sourcePlantingUnitObservationId');
+  @override
+  late final GeneratedColumn<String> sourcePlantingUnitObservationId =
+      GeneratedColumn<String>(
+        'source_planting_unit_observation_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'REFERENCES planting_unit_observations (id)',
+        ),
+      );
   static const VerificationMeta _requirementsVersionMeta =
       const VerificationMeta('requirementsVersion');
   @override
@@ -20383,6 +22859,7 @@ class $EvidenceCaptureSessionsTable extends EvidenceCaptureSessions
     scopeKey,
     plantPosition,
     plantObservationId,
+    sourcePlantingUnitObservationId,
     requirementsVersion,
     collectionMode,
     collectionStatus,
@@ -20498,6 +22975,15 @@ class $EvidenceCaptureSessionsTable extends EvidenceCaptureSessions
         plantObservationId.isAcceptableOrUnknown(
           data['plant_observation_id']!,
           _plantObservationIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('source_planting_unit_observation_id')) {
+      context.handle(
+        _sourcePlantingUnitObservationIdMeta,
+        sourcePlantingUnitObservationId.isAcceptableOrUnknown(
+          data['source_planting_unit_observation_id']!,
+          _sourcePlantingUnitObservationIdMeta,
         ),
       );
     }
@@ -20638,6 +23124,10 @@ class $EvidenceCaptureSessionsTable extends EvidenceCaptureSessions
         DriftSqlType.string,
         data['${effectivePrefix}plant_observation_id'],
       ),
+      sourcePlantingUnitObservationId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_planting_unit_observation_id'],
+      ),
       requirementsVersion: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}requirements_version'],
@@ -20694,6 +23184,7 @@ class EvidenceCaptureSessionRecord extends DataClass
   final String scopeKey;
   final int? plantPosition;
   final String? plantObservationId;
+  final String? sourcePlantingUnitObservationId;
   final String requirementsVersion;
   final String collectionMode;
   final String collectionStatus;
@@ -20716,6 +23207,7 @@ class EvidenceCaptureSessionRecord extends DataClass
     required this.scopeKey,
     this.plantPosition,
     this.plantObservationId,
+    this.sourcePlantingUnitObservationId,
     required this.requirementsVersion,
     required this.collectionMode,
     required this.collectionStatus,
@@ -20748,6 +23240,11 @@ class EvidenceCaptureSessionRecord extends DataClass
     }
     if (!nullToAbsent || plantObservationId != null) {
       map['plant_observation_id'] = Variable<String>(plantObservationId);
+    }
+    if (!nullToAbsent || sourcePlantingUnitObservationId != null) {
+      map['source_planting_unit_observation_id'] = Variable<String>(
+        sourcePlantingUnitObservationId,
+      );
     }
     map['requirements_version'] = Variable<String>(requirementsVersion);
     map['collection_mode'] = Variable<String>(collectionMode);
@@ -20791,6 +23288,10 @@ class EvidenceCaptureSessionRecord extends DataClass
       plantObservationId: plantObservationId == null && nullToAbsent
           ? const Value.absent()
           : Value(plantObservationId),
+      sourcePlantingUnitObservationId:
+          sourcePlantingUnitObservationId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourcePlantingUnitObservationId),
       requirementsVersion: Value(requirementsVersion),
       collectionMode: Value(collectionMode),
       collectionStatus: Value(collectionStatus),
@@ -20831,6 +23332,9 @@ class EvidenceCaptureSessionRecord extends DataClass
       plantObservationId: serializer.fromJson<String?>(
         json['plantObservationId'],
       ),
+      sourcePlantingUnitObservationId: serializer.fromJson<String?>(
+        json['sourcePlantingUnitObservationId'],
+      ),
       requirementsVersion: serializer.fromJson<String>(
         json['requirementsVersion'],
       ),
@@ -20864,6 +23368,9 @@ class EvidenceCaptureSessionRecord extends DataClass
       'scopeKey': serializer.toJson<String>(scopeKey),
       'plantPosition': serializer.toJson<int?>(plantPosition),
       'plantObservationId': serializer.toJson<String?>(plantObservationId),
+      'sourcePlantingUnitObservationId': serializer.toJson<String?>(
+        sourcePlantingUnitObservationId,
+      ),
       'requirementsVersion': serializer.toJson<String>(requirementsVersion),
       'collectionMode': serializer.toJson<String>(collectionMode),
       'collectionStatus': serializer.toJson<String>(collectionStatus),
@@ -20889,6 +23396,7 @@ class EvidenceCaptureSessionRecord extends DataClass
     String? scopeKey,
     Value<int?> plantPosition = const Value.absent(),
     Value<String?> plantObservationId = const Value.absent(),
+    Value<String?> sourcePlantingUnitObservationId = const Value.absent(),
     String? requirementsVersion,
     String? collectionMode,
     String? collectionStatus,
@@ -20915,6 +23423,9 @@ class EvidenceCaptureSessionRecord extends DataClass
     plantObservationId: plantObservationId.present
         ? plantObservationId.value
         : this.plantObservationId,
+    sourcePlantingUnitObservationId: sourcePlantingUnitObservationId.present
+        ? sourcePlantingUnitObservationId.value
+        : this.sourcePlantingUnitObservationId,
     requirementsVersion: requirementsVersion ?? this.requirementsVersion,
     collectionMode: collectionMode ?? this.collectionMode,
     collectionStatus: collectionStatus ?? this.collectionStatus,
@@ -20953,6 +23464,10 @@ class EvidenceCaptureSessionRecord extends DataClass
       plantObservationId: data.plantObservationId.present
           ? data.plantObservationId.value
           : this.plantObservationId,
+      sourcePlantingUnitObservationId:
+          data.sourcePlantingUnitObservationId.present
+          ? data.sourcePlantingUnitObservationId.value
+          : this.sourcePlantingUnitObservationId,
       requirementsVersion: data.requirementsVersion.present
           ? data.requirementsVersion.value
           : this.requirementsVersion,
@@ -20994,6 +23509,9 @@ class EvidenceCaptureSessionRecord extends DataClass
           ..write('scopeKey: $scopeKey, ')
           ..write('plantPosition: $plantPosition, ')
           ..write('plantObservationId: $plantObservationId, ')
+          ..write(
+            'sourcePlantingUnitObservationId: $sourcePlantingUnitObservationId, ',
+          )
           ..write('requirementsVersion: $requirementsVersion, ')
           ..write('collectionMode: $collectionMode, ')
           ..write('collectionStatus: $collectionStatus, ')
@@ -21021,6 +23539,7 @@ class EvidenceCaptureSessionRecord extends DataClass
     scopeKey,
     plantPosition,
     plantObservationId,
+    sourcePlantingUnitObservationId,
     requirementsVersion,
     collectionMode,
     collectionStatus,
@@ -21047,6 +23566,8 @@ class EvidenceCaptureSessionRecord extends DataClass
           other.scopeKey == this.scopeKey &&
           other.plantPosition == this.plantPosition &&
           other.plantObservationId == this.plantObservationId &&
+          other.sourcePlantingUnitObservationId ==
+              this.sourcePlantingUnitObservationId &&
           other.requirementsVersion == this.requirementsVersion &&
           other.collectionMode == this.collectionMode &&
           other.collectionStatus == this.collectionStatus &&
@@ -21072,6 +23593,7 @@ class EvidenceCaptureSessionsCompanion
   final Value<String> scopeKey;
   final Value<int?> plantPosition;
   final Value<String?> plantObservationId;
+  final Value<String?> sourcePlantingUnitObservationId;
   final Value<String> requirementsVersion;
   final Value<String> collectionMode;
   final Value<String> collectionStatus;
@@ -21095,6 +23617,7 @@ class EvidenceCaptureSessionsCompanion
     this.scopeKey = const Value.absent(),
     this.plantPosition = const Value.absent(),
     this.plantObservationId = const Value.absent(),
+    this.sourcePlantingUnitObservationId = const Value.absent(),
     this.requirementsVersion = const Value.absent(),
     this.collectionMode = const Value.absent(),
     this.collectionStatus = const Value.absent(),
@@ -21119,6 +23642,7 @@ class EvidenceCaptureSessionsCompanion
     required String scopeKey,
     this.plantPosition = const Value.absent(),
     this.plantObservationId = const Value.absent(),
+    this.sourcePlantingUnitObservationId = const Value.absent(),
     this.requirementsVersion = const Value.absent(),
     this.collectionMode = const Value.absent(),
     this.collectionStatus = const Value.absent(),
@@ -21147,6 +23671,7 @@ class EvidenceCaptureSessionsCompanion
     Expression<String>? scopeKey,
     Expression<int>? plantPosition,
     Expression<String>? plantObservationId,
+    Expression<String>? sourcePlantingUnitObservationId,
     Expression<String>? requirementsVersion,
     Expression<String>? collectionMode,
     Expression<String>? collectionStatus,
@@ -21172,6 +23697,8 @@ class EvidenceCaptureSessionsCompanion
       if (plantPosition != null) 'plant_position': plantPosition,
       if (plantObservationId != null)
         'plant_observation_id': plantObservationId,
+      if (sourcePlantingUnitObservationId != null)
+        'source_planting_unit_observation_id': sourcePlantingUnitObservationId,
       if (requirementsVersion != null)
         'requirements_version': requirementsVersion,
       if (collectionMode != null) 'collection_mode': collectionMode,
@@ -21201,6 +23728,7 @@ class EvidenceCaptureSessionsCompanion
     Value<String>? scopeKey,
     Value<int?>? plantPosition,
     Value<String?>? plantObservationId,
+    Value<String?>? sourcePlantingUnitObservationId,
     Value<String>? requirementsVersion,
     Value<String>? collectionMode,
     Value<String>? collectionStatus,
@@ -21225,6 +23753,9 @@ class EvidenceCaptureSessionsCompanion
       scopeKey: scopeKey ?? this.scopeKey,
       plantPosition: plantPosition ?? this.plantPosition,
       plantObservationId: plantObservationId ?? this.plantObservationId,
+      sourcePlantingUnitObservationId:
+          sourcePlantingUnitObservationId ??
+          this.sourcePlantingUnitObservationId,
       requirementsVersion: requirementsVersion ?? this.requirementsVersion,
       collectionMode: collectionMode ?? this.collectionMode,
       collectionStatus: collectionStatus ?? this.collectionStatus,
@@ -21279,6 +23810,11 @@ class EvidenceCaptureSessionsCompanion
     if (plantObservationId.present) {
       map['plant_observation_id'] = Variable<String>(plantObservationId.value);
     }
+    if (sourcePlantingUnitObservationId.present) {
+      map['source_planting_unit_observation_id'] = Variable<String>(
+        sourcePlantingUnitObservationId.value,
+      );
+    }
     if (requirementsVersion.present) {
       map['requirements_version'] = Variable<String>(requirementsVersion.value);
     }
@@ -21327,6 +23863,9 @@ class EvidenceCaptureSessionsCompanion
           ..write('scopeKey: $scopeKey, ')
           ..write('plantPosition: $plantPosition, ')
           ..write('plantObservationId: $plantObservationId, ')
+          ..write(
+            'sourcePlantingUnitObservationId: $sourcePlantingUnitObservationId, ',
+          )
           ..write('requirementsVersion: $requirementsVersion, ')
           ..write('collectionMode: $collectionMode, ')
           ..write('collectionStatus: $collectionStatus, ')
@@ -26262,6 +28801,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $PlantingUnitObservationsTable(this);
   late final $PlantObservationsTable plantObservations =
       $PlantObservationsTable(this);
+  late final $VeV2StationInspectionsTable veV2StationInspections =
+      $VeV2StationInspectionsTable(this);
   late final $VegetativeObservationsTable vegetativeObservations =
       $VegetativeObservationsTable(this);
   late final $ReproductiveObservationsTable reproductiveObservations =
@@ -26295,6 +28836,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     stations,
     plantingUnitObservations,
     plantObservations,
+    veV2StationInspections,
     vegetativeObservations,
     reproductiveObservations,
     earObservations,
@@ -37056,6 +39598,31 @@ final class $$StationsTableReferences
   }
 
   static MultiTypedResultKey<
+    $VeV2StationInspectionsTable,
+    List<VeV2StationInspectionRecord>
+  >
+  _veV2StationInspectionsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.veV2StationInspections,
+        aliasName: 'stations__id__ve_v2_station_inspections__station_id',
+      );
+
+  $$VeV2StationInspectionsTableProcessedTableManager
+  get veV2StationInspectionsRefs {
+    final manager = $$VeV2StationInspectionsTableTableManager(
+      $_db,
+      $_db.veV2StationInspections,
+    ).filter((f) => f.stationId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _veV2StationInspectionsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<
     $EvidenceCaptureSessionsTable,
     List<EvidenceCaptureSessionRecord>
   >
@@ -37250,6 +39817,32 @@ class $$StationsTableFilterComposer
                 $removeJoinBuilderFromRootComposer,
           ),
     );
+    return f(composer);
+  }
+
+  Expression<bool> veV2StationInspectionsRefs(
+    Expression<bool> Function($$VeV2StationInspectionsTableFilterComposer f) f,
+  ) {
+    final $$VeV2StationInspectionsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.veV2StationInspections,
+          getReferencedColumn: (t) => t.stationId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$VeV2StationInspectionsTableFilterComposer(
+                $db: $db,
+                $table: $db.veV2StationInspections,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
     return f(composer);
   }
 
@@ -37549,6 +40142,32 @@ class $$StationsTableAnnotationComposer
     return f(composer);
   }
 
+  Expression<T> veV2StationInspectionsRefs<T extends Object>(
+    Expression<T> Function($$VeV2StationInspectionsTableAnnotationComposer a) f,
+  ) {
+    final $$VeV2StationInspectionsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.veV2StationInspections,
+          getReferencedColumn: (t) => t.stationId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$VeV2StationInspectionsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.veV2StationInspections,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
   Expression<T> evidenceCaptureSessionsRefs<T extends Object>(
     Expression<T> Function($$EvidenceCaptureSessionsTableAnnotationComposer a)
     f,
@@ -37619,6 +40238,7 @@ class $$StationsTableTableManager
             bool assessmentBlockRunId,
             bool plantingUnitObservationsRefs,
             bool plantObservationsRefs,
+            bool veV2StationInspectionsRefs,
             bool evidenceCaptureSessionsRefs,
             bool evidenceMediaRefs,
           })
@@ -37719,6 +40339,7 @@ class $$StationsTableTableManager
                 assessmentBlockRunId = false,
                 plantingUnitObservationsRefs = false,
                 plantObservationsRefs = false,
+                veV2StationInspectionsRefs = false,
                 evidenceCaptureSessionsRefs = false,
                 evidenceMediaRefs = false,
               }) {
@@ -37728,6 +40349,7 @@ class $$StationsTableTableManager
                     if (plantingUnitObservationsRefs)
                       db.plantingUnitObservations,
                     if (plantObservationsRefs) db.plantObservations,
+                    if (veV2StationInspectionsRefs) db.veV2StationInspections,
                     if (evidenceCaptureSessionsRefs) db.evidenceCaptureSessions,
                     if (evidenceMediaRefs) db.evidenceMedia,
                   ],
@@ -37807,6 +40429,27 @@ class $$StationsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (veV2StationInspectionsRefs)
+                        await $_getPrefetchedData<
+                          StationRecord,
+                          $StationsTable,
+                          VeV2StationInspectionRecord
+                        >(
+                          currentTable: table,
+                          referencedTable: $$StationsTableReferences
+                              ._veV2StationInspectionsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$StationsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).veV2StationInspectionsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.stationId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                       if (evidenceCaptureSessionsRefs)
                         await $_getPrefetchedData<
                           StationRecord,
@@ -37873,6 +40516,7 @@ typedef $$StationsTableProcessedTableManager =
         bool assessmentBlockRunId,
         bool plantingUnitObservationsRefs,
         bool plantObservationsRefs,
+        bool veV2StationInspectionsRefs,
         bool evidenceCaptureSessionsRefs,
         bool evidenceMediaRefs,
       })
@@ -37895,9 +40539,26 @@ typedef $$PlantingUnitObservationsTableCreateCompanionBuilder =
       Value<int?> intendedSeedlingCount,
       Value<bool?> visibleCutting,
       Value<bool?> visibleSeedlingInjury,
+      Value<String?> primaryCondition,
+      Value<bool?> recognizableRemnantPresent,
+      Value<bool?> visibleSevering,
+      Value<String?> injuryLocation,
+      Value<String?> injuryFreshness,
+      Value<bool?> larvaVisible,
+      Value<String?> larvalSize,
+      Value<bool?> freshFrass,
+      Value<bool?> rotPresent,
+      Value<bool?> tunnelingPresent,
+      Value<bool?> discolorationPresent,
+      Value<bool?> otherNonFawEvidence,
       Value<bool?> confirmedFawPresent,
       Value<bool?> injuryConsistentWithFaw,
       Value<String?> alternativeCauseCode,
+      Value<String?> alternativeCauseCodesJson,
+      Value<String?> evaluatorPrimaryInterpretation,
+      Value<String?> evaluatorConfidence,
+      Value<int?> inspectionDurationMs,
+      Value<int> correctionCount,
       Value<String?> notes,
       Value<DateTime?> capturedAt,
       Value<int> rowid,
@@ -37920,9 +40581,26 @@ typedef $$PlantingUnitObservationsTableUpdateCompanionBuilder =
       Value<int?> intendedSeedlingCount,
       Value<bool?> visibleCutting,
       Value<bool?> visibleSeedlingInjury,
+      Value<String?> primaryCondition,
+      Value<bool?> recognizableRemnantPresent,
+      Value<bool?> visibleSevering,
+      Value<String?> injuryLocation,
+      Value<String?> injuryFreshness,
+      Value<bool?> larvaVisible,
+      Value<String?> larvalSize,
+      Value<bool?> freshFrass,
+      Value<bool?> rotPresent,
+      Value<bool?> tunnelingPresent,
+      Value<bool?> discolorationPresent,
+      Value<bool?> otherNonFawEvidence,
       Value<bool?> confirmedFawPresent,
       Value<bool?> injuryConsistentWithFaw,
       Value<String?> alternativeCauseCode,
+      Value<String?> alternativeCauseCodesJson,
+      Value<String?> evaluatorPrimaryInterpretation,
+      Value<String?> evaluatorConfidence,
+      Value<int?> inspectionDurationMs,
+      Value<int> correctionCount,
       Value<String?> notes,
       Value<DateTime?> capturedAt,
       Value<int> rowid,
@@ -37955,6 +40633,69 @@ final class $$PlantingUnitObservationsTableReferences
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static MultiTypedResultKey<
+    $PlantObservationsTable,
+    List<PlantObservationRecord>
+  >
+  _plantObservationsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.plantObservations,
+    aliasName:
+        'planting_unit_observations__id__plant_observations__source_planting_unit_observation_id',
+  );
+
+  $$PlantObservationsTableProcessedTableManager get plantObservationsRefs {
+    final manager =
+        $$PlantObservationsTableTableManager(
+          $_db,
+          $_db.plantObservations,
+        ).filter(
+          (f) => f.sourcePlantingUnitObservationId.id.sqlEquals(
+            $_itemColumn<String>('id')!,
+          ),
+        );
+
+    final cache = $_typedResult.readTableOrNull(
+      _plantObservationsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<
+    $EvidenceCaptureSessionsTable,
+    List<EvidenceCaptureSessionRecord>
+  >
+  _evidenceCaptureSessionsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.evidenceCaptureSessions,
+    aliasName:
+        'planting_unit_observations__id__evidence_capture_sessions__source_planting_unit_observation_id',
+  );
+
+  $$EvidenceCaptureSessionsTableProcessedTableManager
+  get evidenceCaptureSessionsRefs {
+    final manager =
+        $$EvidenceCaptureSessionsTableTableManager(
+          $_db,
+          $_db.evidenceCaptureSessions,
+        ).filter(
+          (f) => f.sourcePlantingUnitObservationId.id.sqlEquals(
+            $_itemColumn<String>('id')!,
+          ),
+        );
+
+    final cache = $_typedResult.readTableOrNull(
+      _evidenceCaptureSessionsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
     );
   }
 
@@ -38064,6 +40805,66 @@ class $$PlantingUnitObservationsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get primaryCondition => $composableBuilder(
+    column: $table.primaryCondition,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get recognizableRemnantPresent => $composableBuilder(
+    column: $table.recognizableRemnantPresent,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get visibleSevering => $composableBuilder(
+    column: $table.visibleSevering,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get injuryLocation => $composableBuilder(
+    column: $table.injuryLocation,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get injuryFreshness => $composableBuilder(
+    column: $table.injuryFreshness,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get larvaVisible => $composableBuilder(
+    column: $table.larvaVisible,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get larvalSize => $composableBuilder(
+    column: $table.larvalSize,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get freshFrass => $composableBuilder(
+    column: $table.freshFrass,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get rotPresent => $composableBuilder(
+    column: $table.rotPresent,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get tunnelingPresent => $composableBuilder(
+    column: $table.tunnelingPresent,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get discolorationPresent => $composableBuilder(
+    column: $table.discolorationPresent,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get otherNonFawEvidence => $composableBuilder(
+    column: $table.otherNonFawEvidence,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<bool> get confirmedFawPresent => $composableBuilder(
     column: $table.confirmedFawPresent,
     builder: (column) => ColumnFilters(column),
@@ -38076,6 +40877,32 @@ class $$PlantingUnitObservationsTableFilterComposer
 
   ColumnFilters<String> get alternativeCauseCode => $composableBuilder(
     column: $table.alternativeCauseCode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get alternativeCauseCodesJson => $composableBuilder(
+    column: $table.alternativeCauseCodesJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get evaluatorPrimaryInterpretation =>
+      $composableBuilder(
+        column: $table.evaluatorPrimaryInterpretation,
+        builder: (column) => ColumnFilters(column),
+      );
+
+  ColumnFilters<String> get evaluatorConfidence => $composableBuilder(
+    column: $table.evaluatorConfidence,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get inspectionDurationMs => $composableBuilder(
+    column: $table.inspectionDurationMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get correctionCount => $composableBuilder(
+    column: $table.correctionCount,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -38110,6 +40937,57 @@ class $$PlantingUnitObservationsTableFilterComposer
           ),
     );
     return composer;
+  }
+
+  Expression<bool> plantObservationsRefs(
+    Expression<bool> Function($$PlantObservationsTableFilterComposer f) f,
+  ) {
+    final $$PlantObservationsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.plantObservations,
+      getReferencedColumn: (t) => t.sourcePlantingUnitObservationId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PlantObservationsTableFilterComposer(
+            $db: $db,
+            $table: $db.plantObservations,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> evidenceCaptureSessionsRefs(
+    Expression<bool> Function($$EvidenceCaptureSessionsTableFilterComposer f) f,
+  ) {
+    final $$EvidenceCaptureSessionsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.evidenceCaptureSessions,
+          getReferencedColumn: (t) => t.sourcePlantingUnitObservationId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$EvidenceCaptureSessionsTableFilterComposer(
+                $db: $db,
+                $table: $db.evidenceCaptureSessions,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
   }
 
   Expression<bool> evidenceMediaRefs(
@@ -38222,6 +41100,66 @@ class $$PlantingUnitObservationsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get primaryCondition => $composableBuilder(
+    column: $table.primaryCondition,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get recognizableRemnantPresent => $composableBuilder(
+    column: $table.recognizableRemnantPresent,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get visibleSevering => $composableBuilder(
+    column: $table.visibleSevering,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get injuryLocation => $composableBuilder(
+    column: $table.injuryLocation,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get injuryFreshness => $composableBuilder(
+    column: $table.injuryFreshness,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get larvaVisible => $composableBuilder(
+    column: $table.larvaVisible,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get larvalSize => $composableBuilder(
+    column: $table.larvalSize,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get freshFrass => $composableBuilder(
+    column: $table.freshFrass,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get rotPresent => $composableBuilder(
+    column: $table.rotPresent,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get tunnelingPresent => $composableBuilder(
+    column: $table.tunnelingPresent,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get discolorationPresent => $composableBuilder(
+    column: $table.discolorationPresent,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get otherNonFawEvidence => $composableBuilder(
+    column: $table.otherNonFawEvidence,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get confirmedFawPresent => $composableBuilder(
     column: $table.confirmedFawPresent,
     builder: (column) => ColumnOrderings(column),
@@ -38234,6 +41172,32 @@ class $$PlantingUnitObservationsTableOrderingComposer
 
   ColumnOrderings<String> get alternativeCauseCode => $composableBuilder(
     column: $table.alternativeCauseCode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get alternativeCauseCodesJson => $composableBuilder(
+    column: $table.alternativeCauseCodesJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get evaluatorPrimaryInterpretation =>
+      $composableBuilder(
+        column: $table.evaluatorPrimaryInterpretation,
+        builder: (column) => ColumnOrderings(column),
+      );
+
+  ColumnOrderings<String> get evaluatorConfidence => $composableBuilder(
+    column: $table.evaluatorConfidence,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get inspectionDurationMs => $composableBuilder(
+    column: $table.inspectionDurationMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get correctionCount => $composableBuilder(
+    column: $table.correctionCount,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -38343,6 +41307,66 @@ class $$PlantingUnitObservationsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get primaryCondition => $composableBuilder(
+    column: $table.primaryCondition,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get recognizableRemnantPresent => $composableBuilder(
+    column: $table.recognizableRemnantPresent,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get visibleSevering => $composableBuilder(
+    column: $table.visibleSevering,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get injuryLocation => $composableBuilder(
+    column: $table.injuryLocation,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get injuryFreshness => $composableBuilder(
+    column: $table.injuryFreshness,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get larvaVisible => $composableBuilder(
+    column: $table.larvaVisible,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get larvalSize => $composableBuilder(
+    column: $table.larvalSize,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get freshFrass => $composableBuilder(
+    column: $table.freshFrass,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get rotPresent => $composableBuilder(
+    column: $table.rotPresent,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get tunnelingPresent => $composableBuilder(
+    column: $table.tunnelingPresent,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get discolorationPresent => $composableBuilder(
+    column: $table.discolorationPresent,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get otherNonFawEvidence => $composableBuilder(
+    column: $table.otherNonFawEvidence,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<bool> get confirmedFawPresent => $composableBuilder(
     column: $table.confirmedFawPresent,
     builder: (column) => column,
@@ -38355,6 +41379,32 @@ class $$PlantingUnitObservationsTableAnnotationComposer
 
   GeneratedColumn<String> get alternativeCauseCode => $composableBuilder(
     column: $table.alternativeCauseCode,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get alternativeCauseCodesJson => $composableBuilder(
+    column: $table.alternativeCauseCodesJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get evaluatorPrimaryInterpretation =>
+      $composableBuilder(
+        column: $table.evaluatorPrimaryInterpretation,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<String> get evaluatorConfidence => $composableBuilder(
+    column: $table.evaluatorConfidence,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get inspectionDurationMs => $composableBuilder(
+    column: $table.inspectionDurationMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get correctionCount => $composableBuilder(
+    column: $table.correctionCount,
     builder: (column) => column,
   );
 
@@ -38387,6 +41437,59 @@ class $$PlantingUnitObservationsTableAnnotationComposer
           ),
     );
     return composer;
+  }
+
+  Expression<T> plantObservationsRefs<T extends Object>(
+    Expression<T> Function($$PlantObservationsTableAnnotationComposer a) f,
+  ) {
+    final $$PlantObservationsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.plantObservations,
+          getReferencedColumn: (t) => t.sourcePlantingUnitObservationId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PlantObservationsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.plantObservations,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<T> evidenceCaptureSessionsRefs<T extends Object>(
+    Expression<T> Function($$EvidenceCaptureSessionsTableAnnotationComposer a)
+    f,
+  ) {
+    final $$EvidenceCaptureSessionsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.evidenceCaptureSessions,
+          getReferencedColumn: (t) => t.sourcePlantingUnitObservationId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$EvidenceCaptureSessionsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.evidenceCaptureSessions,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
   }
 
   Expression<T> evidenceMediaRefs<T extends Object>(
@@ -38431,7 +41534,12 @@ class $$PlantingUnitObservationsTableTableManager
             $$PlantingUnitObservationsTableReferences,
           ),
           PlantingUnitObservationRecord,
-          PrefetchHooks Function({bool stationId, bool evidenceMediaRefs})
+          PrefetchHooks Function({
+            bool stationId,
+            bool plantObservationsRefs,
+            bool evidenceCaptureSessionsRefs,
+            bool evidenceMediaRefs,
+          })
         > {
   $$PlantingUnitObservationsTableTableManager(
     _$AppDatabase db,
@@ -38473,9 +41581,27 @@ class $$PlantingUnitObservationsTableTableManager
                 Value<int?> intendedSeedlingCount = const Value.absent(),
                 Value<bool?> visibleCutting = const Value.absent(),
                 Value<bool?> visibleSeedlingInjury = const Value.absent(),
+                Value<String?> primaryCondition = const Value.absent(),
+                Value<bool?> recognizableRemnantPresent = const Value.absent(),
+                Value<bool?> visibleSevering = const Value.absent(),
+                Value<String?> injuryLocation = const Value.absent(),
+                Value<String?> injuryFreshness = const Value.absent(),
+                Value<bool?> larvaVisible = const Value.absent(),
+                Value<String?> larvalSize = const Value.absent(),
+                Value<bool?> freshFrass = const Value.absent(),
+                Value<bool?> rotPresent = const Value.absent(),
+                Value<bool?> tunnelingPresent = const Value.absent(),
+                Value<bool?> discolorationPresent = const Value.absent(),
+                Value<bool?> otherNonFawEvidence = const Value.absent(),
                 Value<bool?> confirmedFawPresent = const Value.absent(),
                 Value<bool?> injuryConsistentWithFaw = const Value.absent(),
                 Value<String?> alternativeCauseCode = const Value.absent(),
+                Value<String?> alternativeCauseCodesJson = const Value.absent(),
+                Value<String?> evaluatorPrimaryInterpretation =
+                    const Value.absent(),
+                Value<String?> evaluatorConfidence = const Value.absent(),
+                Value<int?> inspectionDurationMs = const Value.absent(),
+                Value<int> correctionCount = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<DateTime?> capturedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -38496,9 +41622,26 @@ class $$PlantingUnitObservationsTableTableManager
                 intendedSeedlingCount: intendedSeedlingCount,
                 visibleCutting: visibleCutting,
                 visibleSeedlingInjury: visibleSeedlingInjury,
+                primaryCondition: primaryCondition,
+                recognizableRemnantPresent: recognizableRemnantPresent,
+                visibleSevering: visibleSevering,
+                injuryLocation: injuryLocation,
+                injuryFreshness: injuryFreshness,
+                larvaVisible: larvaVisible,
+                larvalSize: larvalSize,
+                freshFrass: freshFrass,
+                rotPresent: rotPresent,
+                tunnelingPresent: tunnelingPresent,
+                discolorationPresent: discolorationPresent,
+                otherNonFawEvidence: otherNonFawEvidence,
                 confirmedFawPresent: confirmedFawPresent,
                 injuryConsistentWithFaw: injuryConsistentWithFaw,
                 alternativeCauseCode: alternativeCauseCode,
+                alternativeCauseCodesJson: alternativeCauseCodesJson,
+                evaluatorPrimaryInterpretation: evaluatorPrimaryInterpretation,
+                evaluatorConfidence: evaluatorConfidence,
+                inspectionDurationMs: inspectionDurationMs,
+                correctionCount: correctionCount,
                 notes: notes,
                 capturedAt: capturedAt,
                 rowid: rowid,
@@ -38521,9 +41664,27 @@ class $$PlantingUnitObservationsTableTableManager
                 Value<int?> intendedSeedlingCount = const Value.absent(),
                 Value<bool?> visibleCutting = const Value.absent(),
                 Value<bool?> visibleSeedlingInjury = const Value.absent(),
+                Value<String?> primaryCondition = const Value.absent(),
+                Value<bool?> recognizableRemnantPresent = const Value.absent(),
+                Value<bool?> visibleSevering = const Value.absent(),
+                Value<String?> injuryLocation = const Value.absent(),
+                Value<String?> injuryFreshness = const Value.absent(),
+                Value<bool?> larvaVisible = const Value.absent(),
+                Value<String?> larvalSize = const Value.absent(),
+                Value<bool?> freshFrass = const Value.absent(),
+                Value<bool?> rotPresent = const Value.absent(),
+                Value<bool?> tunnelingPresent = const Value.absent(),
+                Value<bool?> discolorationPresent = const Value.absent(),
+                Value<bool?> otherNonFawEvidence = const Value.absent(),
                 Value<bool?> confirmedFawPresent = const Value.absent(),
                 Value<bool?> injuryConsistentWithFaw = const Value.absent(),
                 Value<String?> alternativeCauseCode = const Value.absent(),
+                Value<String?> alternativeCauseCodesJson = const Value.absent(),
+                Value<String?> evaluatorPrimaryInterpretation =
+                    const Value.absent(),
+                Value<String?> evaluatorConfidence = const Value.absent(),
+                Value<int?> inspectionDurationMs = const Value.absent(),
+                Value<int> correctionCount = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<DateTime?> capturedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -38544,9 +41705,26 @@ class $$PlantingUnitObservationsTableTableManager
                 intendedSeedlingCount: intendedSeedlingCount,
                 visibleCutting: visibleCutting,
                 visibleSeedlingInjury: visibleSeedlingInjury,
+                primaryCondition: primaryCondition,
+                recognizableRemnantPresent: recognizableRemnantPresent,
+                visibleSevering: visibleSevering,
+                injuryLocation: injuryLocation,
+                injuryFreshness: injuryFreshness,
+                larvaVisible: larvaVisible,
+                larvalSize: larvalSize,
+                freshFrass: freshFrass,
+                rotPresent: rotPresent,
+                tunnelingPresent: tunnelingPresent,
+                discolorationPresent: discolorationPresent,
+                otherNonFawEvidence: otherNonFawEvidence,
                 confirmedFawPresent: confirmedFawPresent,
                 injuryConsistentWithFaw: injuryConsistentWithFaw,
                 alternativeCauseCode: alternativeCauseCode,
+                alternativeCauseCodesJson: alternativeCauseCodesJson,
+                evaluatorPrimaryInterpretation: evaluatorPrimaryInterpretation,
+                evaluatorConfidence: evaluatorConfidence,
+                inspectionDurationMs: inspectionDurationMs,
+                correctionCount: correctionCount,
                 notes: notes,
                 capturedAt: capturedAt,
                 rowid: rowid,
@@ -38560,10 +41738,17 @@ class $$PlantingUnitObservationsTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({stationId = false, evidenceMediaRefs = false}) {
+              ({
+                stationId = false,
+                plantObservationsRefs = false,
+                evidenceCaptureSessionsRefs = false,
+                evidenceMediaRefs = false,
+              }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
+                    if (plantObservationsRefs) db.plantObservations,
+                    if (evidenceCaptureSessionsRefs) db.evidenceCaptureSessions,
                     if (evidenceMediaRefs) db.evidenceMedia,
                   ],
                   addJoins:
@@ -38602,6 +41787,54 @@ class $$PlantingUnitObservationsTableTableManager
                       },
                   getPrefetchedDataCallback: (items) async {
                     return [
+                      if (plantObservationsRefs)
+                        await $_getPrefetchedData<
+                          PlantingUnitObservationRecord,
+                          $PlantingUnitObservationsTable,
+                          PlantObservationRecord
+                        >(
+                          currentTable: table,
+                          referencedTable:
+                              $$PlantingUnitObservationsTableReferences
+                                  ._plantObservationsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$PlantingUnitObservationsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).plantObservationsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) =>
+                                    e.sourcePlantingUnitObservationId ==
+                                    item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (evidenceCaptureSessionsRefs)
+                        await $_getPrefetchedData<
+                          PlantingUnitObservationRecord,
+                          $PlantingUnitObservationsTable,
+                          EvidenceCaptureSessionRecord
+                        >(
+                          currentTable: table,
+                          referencedTable:
+                              $$PlantingUnitObservationsTableReferences
+                                  ._evidenceCaptureSessionsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$PlantingUnitObservationsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).evidenceCaptureSessionsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) =>
+                                    e.sourcePlantingUnitObservationId ==
+                                    item.id,
+                              ),
+                          typedResults: items,
+                        ),
                       if (evidenceMediaRefs)
                         await $_getPrefetchedData<
                           PlantingUnitObservationRecord,
@@ -38647,7 +41880,12 @@ typedef $$PlantingUnitObservationsTableProcessedTableManager =
         $$PlantingUnitObservationsTableReferences,
       ),
       PlantingUnitObservationRecord,
-      PrefetchHooks Function({bool stationId, bool evidenceMediaRefs})
+      PrefetchHooks Function({
+        bool stationId,
+        bool plantObservationsRefs,
+        bool evidenceCaptureSessionsRefs,
+        bool evidenceMediaRefs,
+      })
     >;
 typedef $$PlantObservationsTableCreateCompanionBuilder =
     PlantObservationsCompanion Function({
@@ -38660,6 +41898,7 @@ typedef $$PlantObservationsTableCreateCompanionBuilder =
       Value<int> serverVersion,
       required String stationId,
       required int sequenceNumber,
+      Value<String?> sourcePlantingUnitObservationId,
       Value<String?> persistentPlantIdentifier,
       Value<bool> assessable,
       Value<String?> notAssessableReason,
@@ -38688,6 +41927,7 @@ typedef $$PlantObservationsTableUpdateCompanionBuilder =
       Value<int> serverVersion,
       Value<String> stationId,
       Value<int> sequenceNumber,
+      Value<String?> sourcePlantingUnitObservationId,
       Value<String?> persistentPlantIdentifier,
       Value<bool> assessable,
       Value<String?> notAssessableReason,
@@ -38730,6 +41970,31 @@ final class $$PlantObservationsTableReferences
       $_db.stations,
     ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_stationIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $PlantingUnitObservationsTable _sourcePlantingUnitObservationIdTable(
+    _$AppDatabase db,
+  ) => db.plantingUnitObservations.createAlias(
+    'plant_observations__source_planting_unit_observation_id__planting_unit_observations__id',
+  );
+
+  $$PlantingUnitObservationsTableProcessedTableManager?
+  get sourcePlantingUnitObservationId {
+    final $_column = $_itemColumn<String>(
+      'source_planting_unit_observation_id',
+    );
+    if ($_column == null) return null;
+    final manager = $$PlantingUnitObservationsTableTableManager(
+      $_db,
+      $_db.plantingUnitObservations,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(
+      _sourcePlantingUnitObservationIdTable($_db),
+    );
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
@@ -39012,6 +42277,31 @@ class $$PlantObservationsTableFilterComposer
     return composer;
   }
 
+  $$PlantingUnitObservationsTableFilterComposer
+  get sourcePlantingUnitObservationId {
+    final $$PlantingUnitObservationsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.sourcePlantingUnitObservationId,
+          referencedTable: $db.plantingUnitObservations,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PlantingUnitObservationsTableFilterComposer(
+                $db: $db,
+                $table: $db.plantingUnitObservations,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+
   Expression<bool> vegetativeObservationsRefs(
     Expression<bool> Function($$VegetativeObservationsTableFilterComposer f) f,
   ) {
@@ -39288,6 +42578,31 @@ class $$PlantObservationsTableOrderingComposer
     );
     return composer;
   }
+
+  $$PlantingUnitObservationsTableOrderingComposer
+  get sourcePlantingUnitObservationId {
+    final $$PlantingUnitObservationsTableOrderingComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.sourcePlantingUnitObservationId,
+          referencedTable: $db.plantingUnitObservations,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PlantingUnitObservationsTableOrderingComposer(
+                $db: $db,
+                $table: $db.plantingUnitObservations,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
 }
 
 class $$PlantObservationsTableAnnotationComposer
@@ -39418,6 +42733,31 @@ class $$PlantObservationsTableAnnotationComposer
                 $removeJoinBuilderFromRootComposer,
           ),
     );
+    return composer;
+  }
+
+  $$PlantingUnitObservationsTableAnnotationComposer
+  get sourcePlantingUnitObservationId {
+    final $$PlantingUnitObservationsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.sourcePlantingUnitObservationId,
+          referencedTable: $db.plantingUnitObservations,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PlantingUnitObservationsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.plantingUnitObservations,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
     return composer;
   }
 
@@ -39567,6 +42907,7 @@ class $$PlantObservationsTableTableManager
           PlantObservationRecord,
           PrefetchHooks Function({
             bool stationId,
+            bool sourcePlantingUnitObservationId,
             bool vegetativeObservationsRefs,
             bool reproductiveObservationsRefs,
             bool earObservationsRefs,
@@ -39601,6 +42942,8 @@ class $$PlantObservationsTableTableManager
                 Value<int> serverVersion = const Value.absent(),
                 Value<String> stationId = const Value.absent(),
                 Value<int> sequenceNumber = const Value.absent(),
+                Value<String?> sourcePlantingUnitObservationId =
+                    const Value.absent(),
                 Value<String?> persistentPlantIdentifier = const Value.absent(),
                 Value<bool> assessable = const Value.absent(),
                 Value<String?> notAssessableReason = const Value.absent(),
@@ -39627,6 +42970,8 @@ class $$PlantObservationsTableTableManager
                 serverVersion: serverVersion,
                 stationId: stationId,
                 sequenceNumber: sequenceNumber,
+                sourcePlantingUnitObservationId:
+                    sourcePlantingUnitObservationId,
                 persistentPlantIdentifier: persistentPlantIdentifier,
                 assessable: assessable,
                 notAssessableReason: notAssessableReason,
@@ -39655,6 +43000,8 @@ class $$PlantObservationsTableTableManager
                 Value<int> serverVersion = const Value.absent(),
                 required String stationId,
                 required int sequenceNumber,
+                Value<String?> sourcePlantingUnitObservationId =
+                    const Value.absent(),
                 Value<String?> persistentPlantIdentifier = const Value.absent(),
                 Value<bool> assessable = const Value.absent(),
                 Value<String?> notAssessableReason = const Value.absent(),
@@ -39681,6 +43028,8 @@ class $$PlantObservationsTableTableManager
                 serverVersion: serverVersion,
                 stationId: stationId,
                 sequenceNumber: sequenceNumber,
+                sourcePlantingUnitObservationId:
+                    sourcePlantingUnitObservationId,
                 persistentPlantIdentifier: persistentPlantIdentifier,
                 assessable: assessable,
                 notAssessableReason: notAssessableReason,
@@ -39709,6 +43058,7 @@ class $$PlantObservationsTableTableManager
           prefetchHooksCallback:
               ({
                 stationId = false,
+                sourcePlantingUnitObservationId = false,
                 vegetativeObservationsRefs = false,
                 reproductiveObservationsRefs = false,
                 earObservationsRefs = false,
@@ -39752,6 +43102,26 @@ class $$PlantObservationsTableTableManager
                                     referencedColumn:
                                         $$PlantObservationsTableReferences
                                             ._stationIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (sourcePlantingUnitObservationId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn:
+                                        table.sourcePlantingUnitObservationId,
+                                    referencedTable:
+                                        $$PlantObservationsTableReferences
+                                            ._sourcePlantingUnitObservationIdTable(
+                                              db,
+                                            ),
+                                    referencedColumn:
+                                        $$PlantObservationsTableReferences
+                                            ._sourcePlantingUnitObservationIdTable(
+                                              db,
+                                            )
                                             .id,
                                   )
                                   as T;
@@ -39888,12 +43258,714 @@ typedef $$PlantObservationsTableProcessedTableManager =
       PlantObservationRecord,
       PrefetchHooks Function({
         bool stationId,
+        bool sourcePlantingUnitObservationId,
         bool vegetativeObservationsRefs,
         bool reproductiveObservationsRefs,
         bool earObservationsRefs,
         bool evidenceCaptureSessionsRefs,
         bool evidenceMediaRefs,
       })
+    >;
+typedef $$VeV2StationInspectionsTableCreateCompanionBuilder =
+    VeV2StationInspectionsCompanion Function({
+      required String id,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<String?> deviceId,
+      Value<String> syncState,
+      Value<int> serverVersion,
+      required String stationId,
+      Value<bool?> emergenceContinuing,
+      Value<bool?> delayedEmergencePlausible,
+      Value<bool> plantingUnitSequenceAssessable,
+      Value<String?> sequenceNotAssessableReason,
+      Value<String?> rowDirectionCode,
+      Value<bool?> stationContextMeetsRowPurpose,
+      Value<String> protocolVersion,
+      Value<DateTime?> startedAt,
+      Value<DateTime?> completedAt,
+      Value<int> plantingUnitEntryDurationMs,
+      Value<int> livingSeedlingEntryDurationMs,
+      Value<int> correctionCount,
+      Value<int> repeatedPhysicalCheckCount,
+      Value<int?> evaluatorWorkloadRating,
+      Value<int> rowid,
+    });
+typedef $$VeV2StationInspectionsTableUpdateCompanionBuilder =
+    VeV2StationInspectionsCompanion Function({
+      Value<String> id,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<String?> deviceId,
+      Value<String> syncState,
+      Value<int> serverVersion,
+      Value<String> stationId,
+      Value<bool?> emergenceContinuing,
+      Value<bool?> delayedEmergencePlausible,
+      Value<bool> plantingUnitSequenceAssessable,
+      Value<String?> sequenceNotAssessableReason,
+      Value<String?> rowDirectionCode,
+      Value<bool?> stationContextMeetsRowPurpose,
+      Value<String> protocolVersion,
+      Value<DateTime?> startedAt,
+      Value<DateTime?> completedAt,
+      Value<int> plantingUnitEntryDurationMs,
+      Value<int> livingSeedlingEntryDurationMs,
+      Value<int> correctionCount,
+      Value<int> repeatedPhysicalCheckCount,
+      Value<int?> evaluatorWorkloadRating,
+      Value<int> rowid,
+    });
+
+final class $$VeV2StationInspectionsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $VeV2StationInspectionsTable,
+          VeV2StationInspectionRecord
+        > {
+  $$VeV2StationInspectionsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $StationsTable _stationIdTable(_$AppDatabase db) => db.stations
+      .createAlias('ve_v2_station_inspections__station_id__stations__id');
+
+  $$StationsTableProcessedTableManager get stationId {
+    final $_column = $_itemColumn<String>('station_id')!;
+
+    final manager = $$StationsTableTableManager(
+      $_db,
+      $_db.stations,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_stationIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$VeV2StationInspectionsTableFilterComposer
+    extends Composer<_$AppDatabase, $VeV2StationInspectionsTable> {
+  $$VeV2StationInspectionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get syncState => $composableBuilder(
+    column: $table.syncState,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get serverVersion => $composableBuilder(
+    column: $table.serverVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get emergenceContinuing => $composableBuilder(
+    column: $table.emergenceContinuing,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get delayedEmergencePlausible => $composableBuilder(
+    column: $table.delayedEmergencePlausible,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get plantingUnitSequenceAssessable => $composableBuilder(
+    column: $table.plantingUnitSequenceAssessable,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sequenceNotAssessableReason => $composableBuilder(
+    column: $table.sequenceNotAssessableReason,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get rowDirectionCode => $composableBuilder(
+    column: $table.rowDirectionCode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get stationContextMeetsRowPurpose => $composableBuilder(
+    column: $table.stationContextMeetsRowPurpose,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get protocolVersion => $composableBuilder(
+    column: $table.protocolVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get startedAt => $composableBuilder(
+    column: $table.startedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get plantingUnitEntryDurationMs => $composableBuilder(
+    column: $table.plantingUnitEntryDurationMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get livingSeedlingEntryDurationMs => $composableBuilder(
+    column: $table.livingSeedlingEntryDurationMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get correctionCount => $composableBuilder(
+    column: $table.correctionCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get repeatedPhysicalCheckCount => $composableBuilder(
+    column: $table.repeatedPhysicalCheckCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get evaluatorWorkloadRating => $composableBuilder(
+    column: $table.evaluatorWorkloadRating,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$StationsTableFilterComposer get stationId {
+    final $$StationsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.stationId,
+      referencedTable: $db.stations,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$StationsTableFilterComposer(
+            $db: $db,
+            $table: $db.stations,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$VeV2StationInspectionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $VeV2StationInspectionsTable> {
+  $$VeV2StationInspectionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get syncState => $composableBuilder(
+    column: $table.syncState,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get serverVersion => $composableBuilder(
+    column: $table.serverVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get emergenceContinuing => $composableBuilder(
+    column: $table.emergenceContinuing,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get delayedEmergencePlausible => $composableBuilder(
+    column: $table.delayedEmergencePlausible,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get plantingUnitSequenceAssessable =>
+      $composableBuilder(
+        column: $table.plantingUnitSequenceAssessable,
+        builder: (column) => ColumnOrderings(column),
+      );
+
+  ColumnOrderings<String> get sequenceNotAssessableReason => $composableBuilder(
+    column: $table.sequenceNotAssessableReason,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get rowDirectionCode => $composableBuilder(
+    column: $table.rowDirectionCode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get stationContextMeetsRowPurpose => $composableBuilder(
+    column: $table.stationContextMeetsRowPurpose,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get protocolVersion => $composableBuilder(
+    column: $table.protocolVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get startedAt => $composableBuilder(
+    column: $table.startedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get plantingUnitEntryDurationMs => $composableBuilder(
+    column: $table.plantingUnitEntryDurationMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get livingSeedlingEntryDurationMs => $composableBuilder(
+    column: $table.livingSeedlingEntryDurationMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get correctionCount => $composableBuilder(
+    column: $table.correctionCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get repeatedPhysicalCheckCount => $composableBuilder(
+    column: $table.repeatedPhysicalCheckCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get evaluatorWorkloadRating => $composableBuilder(
+    column: $table.evaluatorWorkloadRating,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$StationsTableOrderingComposer get stationId {
+    final $$StationsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.stationId,
+      referencedTable: $db.stations,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$StationsTableOrderingComposer(
+            $db: $db,
+            $table: $db.stations,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$VeV2StationInspectionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $VeV2StationInspectionsTable> {
+  $$VeV2StationInspectionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get deviceId =>
+      $composableBuilder(column: $table.deviceId, builder: (column) => column);
+
+  GeneratedColumn<String> get syncState =>
+      $composableBuilder(column: $table.syncState, builder: (column) => column);
+
+  GeneratedColumn<int> get serverVersion => $composableBuilder(
+    column: $table.serverVersion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get emergenceContinuing => $composableBuilder(
+    column: $table.emergenceContinuing,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get delayedEmergencePlausible => $composableBuilder(
+    column: $table.delayedEmergencePlausible,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get plantingUnitSequenceAssessable =>
+      $composableBuilder(
+        column: $table.plantingUnitSequenceAssessable,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<String> get sequenceNotAssessableReason => $composableBuilder(
+    column: $table.sequenceNotAssessableReason,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get rowDirectionCode => $composableBuilder(
+    column: $table.rowDirectionCode,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get stationContextMeetsRowPurpose => $composableBuilder(
+    column: $table.stationContextMeetsRowPurpose,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get protocolVersion => $composableBuilder(
+    column: $table.protocolVersion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get startedAt =>
+      $composableBuilder(column: $table.startedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get plantingUnitEntryDurationMs => $composableBuilder(
+    column: $table.plantingUnitEntryDurationMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get livingSeedlingEntryDurationMs => $composableBuilder(
+    column: $table.livingSeedlingEntryDurationMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get correctionCount => $composableBuilder(
+    column: $table.correctionCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get repeatedPhysicalCheckCount => $composableBuilder(
+    column: $table.repeatedPhysicalCheckCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get evaluatorWorkloadRating => $composableBuilder(
+    column: $table.evaluatorWorkloadRating,
+    builder: (column) => column,
+  );
+
+  $$StationsTableAnnotationComposer get stationId {
+    final $$StationsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.stationId,
+      referencedTable: $db.stations,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$StationsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.stations,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$VeV2StationInspectionsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $VeV2StationInspectionsTable,
+          VeV2StationInspectionRecord,
+          $$VeV2StationInspectionsTableFilterComposer,
+          $$VeV2StationInspectionsTableOrderingComposer,
+          $$VeV2StationInspectionsTableAnnotationComposer,
+          $$VeV2StationInspectionsTableCreateCompanionBuilder,
+          $$VeV2StationInspectionsTableUpdateCompanionBuilder,
+          (
+            VeV2StationInspectionRecord,
+            $$VeV2StationInspectionsTableReferences,
+          ),
+          VeV2StationInspectionRecord,
+          PrefetchHooks Function({bool stationId})
+        > {
+  $$VeV2StationInspectionsTableTableManager(
+    _$AppDatabase db,
+    $VeV2StationInspectionsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$VeV2StationInspectionsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$VeV2StationInspectionsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$VeV2StationInspectionsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<String?> deviceId = const Value.absent(),
+                Value<String> syncState = const Value.absent(),
+                Value<int> serverVersion = const Value.absent(),
+                Value<String> stationId = const Value.absent(),
+                Value<bool?> emergenceContinuing = const Value.absent(),
+                Value<bool?> delayedEmergencePlausible = const Value.absent(),
+                Value<bool> plantingUnitSequenceAssessable =
+                    const Value.absent(),
+                Value<String?> sequenceNotAssessableReason =
+                    const Value.absent(),
+                Value<String?> rowDirectionCode = const Value.absent(),
+                Value<bool?> stationContextMeetsRowPurpose =
+                    const Value.absent(),
+                Value<String> protocolVersion = const Value.absent(),
+                Value<DateTime?> startedAt = const Value.absent(),
+                Value<DateTime?> completedAt = const Value.absent(),
+                Value<int> plantingUnitEntryDurationMs = const Value.absent(),
+                Value<int> livingSeedlingEntryDurationMs = const Value.absent(),
+                Value<int> correctionCount = const Value.absent(),
+                Value<int> repeatedPhysicalCheckCount = const Value.absent(),
+                Value<int?> evaluatorWorkloadRating = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => VeV2StationInspectionsCompanion(
+                id: id,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                deviceId: deviceId,
+                syncState: syncState,
+                serverVersion: serverVersion,
+                stationId: stationId,
+                emergenceContinuing: emergenceContinuing,
+                delayedEmergencePlausible: delayedEmergencePlausible,
+                plantingUnitSequenceAssessable: plantingUnitSequenceAssessable,
+                sequenceNotAssessableReason: sequenceNotAssessableReason,
+                rowDirectionCode: rowDirectionCode,
+                stationContextMeetsRowPurpose: stationContextMeetsRowPurpose,
+                protocolVersion: protocolVersion,
+                startedAt: startedAt,
+                completedAt: completedAt,
+                plantingUnitEntryDurationMs: plantingUnitEntryDurationMs,
+                livingSeedlingEntryDurationMs: livingSeedlingEntryDurationMs,
+                correctionCount: correctionCount,
+                repeatedPhysicalCheckCount: repeatedPhysicalCheckCount,
+                evaluatorWorkloadRating: evaluatorWorkloadRating,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<String?> deviceId = const Value.absent(),
+                Value<String> syncState = const Value.absent(),
+                Value<int> serverVersion = const Value.absent(),
+                required String stationId,
+                Value<bool?> emergenceContinuing = const Value.absent(),
+                Value<bool?> delayedEmergencePlausible = const Value.absent(),
+                Value<bool> plantingUnitSequenceAssessable =
+                    const Value.absent(),
+                Value<String?> sequenceNotAssessableReason =
+                    const Value.absent(),
+                Value<String?> rowDirectionCode = const Value.absent(),
+                Value<bool?> stationContextMeetsRowPurpose =
+                    const Value.absent(),
+                Value<String> protocolVersion = const Value.absent(),
+                Value<DateTime?> startedAt = const Value.absent(),
+                Value<DateTime?> completedAt = const Value.absent(),
+                Value<int> plantingUnitEntryDurationMs = const Value.absent(),
+                Value<int> livingSeedlingEntryDurationMs = const Value.absent(),
+                Value<int> correctionCount = const Value.absent(),
+                Value<int> repeatedPhysicalCheckCount = const Value.absent(),
+                Value<int?> evaluatorWorkloadRating = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => VeV2StationInspectionsCompanion.insert(
+                id: id,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                deviceId: deviceId,
+                syncState: syncState,
+                serverVersion: serverVersion,
+                stationId: stationId,
+                emergenceContinuing: emergenceContinuing,
+                delayedEmergencePlausible: delayedEmergencePlausible,
+                plantingUnitSequenceAssessable: plantingUnitSequenceAssessable,
+                sequenceNotAssessableReason: sequenceNotAssessableReason,
+                rowDirectionCode: rowDirectionCode,
+                stationContextMeetsRowPurpose: stationContextMeetsRowPurpose,
+                protocolVersion: protocolVersion,
+                startedAt: startedAt,
+                completedAt: completedAt,
+                plantingUnitEntryDurationMs: plantingUnitEntryDurationMs,
+                livingSeedlingEntryDurationMs: livingSeedlingEntryDurationMs,
+                correctionCount: correctionCount,
+                repeatedPhysicalCheckCount: repeatedPhysicalCheckCount,
+                evaluatorWorkloadRating: evaluatorWorkloadRating,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$VeV2StationInspectionsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({stationId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (stationId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.stationId,
+                                referencedTable:
+                                    $$VeV2StationInspectionsTableReferences
+                                        ._stationIdTable(db),
+                                referencedColumn:
+                                    $$VeV2StationInspectionsTableReferences
+                                        ._stationIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$VeV2StationInspectionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $VeV2StationInspectionsTable,
+      VeV2StationInspectionRecord,
+      $$VeV2StationInspectionsTableFilterComposer,
+      $$VeV2StationInspectionsTableOrderingComposer,
+      $$VeV2StationInspectionsTableAnnotationComposer,
+      $$VeV2StationInspectionsTableCreateCompanionBuilder,
+      $$VeV2StationInspectionsTableUpdateCompanionBuilder,
+      (VeV2StationInspectionRecord, $$VeV2StationInspectionsTableReferences),
+      VeV2StationInspectionRecord,
+      PrefetchHooks Function({bool stationId})
     >;
 typedef $$VegetativeObservationsTableCreateCompanionBuilder =
     VegetativeObservationsCompanion Function({
@@ -41850,6 +45922,7 @@ typedef $$EvidenceCaptureSessionsTableCreateCompanionBuilder =
       required String scopeKey,
       Value<int?> plantPosition,
       Value<String?> plantObservationId,
+      Value<String?> sourcePlantingUnitObservationId,
       Value<String> requirementsVersion,
       Value<String> collectionMode,
       Value<String> collectionStatus,
@@ -41875,6 +45948,7 @@ typedef $$EvidenceCaptureSessionsTableUpdateCompanionBuilder =
       Value<String> scopeKey,
       Value<int?> plantPosition,
       Value<String?> plantObservationId,
+      Value<String?> sourcePlantingUnitObservationId,
       Value<String> requirementsVersion,
       Value<String> collectionMode,
       Value<String> collectionStatus,
@@ -41948,6 +46022,31 @@ final class $$EvidenceCaptureSessionsTableReferences
       $_db.plantObservations,
     ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_plantObservationIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $PlantingUnitObservationsTable _sourcePlantingUnitObservationIdTable(
+    _$AppDatabase db,
+  ) => db.plantingUnitObservations.createAlias(
+    'evidence_capture_sessions__source_planting_unit_observation_id__planting_unit_observations__id',
+  );
+
+  $$PlantingUnitObservationsTableProcessedTableManager?
+  get sourcePlantingUnitObservationId {
+    final $_column = $_itemColumn<String>(
+      'source_planting_unit_observation_id',
+    );
+    if ($_column == null) return null;
+    final manager = $$PlantingUnitObservationsTableTableManager(
+      $_db,
+      $_db.plantingUnitObservations,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(
+      _sourcePlantingUnitObservationIdTable($_db),
+    );
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
@@ -42139,6 +46238,31 @@ class $$EvidenceCaptureSessionsTableFilterComposer
                 $removeJoinBuilderFromRootComposer,
           ),
     );
+    return composer;
+  }
+
+  $$PlantingUnitObservationsTableFilterComposer
+  get sourcePlantingUnitObservationId {
+    final $$PlantingUnitObservationsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.sourcePlantingUnitObservationId,
+          referencedTable: $db.plantingUnitObservations,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PlantingUnitObservationsTableFilterComposer(
+                $db: $db,
+                $table: $db.plantingUnitObservations,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
     return composer;
   }
 
@@ -42335,6 +46459,31 @@ class $$EvidenceCaptureSessionsTableOrderingComposer
     );
     return composer;
   }
+
+  $$PlantingUnitObservationsTableOrderingComposer
+  get sourcePlantingUnitObservationId {
+    final $$PlantingUnitObservationsTableOrderingComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.sourcePlantingUnitObservationId,
+          referencedTable: $db.plantingUnitObservations,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PlantingUnitObservationsTableOrderingComposer(
+                $db: $db,
+                $table: $db.plantingUnitObservations,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
 }
 
 class $$EvidenceCaptureSessionsTableAnnotationComposer
@@ -42488,6 +46637,31 @@ class $$EvidenceCaptureSessionsTableAnnotationComposer
     return composer;
   }
 
+  $$PlantingUnitObservationsTableAnnotationComposer
+  get sourcePlantingUnitObservationId {
+    final $$PlantingUnitObservationsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.sourcePlantingUnitObservationId,
+          referencedTable: $db.plantingUnitObservations,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PlantingUnitObservationsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.plantingUnitObservations,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+
   Expression<T> evidenceMediaRefs<T extends Object>(
     Expression<T> Function($$EvidenceMediaTableAnnotationComposer a) f,
   ) {
@@ -42534,6 +46708,7 @@ class $$EvidenceCaptureSessionsTableTableManager
             bool assessmentId,
             bool stationId,
             bool plantObservationId,
+            bool sourcePlantingUnitObservationId,
             bool evidenceMediaRefs,
           })
         > {
@@ -42574,6 +46749,8 @@ class $$EvidenceCaptureSessionsTableTableManager
                 Value<String> scopeKey = const Value.absent(),
                 Value<int?> plantPosition = const Value.absent(),
                 Value<String?> plantObservationId = const Value.absent(),
+                Value<String?> sourcePlantingUnitObservationId =
+                    const Value.absent(),
                 Value<String> requirementsVersion = const Value.absent(),
                 Value<String> collectionMode = const Value.absent(),
                 Value<String> collectionStatus = const Value.absent(),
@@ -42597,6 +46774,8 @@ class $$EvidenceCaptureSessionsTableTableManager
                 scopeKey: scopeKey,
                 plantPosition: plantPosition,
                 plantObservationId: plantObservationId,
+                sourcePlantingUnitObservationId:
+                    sourcePlantingUnitObservationId,
                 requirementsVersion: requirementsVersion,
                 collectionMode: collectionMode,
                 collectionStatus: collectionStatus,
@@ -42622,6 +46801,8 @@ class $$EvidenceCaptureSessionsTableTableManager
                 required String scopeKey,
                 Value<int?> plantPosition = const Value.absent(),
                 Value<String?> plantObservationId = const Value.absent(),
+                Value<String?> sourcePlantingUnitObservationId =
+                    const Value.absent(),
                 Value<String> requirementsVersion = const Value.absent(),
                 Value<String> collectionMode = const Value.absent(),
                 Value<String> collectionStatus = const Value.absent(),
@@ -42645,6 +46826,8 @@ class $$EvidenceCaptureSessionsTableTableManager
                 scopeKey: scopeKey,
                 plantPosition: plantPosition,
                 plantObservationId: plantObservationId,
+                sourcePlantingUnitObservationId:
+                    sourcePlantingUnitObservationId,
                 requirementsVersion: requirementsVersion,
                 collectionMode: collectionMode,
                 collectionStatus: collectionStatus,
@@ -42668,6 +46851,7 @@ class $$EvidenceCaptureSessionsTableTableManager
                 assessmentId = false,
                 stationId = false,
                 plantObservationId = false,
+                sourcePlantingUnitObservationId = false,
                 evidenceMediaRefs = false,
               }) {
                 return PrefetchHooks(
@@ -42736,6 +46920,26 @@ class $$EvidenceCaptureSessionsTableTableManager
                                   )
                                   as T;
                         }
+                        if (sourcePlantingUnitObservationId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn:
+                                        table.sourcePlantingUnitObservationId,
+                                    referencedTable:
+                                        $$EvidenceCaptureSessionsTableReferences
+                                            ._sourcePlantingUnitObservationIdTable(
+                                              db,
+                                            ),
+                                    referencedColumn:
+                                        $$EvidenceCaptureSessionsTableReferences
+                                            ._sourcePlantingUnitObservationIdTable(
+                                              db,
+                                            )
+                                            .id,
+                                  )
+                                  as T;
+                        }
 
                         return state;
                       },
@@ -42787,6 +46991,7 @@ typedef $$EvidenceCaptureSessionsTableProcessedTableManager =
         bool assessmentId,
         bool stationId,
         bool plantObservationId,
+        bool sourcePlantingUnitObservationId,
         bool evidenceMediaRefs,
       })
     >;
@@ -46038,6 +50243,11 @@ class $AppDatabaseManager {
       );
   $$PlantObservationsTableTableManager get plantObservations =>
       $$PlantObservationsTableTableManager(_db, _db.plantObservations);
+  $$VeV2StationInspectionsTableTableManager get veV2StationInspections =>
+      $$VeV2StationInspectionsTableTableManager(
+        _db,
+        _db.veV2StationInspections,
+      );
   $$VegetativeObservationsTableTableManager get vegetativeObservations =>
       $$VegetativeObservationsTableTableManager(
         _db,

@@ -30,11 +30,11 @@ class FiveStationCompletionService {
               ..orderBy([(row) => OrderingTerm.asc(row.stationNumber)]))
             .get();
     final issues = <ValidationIssue>[];
-    if (!_isPilotStage(assessment.growthStage)) {
+    if (!_isSupportedStage(assessment.growthStage)) {
       issues.add(
         const ValidationIssue(
           'unsupported_stage',
-          'Increment A completion is available only for the V3-V12 workflow.',
+          'Five-station completion is unavailable for this growth stage.',
         ),
       );
     }
@@ -120,11 +120,29 @@ class FiveStationCompletionService {
               )
               ..orderBy([(row) => OrderingTerm.asc(row.sequenceNumber)]))
             .get();
+    final latestReview =
+        await (database.select(database.auditLogs)
+              ..where(
+                (row) =>
+                    row.entityType.equals('stations') &
+                    row.entityId.equals(station.id) &
+                    row.action.equals('review_confirmed'),
+              )
+              ..orderBy([(row) => OrderingTerm.desc(row.occurredAt)])
+              ..limit(1))
+            .getSingleOrNull();
+    final reviewRepository = ScoutingWorkflowRepository(database);
+    final manualConfirmationDeferred =
+        latestReview?.afterJson != null &&
+        reviewRepository.manualConfirmationDeferredFromReview(
+          latestReview!.afterJson!,
+        );
     final positions = plants.map((plant) => plant.sequenceNumber).toList();
-    if (!_sameSequence(
-      positions,
-      List<int>.generate(10, (index) => index + 1),
-    )) {
+    if (!manualConfirmationDeferred &&
+        !_sameSequence(
+          positions,
+          List<int>.generate(10, (index) => index + 1),
+        )) {
       issues.add(
         ValidationIssue(
           'plant_positions',
@@ -140,7 +158,9 @@ class FiveStationCompletionService {
           await (database.select(database.vegetativeObservations)
                 ..where((row) => row.plantObservationId.equals(plant.id)))
               .getSingleOrNull();
-      if (vegetative == null) {
+      if (vegetative == null &&
+          !manualConfirmationDeferred &&
+          !_isVeV2Stage(assessment.growthStage)) {
         issues.add(
           ValidationIssue(
             'stage_record_missing',
@@ -148,17 +168,198 @@ class FiveStationCompletionService {
             stationId: station.id,
           ),
         );
-      } else {
-        joined.add(StationPlantRecord(plant: plant, vegetative: vegetative));
+      }
+      joined.add(
+        StationPlantRecord(
+          plant: plant,
+          vegetative:
+              vegetative ??
+              VegetativeObservationRecord(
+                plantObservationId: plant.id,
+                smallFreshWindowpanes: false,
+                infestedWhorl: false,
+                scraping: false,
+                cuttingOrTearing: false,
+                freshFrass: false,
+                whorlFeedingSign: false,
+                larvaVisible: false,
+                larvalSize: 'none_seen',
+                damageScoreUncertain: false,
+                createdAt: plant.createdAt,
+                updatedAt: plant.updatedAt,
+              ),
+        ),
+      );
+    }
+    if (manualConfirmationDeferred) {
+      await _validateDeferredManualConfirmation(
+        assessmentId: assessment.id,
+        station: station,
+        issues: issues,
+      );
+    } else if (_isVeV2Stage(assessment.growthStage)) {
+      await _validateVeV2Station(
+        assessmentId: assessment.id,
+        station: station,
+        plants: joined,
+        issues: issues,
+      );
+    } else {
+      await _validateEvidence(
+        assessmentId: assessment.id,
+        station: station,
+        plants: joined,
+        issues: issues,
+      );
+    }
+    await _validateReview(station: station, plants: joined, issues: issues);
+  }
+
+  Future<void> _validateDeferredManualConfirmation({
+    required String assessmentId,
+    required StationRecord station,
+    required List<ValidationIssue> issues,
+  }) async {
+    final bundles = await EvidenceCaptureRepository(
+      database,
+    ).loadStationBundles(station.id);
+    final context = bundles.where(
+      (bundle) =>
+          bundle.session.scopeType == DatabaseCodes.evidenceScopeStationContext,
+    );
+    if (context.length != 1 ||
+        context.single.session.assessmentId != assessmentId ||
+        context.single.session.completedAt == null ||
+        !context.single.isViewSatisfied(
+          DatabaseCodes.evidenceViewStationContext,
+        )) {
+      issues.add(
+        ValidationIssue(
+          'station_context_missing',
+          'Station ${station.stationNumber} needs station-context evidence or documented fallback.',
+          stationId: station.id,
+        ),
+      );
+    }
+    for (var position = 1; position <= 10; position++) {
+      final matches = bundles.where(
+        (bundle) =>
+            bundle.session.scopeType == DatabaseCodes.evidenceScopePlant &&
+            bundle.session.plantPosition == position,
+      );
+      if (matches.length != 1 || matches.single.session.completedAt == null) {
+        issues.add(
+          ValidationIssue(
+            'unconfirmed_capture_missing',
+            'Plant $position at Station ${station.stationNumber} needs completed evidence capture before manual confirmation can be skipped.',
+            stationId: station.id,
+          ),
+        );
+        continue;
+      }
+      final bundle = matches.single;
+      final hasPrimaryView =
+          bundle.isViewSatisfied(DatabaseCodes.evidenceViewWhorlOverview) ||
+          bundle.isViewSatisfied(DatabaseCodes.evidenceViewWholeSeedling);
+      if (!hasPrimaryView) {
+        issues.add(
+          ValidationIssue(
+            'unconfirmed_primary_view_missing',
+            'Plant $position at Station ${station.stationNumber} needs its primary photograph or documented fallback.',
+            stationId: station.id,
+          ),
+        );
       }
     }
-    await _validateEvidence(
-      assessmentId: assessment.id,
-      station: station,
-      plants: joined,
-      issues: issues,
+  }
+
+  Future<void> _validateVeV2Station({
+    required String assessmentId,
+    required StationRecord station,
+    required List<StationPlantRecord> plants,
+    required List<ValidationIssue> issues,
+  }) async {
+    final inspection = await (database.select(
+      database.veV2StationInspections,
+    )..where((row) => row.stationId.equals(station.id))).getSingleOrNull();
+    if (inspection != null && inspection.completedAt == null) {
+      final now = DateTime.now().toUtc();
+      await (database.update(
+        database.veV2StationInspections,
+      )..where((row) => row.id.equals(inspection.id))).write(
+        VeV2StationInspectionsCompanion(
+          completedAt: Value(now),
+          updatedAt: Value(now),
+          syncState: const Value(DatabaseCodes.queued),
+        ),
+      );
+    }
+
+    final bundles = await EvidenceCaptureRepository(
+      database,
+    ).loadStationBundles(station.id);
+    final context = bundles.where(
+      (bundle) =>
+          bundle.session.scopeType == DatabaseCodes.evidenceScopeStationContext,
     );
-    await _validateReview(station: station, plants: joined, issues: issues);
+    if (context.length != 1 ||
+        context.single.session.assessmentId != assessmentId ||
+        context.single.session.completedAt == null ||
+        !context.single.isViewSatisfied(
+          DatabaseCodes.evidenceViewStationContext,
+        )) {
+      issues.add(
+        ValidationIssue(
+          'station_context_missing',
+          'Station ${station.stationNumber} needs station-context evidence or documented fallback.',
+          stationId: station.id,
+        ),
+      );
+    }
+
+    for (final item in plants) {
+      final matches = bundles.where(
+        (bundle) =>
+            bundle.session.scopeType == DatabaseCodes.evidenceScopePlant &&
+            bundle.session.plantPosition == item.plant.sequenceNumber,
+      );
+      if (matches.length != 1) {
+        issues.add(
+          ValidationIssue(
+            've_v2_seedling_evidence',
+            'Living plant ${item.plant.sequenceNumber} at Station ${station.stationNumber} needs one associated evidence record.',
+            stationId: station.id,
+          ),
+        );
+        continue;
+      }
+      final bundle = matches.single;
+      if (bundle.session.assessmentId != assessmentId ||
+          bundle.session.stationId != station.id ||
+          bundle.session.plantObservationId != item.plant.id ||
+          bundle.session.completedAt == null) {
+        issues.add(
+          ValidationIssue(
+            've_v2_evidence_association',
+            'Living plant ${item.plant.sequenceNumber} evidence is incomplete or attached incorrectly.',
+            stationId: station.id,
+          ),
+        );
+        continue;
+      }
+      final hasPrimary =
+          bundle.isViewSatisfied(DatabaseCodes.evidenceViewWholeSeedling) ||
+          bundle.isViewSatisfied(DatabaseCodes.evidenceViewWhorlOverview);
+      if (!hasPrimary) {
+        issues.add(
+          ValidationIssue(
+            've_v2_capture_missing',
+            'Living plant ${item.plant.sequenceNumber} at Station ${station.stationNumber} needs its required capture or documented fallback.',
+            stationId: station.id,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _validateEvidence({
@@ -262,21 +463,17 @@ class FiveStationCompletionService {
           );
         }
       }
+      final review = evidenceReviews[item.plant.sequenceNumber];
       if (item.plant.assessable &&
-          sessionPolicy ==
-              StationEvidencePolicy.cameraFirstOverviewConditional) {
-        final review = evidenceReviews[item.plant.sequenceNumber];
-        if (review == null ||
-            !review.isCurrent ||
-            review.status != DatabaseCodes.evidenceReviewSufficient) {
-          issues.add(
-            ValidationIssue(
-              'plant_evidence_review',
-              'Plant ${item.plant.sequenceNumber} at Station ${station.stationNumber} needs a current sufficient evidence review.',
-              stationId: station.id,
-            ),
-          );
-        }
+          (review?.isCurrent != true ||
+              review?.status != DatabaseCodes.evidenceReviewSufficient)) {
+        issues.add(
+          ValidationIssue(
+            'evidence_review_required',
+            'Plant ${item.plant.sequenceNumber} at Station ${station.stationNumber} needs a current sufficient-evidence review.',
+            stationId: station.id,
+          ),
+        );
       }
     }
   }
@@ -286,7 +483,6 @@ class FiveStationCompletionService {
     required List<StationPlantRecord> plants,
     required List<ValidationIssue> issues,
   }) async {
-    final repository = ScoutingWorkflowRepository(database);
     final review =
         await (database.select(database.auditLogs)
               ..where(
@@ -298,14 +494,7 @@ class FiveStationCompletionService {
               ..orderBy([(row) => OrderingTerm.desc(row.occurredAt)])
               ..limit(1))
             .getSingleOrNull();
-    if (review == null ||
-        !repository.sameStrings(
-          repository.sourceAuditIdsFromReview(review.afterJson ?? '{}'),
-          await repository.reviewSourceAuditIds(
-            station: station,
-            plants: plants,
-          ),
-        )) {
+    if (review == null) {
       issues.add(
         ValidationIssue(
           'station_review_required',
@@ -403,5 +592,8 @@ class FiveStationCompletionService {
     return true;
   }
 
-  bool _isPilotStage(String value) => value == 'v3_v6' || value == 'v7_v12';
+  bool _isSupportedStage(String value) =>
+      _isVeV2Stage(value) || value == 'v3_v6' || value == 'v7_v12';
+
+  bool _isVeV2Stage(String value) => const {'ve', 'v1', 'v2'}.contains(value);
 }

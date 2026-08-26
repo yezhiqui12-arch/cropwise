@@ -5,6 +5,7 @@ import 'package:drift/drift.dart';
 import '../local/app_database.dart';
 import '../local/database_codes.dart';
 import '../local/local_id.dart';
+import 'evidence_capture_repository.dart';
 import 'local_mutation_recorder.dart';
 
 class PilotBlockRequiredException implements Exception {
@@ -107,9 +108,8 @@ class ScoutingWorkflowRepository {
   }
 
   Future<void> confirmPilotGrowthStage(AssessmentRecord assessment) async {
-    if (assessment.growthStage != 'v3_v6' &&
-        assessment.growthStage != 'v7_v12') {
-      throw StateError('Only V3-V12 can be confirmed for this pilot.');
+    if (!DatabaseCodes.isGrowthStageImplemented(assessment.growthStage)) {
+      throw StateError('This growth-stage workflow is not implemented.');
     }
     if (!assessment.growthStageUncertain) return;
 
@@ -312,6 +312,9 @@ class ScoutingWorkflowRepository {
     final recordedSourceAuditIds = review?.afterJson == null
         ? const <String>[]
         : sourceAuditIdsFromReview(review!.afterJson!);
+    final manualConfirmationDeferred = review?.afterJson == null
+        ? false
+        : manualConfirmationDeferredFromReview(review!.afterJson!);
     final currentSourceAuditIds = await reviewSourceAuditIds(
       station: station,
       plants: joined,
@@ -324,7 +327,7 @@ class ScoutingWorkflowRepository {
       plants: List.unmodifiable(joined),
       reviewedAt: reviewedAt,
       reviewIsCurrent:
-          joined.length == 10 &&
+          (joined.length == 10 || manualConfirmationDeferred) &&
           reviewedAt != null &&
           sameStrings(recordedSourceAuditIds, currentSourceAuditIds),
     );
@@ -459,11 +462,30 @@ class ScoutingWorkflowRepository {
   Future<void> confirmStationReview({
     required StationSnapshot snapshot,
     required String actorPersonId,
+    bool manualConfirmationDeferred = false,
   }) async {
-    if (snapshot.station == null || snapshot.plants.length != 10) {
+    if (snapshot.station == null ||
+        (!manualConfirmationDeferred && snapshot.plants.length != 10)) {
       throw StateError(
         'Station ${snapshot.stationNumber} requires ten saved plant positions.',
       );
+    }
+    if (manualConfirmationDeferred) {
+      final bundles = await EvidenceCaptureRepository(
+        database,
+      ).loadStationBundles(snapshot.station!.id);
+      final capturedPositions = {
+        for (final bundle in bundles)
+          if (bundle.session.scopeType == DatabaseCodes.evidenceScopePlant &&
+              bundle.session.plantPosition != null &&
+              bundle.session.completedAt != null)
+            bundle.session.plantPosition!,
+      };
+      if (!sameInts(capturedPositions, List<int>.generate(10, (i) => i + 1))) {
+        throw StateError(
+          'Capture all ten plant positions before skipping manual confirmation.',
+        );
+      }
     }
     await database.transaction(() async {
       final sourceAuditIds = await reviewSourceAuditIds(
@@ -478,10 +500,25 @@ class ScoutingWorkflowRepository {
         after: {
           'block_sequence': snapshot.prepared.run.blockSequence,
           'station_number': snapshot.stationNumber,
-          'plant_positions_reviewed': 10,
+          'plant_positions_reviewed': snapshot.plants.length,
+          'manual_confirmation_deferred': manualConfirmationDeferred,
           'source_audit_ids': sourceAuditIds,
         },
       );
+      final now = DateTime.now().toUtc();
+      await (database.update(database.veV2StationInspections)..where(
+            (row) =>
+                row.stationId.equals(snapshot.station!.id) &
+                row.completedAt.isNull(),
+          ))
+          .write(
+            VeV2StationInspectionsCompanion(
+              evaluatorWorkloadRating: const Value(3),
+              completedAt: Value(now),
+              updatedAt: Value(now),
+              syncState: const Value(DatabaseCodes.queued),
+            ),
+          );
     });
   }
 
@@ -541,6 +578,18 @@ class ScoutingWorkflowRepository {
       return const [];
     }
   }
+
+  bool manualConfirmationDeferredFromReview(String afterJson) {
+    try {
+      final decoded = jsonDecode(afterJson) as Map<String, dynamic>;
+      return decoded['manual_confirmation_deferred'] == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  bool sameInts(Set<int> actual, List<int> expected) =>
+      actual.length == expected.length && expected.every(actual.contains);
 
   bool sameStrings(List<String> left, List<String> right) {
     if (left.length != right.length) return false;

@@ -42,6 +42,7 @@ void main() {
         plan,
         const RoutePreparationData(
           entrance: LatLng(17.0002, 121.0002),
+          rowBearingDegrees: 0,
           obstaclesReviewed: true,
           wCrossingConfirmed: true,
         ),
@@ -112,6 +113,7 @@ void main() {
       await first.saveRoutePreparation(
         const RoutePreparationData(
           entrance: LatLng(17.0002, 121.0002),
+          rowBearingDegrees: 0,
           obstaclesReviewed: true,
           wCrossingConfirmed: true,
         ),
@@ -184,6 +186,7 @@ void main() {
       plan = plan.copyWith(
         preparation: const RoutePreparationData(
           entrance: LatLng(17.0002, 121.0002),
+          rowBearingDegrees: 0,
           obstaclesReviewed: true,
           wCrossingConfirmed: true,
         ),
@@ -229,6 +232,7 @@ void main() {
         draft: plan.copyWith(
           preparation: const RoutePreparationData(
             entrance: LatLng(17.0002, 121.0002),
+            rowBearingDegrees: 0,
             obstaclesReviewed: true,
             wCrossingConfirmed: true,
           ),
@@ -269,6 +273,76 @@ void main() {
       );
     },
   );
+
+  test('restart upgrades legacy manual ladder geometry exactly once', () async {
+    final fixture = await _fixture(
+      database,
+      pattern: DatabaseCodes.patternLadder,
+    );
+    final workflow = ScoutingWorkflowRepository(database);
+    final prepared = (await workflow.prepareRequiredBlocks(
+      fixture.assessment,
+      fixture.boundary,
+    )).single;
+    final routes = ScoutingRouteRepository(database);
+    var plan = await routes.loadOrCreateDraft(
+      assessment: fixture.assessment,
+      prepared: prepared,
+    );
+    plan = ScoutingRouteGenerator.generate(
+      draft: plan.copyWith(
+        preparation: const RoutePreparationData(
+          entrance: LatLng(17.0002, 121.0002),
+          rowBearingDegrees: 0,
+          obstaclesReviewed: true,
+          accessiblePaths: [
+            [LatLng(17.001, 121.005), LatLng(17.009, 121.005)],
+          ],
+        ),
+      ),
+      boundary: ScoutingRouteGenerator.parsePolygon(
+        prepared.block.geometryGeojson,
+      ),
+    );
+    await routes.saveGeneratedPlan(
+      plan.copyWith(
+        algorithmVersion: legacyScoutingRouteAlgorithmVersion,
+        segments: const [
+          ScoutingRouteSegment(
+            points: [LatLng(17.001, 121.005), LatLng(17.009, 121.005)],
+            kind: 'evaluator_confirmed_accessible_path',
+            drawable: true,
+          ),
+        ],
+      ),
+      actorPersonId: fixture.assessment.evaluatorPersonId,
+    );
+
+    final provider = _provider(database, fixture.assessment.id);
+    await provider.initialize();
+    provider.dispose();
+    final restored = await routes.loadPlan(prepared.run.id);
+
+    expect(restored?.algorithmVersion, scoutingRouteAlgorithmVersion);
+    expect(
+      restored?.segments.any(
+        (segment) => segment.kind == 'evaluator_confirmed_accessible_path',
+      ),
+      isFalse,
+    );
+    expect(
+      restored?.segments.where(
+        (segment) => segment.kind == 'ladder_branch_outbound',
+      ),
+      hasLength(5),
+    );
+    expect(
+      (await database.select(database.auditLogs).get()).where(
+        (audit) => audit.action == 'route_recalculated',
+      ),
+      hasLength(1),
+    );
+  });
 }
 
 class _Fixture {
@@ -277,7 +351,10 @@ class _Fixture {
   final BoundaryRecord boundary;
 }
 
-Future<_Fixture> _fixture(AppDatabase database) async {
+Future<_Fixture> _fixture(
+  AppDatabase database, {
+  String pattern = DatabaseCodes.patternW,
+}) async {
   final evaluator = await PeopleRepository(
     database,
   ).findOrCreateEvaluator('Route Evaluator');
@@ -296,7 +373,7 @@ Future<_Fixture> _fixture(AppDatabase database) async {
     boundaryVersionId: field.boundary.id,
     evaluatorPersonId: evaluator.id,
     assessmentMode: DatabaseCodes.modeVeV6,
-    scoutingPattern: DatabaseCodes.patternW,
+    scoutingPattern: pattern,
     growthStage: 'v3_v6',
     protocolVersion: 'increment-b-test',
     formulaVersion: 'increment-b-test',

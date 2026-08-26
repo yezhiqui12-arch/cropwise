@@ -188,6 +188,7 @@ class EvidenceCaptureRepository {
     required int plantPosition,
     required String actorPersonId,
     String requirementsVersion = DatabaseCodes.evidencePolicyStation1TwoViewV1,
+    String? sourcePlantingUnitObservationId,
   }) {
     if (plantPosition < 1 || plantPosition > 10) {
       throw ArgumentError.value(
@@ -204,8 +205,47 @@ class EvidenceCaptureRepository {
       plantPosition: plantPosition,
       actorPersonId: actorPersonId,
       requirementsVersion: requirementsVersion,
+      sourcePlantingUnitObservationId: sourcePlantingUnitObservationId,
     );
   }
+
+  Future<EvidenceCaptureSessionRecord> ensurePlantingUnitSession({
+    required String assessmentId,
+    required String stationId,
+    required int sequenceNumber,
+    required String actorPersonId,
+  }) {
+    if (sequenceNumber < 1 || sequenceNumber > 10) {
+      throw ArgumentError.value(
+        sequenceNumber,
+        'sequenceNumber',
+        'Must be 1-10',
+      );
+    }
+    return _ensureSession(
+      assessmentId: assessmentId,
+      stationId: stationId,
+      scopeType: DatabaseCodes.evidenceScopePlantingUnit,
+      scopeKey: 've_v2_unit_${sequenceNumber.toString().padLeft(2, '0')}',
+      plantPosition: sequenceNumber,
+      actorPersonId: actorPersonId,
+      requirementsVersion: 've_v2_unit_evidence_v1',
+    );
+  }
+
+  Future<EvidenceCaptureSessionRecord> ensureVeRowContextSession({
+    required String assessmentId,
+    required String stationId,
+    required String actorPersonId,
+  }) => _ensureSession(
+    assessmentId: assessmentId,
+    stationId: stationId,
+    scopeType: DatabaseCodes.evidenceScopeStationContext,
+    scopeKey: 've_v2_row_context',
+    plantPosition: null,
+    actorPersonId: actorPersonId,
+    requirementsVersion: 've_v2_row_context_v1',
+  );
 
   Future<EvidenceCaptureSessionRecord> _ensureSession({
     required String assessmentId,
@@ -215,12 +255,25 @@ class EvidenceCaptureRepository {
     required int? plantPosition,
     required String actorPersonId,
     required String requirementsVersion,
+    String? sourcePlantingUnitObservationId,
   }) {
     return database.transaction(() async {
       await _validateStationAssessment(
         assessmentId: assessmentId,
         stationId: stationId,
       );
+      if (sourcePlantingUnitObservationId != null) {
+        final unit =
+            await (database.select(database.plantingUnitObservations)..where(
+                  (row) => row.id.equals(sourcePlantingUnitObservationId),
+                ))
+                .getSingleOrNull();
+        if (unit == null || unit.stationId != stationId) {
+          throw ArgumentError(
+            'The source planting unit must exist in the same station.',
+          );
+        }
+      }
       final existing =
           await (database.select(database.evidenceCaptureSessions)..where(
                 (row) =>
@@ -267,6 +320,29 @@ class EvidenceCaptureRepository {
             database.evidenceCaptureSessions,
           )..where((row) => row.id.equals(existing.id))).getSingle();
         }
+        if (existing.sourcePlantingUnitObservationId != null &&
+            existing.sourcePlantingUnitObservationId !=
+                sourcePlantingUnitObservationId) {
+          throw StateError(
+            'The living-seedling capture is already linked to another planting unit.',
+          );
+        }
+        if (existing.sourcePlantingUnitObservationId == null &&
+            sourcePlantingUnitObservationId != null) {
+          await (database.update(
+            database.evidenceCaptureSessions,
+          )..where((row) => row.id.equals(existing.id))).write(
+            EvidenceCaptureSessionsCompanion(
+              sourcePlantingUnitObservationId: Value(
+                sourcePlantingUnitObservationId,
+              ),
+              updatedAt: Value(DateTime.now().toUtc()),
+            ),
+          );
+          return (database.select(
+            database.evidenceCaptureSessions,
+          )..where((row) => row.id.equals(existing.id))).getSingle();
+        }
         return existing;
       }
 
@@ -282,6 +358,9 @@ class EvidenceCaptureRepository {
               scopeKey: scopeKey,
               plantPosition: Value(plantPosition),
               requirementsVersion: Value(requirementsVersion),
+              sourcePlantingUnitObservationId: Value(
+                sourcePlantingUnitObservationId,
+              ),
             ),
           );
       await _mutations.record(
@@ -296,6 +375,8 @@ class EvidenceCaptureRepository {
           'scope_key': scopeKey,
           'plant_position': plantPosition,
           'requirements_version': requirementsVersion,
+          'source_planting_unit_observation_id':
+              sourcePlantingUnitObservationId,
         },
         queueForSync: false,
       );
@@ -444,8 +525,23 @@ class EvidenceCaptureRepository {
       final current = await loadBundle(session.id);
       final active = current.mediaForView(viewType);
       if (active != null) {
-        throw StateError(
-          'Remove or retake the existing $viewType image first.',
+        final nowUtc = DateTime.now().toUtc();
+        await (database.update(
+          database.evidenceMedia,
+        )..where((row) => row.id.equals(active.id))).write(
+          EvidenceMediaCompanion(
+            deletedAt: Value(nowUtc),
+            storageState: const Value(DatabaseCodes.evidenceStorageDeleted),
+            updatedAt: Value(nowUtc),
+          ),
+        );
+        await _mutations.record(
+          entityType: 'evidence_media',
+          entityId: active.id,
+          action: 'deletion_requested',
+          actorPersonId: actorPersonId,
+          after: {'storage_state': DatabaseCodes.evidenceStorageDeleted},
+          queueForSync: false,
         );
       }
       final waived = current.waivedViewTypes..remove(viewType);
@@ -482,6 +578,9 @@ class EvidenceCaptureRepository {
               assessmentId: session.assessmentId,
               stationId: Value(session.stationId),
               plantObservationId: Value(session.plantObservationId),
+              plantingUnitObservationId: Value(
+                session.sourcePlantingUnitObservationId,
+              ),
               captureSessionId: Value(session.id),
               mediaType: 'image',
               viewType: Value(viewType),
@@ -863,6 +962,7 @@ class EvidenceCaptureRepository {
     required String stationId,
     required int plantPosition,
     required String plantObservationId,
+    required String? sourcePlantingUnitObservationId,
     required Set<String> requiredViewTypes,
     required String actorPersonId,
     required int pilotActiveDurationMs,
@@ -874,6 +974,13 @@ class EvidenceCaptureRepository {
         session.scopeType != DatabaseCodes.evidenceScopePlant ||
         session.plantPosition != plantPosition) {
       throw StateError('Evidence does not match the active station and plant.');
+    }
+    if (session.sourcePlantingUnitObservationId != null &&
+        session.sourcePlantingUnitObservationId !=
+            sourcePlantingUnitObservationId) {
+      throw StateError(
+        'Evidence is linked to a different physical planting unit.',
+      );
     }
     for (final viewType in requiredViewTypes) {
       if (!bundle.isViewSatisfied(viewType)) {
@@ -893,6 +1000,7 @@ class EvidenceCaptureRepository {
         .write(
           EvidenceMediaCompanion(
             plantObservationId: Value(plantObservationId),
+            plantingUnitObservationId: Value(sourcePlantingUnitObservationId),
             updatedAt: Value(now),
           ),
         );
@@ -902,6 +1010,7 @@ class EvidenceCaptureRepository {
     )..where((row) => row.id.equals(session.id))).write(
       EvidenceCaptureSessionsCompanion(
         plantObservationId: Value(plantObservationId),
+        sourcePlantingUnitObservationId: Value(sourcePlantingUnitObservationId),
         collectionStatus: Value(
           fallback
               ? DatabaseCodes.evidenceSessionManualFallback
@@ -929,6 +1038,71 @@ class EvidenceCaptureRepository {
     );
   }
 
+  Future<void> attachPlantingUnitEvidenceInCurrentTransaction({
+    required String sessionId,
+    required String stationId,
+    required int sequenceNumber,
+    required String plantingUnitObservationId,
+    required Set<String> requiredViewTypes,
+    required String actorPersonId,
+  }) async {
+    final bundle = await loadBundle(sessionId);
+    final session = bundle.session;
+    if (session.stationId != stationId ||
+        session.scopeType != DatabaseCodes.evidenceScopePlantingUnit ||
+        session.plantPosition != sequenceNumber) {
+      throw StateError('Evidence does not match the active planting unit.');
+    }
+    for (final viewType in requiredViewTypes) {
+      if (!bundle.isViewSatisfied(viewType)) {
+        throw StateError(
+          'Accept the required $viewType image or document manual fallback.',
+        );
+      }
+    }
+    final now = DateTime.now().toUtc();
+    await (database.update(database.evidenceMedia)..where(
+          (row) =>
+              row.captureSessionId.equals(session.id) &
+              row.deletedAt.isNull() &
+              row.storageState.equals(DatabaseCodes.evidenceStorageReady),
+        ))
+        .write(
+          EvidenceMediaCompanion(
+            plantingUnitObservationId: Value(plantingUnitObservationId),
+            updatedAt: Value(now),
+          ),
+        );
+    final fallback = bundle.waivedViewTypes.isNotEmpty;
+    await (database.update(
+      database.evidenceCaptureSessions,
+    )..where((row) => row.id.equals(session.id))).write(
+      EvidenceCaptureSessionsCompanion(
+        collectionStatus: Value(
+          fallback
+              ? DatabaseCodes.evidenceSessionManualFallback
+              : DatabaseCodes.evidenceSessionComplete,
+        ),
+        completedAt: Value(now),
+        updatedAt: Value(now),
+      ),
+    );
+    await _mutations.record(
+      entityType: 'evidence_capture_sessions',
+      entityId: session.id,
+      action: 'attached_to_planting_unit',
+      actorPersonId: actorPersonId,
+      after: {
+        'station_id': stationId,
+        'sequence_number': sequenceNumber,
+        'planting_unit_observation_id': plantingUnitObservationId,
+        'required_view_types': requiredViewTypes.toList()..sort(),
+        'waived_view_types': bundle.waivedViewTypes.toList()..sort(),
+      },
+      queueForSync: false,
+    );
+  }
+
   Future<void> _validateStationAssessment({
     required String assessmentId,
     required String stationId,
@@ -950,12 +1124,29 @@ class EvidenceCaptureRepository {
   ) {
     final allowed =
         session.scopeType == DatabaseCodes.evidenceScopeStationContext
-        ? const {DatabaseCodes.evidenceViewStationContext}
+        ? const {
+            DatabaseCodes.evidenceViewStationContext,
+            DatabaseCodes.evidenceViewVeRowContext,
+          }
         : session.scopeType == DatabaseCodes.evidenceScopePlant
         ? const {
             DatabaseCodes.evidenceViewWhorlOverview,
             DatabaseCodes.evidenceViewCloseUp,
             DatabaseCodes.evidenceViewDiagnosticDetail,
+            DatabaseCodes.evidenceViewWholeSeedling,
+            DatabaseCodes.evidenceViewVePlantingPosition,
+            DatabaseCodes.evidenceViewStemBase,
+            DatabaseCodes.evidenceViewLarvaDorsal,
+            DatabaseCodes.evidenceViewLarvaHead,
+          }
+        : session.scopeType == DatabaseCodes.evidenceScopePlantingUnit
+        ? const {
+            DatabaseCodes.evidenceViewWholeSeedling,
+            DatabaseCodes.evidenceViewVePlantingPosition,
+            DatabaseCodes.evidenceViewStemBase,
+            DatabaseCodes.evidenceViewCloseUp,
+            DatabaseCodes.evidenceViewLarvaDorsal,
+            DatabaseCodes.evidenceViewLarvaHead,
           }
         : const <String>{};
     if (!allowed.contains(viewType)) {
