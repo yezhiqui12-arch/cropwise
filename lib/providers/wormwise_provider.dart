@@ -7,7 +7,7 @@ class WormWiseProvider extends ChangeNotifier {
 
   // In-progress metrics
   int _currentStops = 3;
-  int _totalStops = 5;
+  final int _totalStops = 5;
   int _photosCaptured = 15;
   int _healthyCount = 42;
   int _suspectedFawCount = 8;
@@ -20,7 +20,7 @@ class WormWiseProvider extends ChangeNotifier {
   int _infestationPercent = 28;
   String _damageSeverity = 'Low';
   String _estScoutTime = '12m';
-  String _lastSyncedTime = 'Today, 9:45 AM';
+  final String _lastSyncedTime = 'Today, 9:45 AM';
 
   // Getters
   AssessmentState get currentState => _currentState;

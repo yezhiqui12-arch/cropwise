@@ -34,7 +34,7 @@ class AppColors {
   static const Color cardBorder = Color(0xFFE2E8F0);
   static final List<BoxShadow> cardShadow = [
     BoxShadow(
-      color: Colors.black.withOpacity(0.06),
+      color: Colors.black.withValues(alpha: 0.06),
       blurRadius: 12,
       offset: const Offset(0, 2),
     ),

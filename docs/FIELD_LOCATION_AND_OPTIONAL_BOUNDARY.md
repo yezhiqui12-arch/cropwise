@@ -1,101 +1,94 @@
-# Field location and optional-boundary design
+# Field registration, location, and required assessment outline
 
-## Decision
+> The filename is retained so existing project links continue to work. The
+> assessment outline is no longer optional.
 
-WormWise must allow a user to register and assess a maize field without first
-drawing or surveying its complete boundary. A phone alone cannot promise
-centimeter-level or legal parcel accuracy. The application therefore records
-what is actually known and labels it clearly.
+## Current decision
 
-## Supported spatial states
+A field may be registered before its full outline is available, but a new
+assessment cannot proceed to setup or Station 1 until the selected field has a
+confirmed approximate outline.
 
-1. **Reported area only** - the user enters the farmer-reported or
-   document-reported number of hectares. No coordinate or polygon is claimed.
-2. **Entrance GPS recorded** - the app stores an averaged phone-GNSS point,
-   its accuracy values, sample count, timestamp, and confidence. This is a
-   reference point, not a field boundary.
-3. **Approximate outline saved** - the user reviews and saves a polygon drawn
-   on the map, recorded from accessible GPS corners, or created with both
-   methods. It is a scouting aid, not a cadastral survey.
+The app must show **Complete field outline** when the outline is missing. It
+must preserve any assessment draft already associated with that field.
 
-All three states are valid for starting a Fall Armyworm assessment. The app
-must never imply that a reported area or entrance point is a confirmed polygon.
+The outline is an approximate scouting aid. It must never be described as a
+legal, cadastral, property, or survey-grade boundary.
 
-## Field registration
+## Spatial records
 
-Required:
+WormWise distinguishes:
 
-- Field name.
-- Reported area greater than zero hectares.
+1. **Reported area** — a farmer- or document-reported number; no polygon is
+   implied.
+2. **Entrance GPS** — an averaged phone-location reference point; it is not a
+   boundary.
+3. **Confirmed approximate outline** — a reviewed polygon used for assessment
+   gating, route layout, and map orientation.
+4. **Station locations** — evaluator-confirmed observation locations recorded
+   during the assessment.
 
-Optional:
+Only state 3 satisfies the new-assessment outline gate.
 
-- Barangay and landmark within Piat, Cagayan.
-- Entrance GPS.
-- Maize variety, intended use, and planting date.
-- Approximate outline, which can be added later.
+## Field registration and management
 
-When the user taps **Record field entrance**, the app:
+Required registration data:
 
-1. Checks that phone location is enabled.
-2. Requests foreground location permission if necessary.
-3. Collects up to five usable readings for up to 12 seconds.
-4. Rejects invalid readings and readings worse than 100 metres.
-5. Produces an accuracy-weighted average coordinate.
-6. Stores average accuracy, worst accuracy, sample count, time, and a
-   phone-GNSS confidence code.
-7. Still allows the field to be saved if location is unavailable or skipped.
+- Field name
+- Reported area greater than zero hectares
 
-## Optional approximate outline
+Optional crop-cycle and location context may include barangay, landmark,
+entrance GPS, variety, intended use, and planting date.
 
-The boundary screen supports these phone-only actions:
+The My Maize Fields screen provides field details and name editing. A delete
+request moves a field to **Recently Deleted** for 30 days. It can be restored
+during that period. After the retention period, app startup removes its stored
+evidence files and marks the local records deleted while retaining the minimal
+audit/tombstone metadata needed to explain the deletion.
 
-- Tap the map to add or move a point visually.
-- Stand at an accessible corner and use the GPS-pin button to add an averaged
-  phone-GNSS point.
-- Mix visual points and GPS points when some edges are inaccessible.
-- Undo, delete, clear, zoom, and recenter.
-- Review calculated area and perimeter before saving.
+## Entrance GPS
 
-Saved outlines carry a source label:
+When entrance GPS is requested, the app checks location services, requests
+foreground permission when required, collects multiple usable phone readings,
+and stores the averaged coordinate with reported accuracy and time. Registration
+can still be saved if entrance location is unavailable; assessment cannot start
+until the outline is later confirmed.
 
-- `manual_draw`
-- `phone_gnss_corners`
-- `mixed_draw_phone_gnss`
+## Outline editor
 
-They also carry a confidence code based on which points had GPS accuracy data.
-The confirmation dialog explicitly says that the result is approximate and not
-a cadastral or survey-grade boundary.
+The editor supports visual points, averaged GPS corner points, or a mixture of
+both. It validates a minimum of three points and rejects invalid geometry before
+saving. Saving creates a new boundary version rather than deleting earlier
+field or assessment data.
 
-## Assessment behavior
+The confirmation must communicate:
 
-An active registered field is sufficient to enable **Start Assessment**.
-Boundary completion is not a prerequisite. The home and field screens show the
-current spatial state so the user understands the available evidence.
+> This is an approximate field outline for scouting orientation and area
+> estimation. It is not a cadastral, legal, or survey-grade boundary.
 
-The database is already capable of storing latitude, longitude, and horizontal
-accuracy for assessment stations. The actual station-by-station assessment UI
-must use those fields later so the locations of observations provide the main
-field evidence even when no outline exists. That UI is not part of this change.
+## Map behavior
 
-## Map and offline limitation
+The field overview and outline editor currently open with Esri World Imagery
+and allow switching to OpenStreetMap. That online imagery integration is a
+development reference and still requires a deployment review of provider terms,
+attribution, authentication, availability, and expected usage.
 
-Polygon editing and local SQLite storage do not require Google Maps. The
-current OpenStreetMap layer is useful during development when internet is
-available, but it must not be treated as a deployable offline imagery service
-or downloaded in bulk from the public tile server.
+Scan now uses the same Esri World Imagery online background as the Map tab.
+Scan falls back to the deterministic offline illustrated field view when the
+online imagery is unavailable.
 
-For deployment, prepare a licensed offline map package for Piat and display it
-with MapLibre (or another provider-neutral renderer). The assessment and field
-registration workflows must continue to function when no basemap is available.
+Route, stations, obstacles, current position, scale, north orientation, and the
+confirmed outline remain app-owned overlays. Missing online tiles must not
+block saved-outline editing, assessment resume, or field collection.
 
 ## Acceptance checks
 
-- A field saves with reported area only.
-- A user can start an assessment for that field.
-- A denied GPS permission does not prevent field saving.
-- An entrance point displays as an entrance, not as a boundary.
-- A user can create an approximate outline with map taps, GPS corners, or both.
-- Saving an outline creates a new version without deleting prior field data.
-- Restarting the app preserves the selected field and its spatial state.
-- No Google API key or billing setup is needed.
+- A field can be registered before an outline is available.
+- A new assessment cannot enter setup or Station 1 without a confirmed outline.
+- The gate cannot be bypassed through a legacy Home or Assess route.
+- Existing drafts are preserved when an outline is missing.
+- Entrance GPS is never presented as a polygon.
+- Saving a corrected outline creates a new version.
+- Restart preserves the selected field and its current spatial state.
+- Recently Deleted fields can be restored within 30 days.
+- Expired evidence files are removed through the deletion lifecycle.

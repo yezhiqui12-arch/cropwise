@@ -101,7 +101,9 @@ class ResultSummaryCard extends StatelessWidget {
                           showTitle: false,
                         ),
                         PieChartSectionData(
-                          color: AppColors.surfaceVariant.withOpacity(0.5),
+                          color: AppColors.surfaceVariant.withValues(
+                            alpha: 0.5,
+                          ),
                           value: 65,
                           radius: 12,
                           showTitle: false,
@@ -270,7 +272,9 @@ class ResultSummaryCard extends StatelessWidget {
                             showTitle: false,
                           ),
                           PieChartSectionData(
-                            color: AppColors.surfaceVariant.withOpacity(0.5),
+                            color: AppColors.surfaceVariant.withValues(
+                              alpha: 0.5,
+                            ),
                             value: (100 - provider.infestationPercent)
                                 .toDouble(),
                             radius: 12,

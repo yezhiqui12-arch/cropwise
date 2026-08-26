@@ -38,7 +38,6 @@ class WormWiseApp extends StatelessWidget {
             seedColor: AppColors.primary,
             primary: AppColors.primary,
             surface: AppColors.surface,
-            background: AppColors.background,
           ),
           textTheme: GoogleFonts.interTextTheme(Theme.of(context).textTheme),
           scaffoldBackgroundColor: AppColors.background,

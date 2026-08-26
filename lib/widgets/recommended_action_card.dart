@@ -62,7 +62,9 @@ class RecommendedActionCard extends StatelessWidget {
             child: OutlinedButton(
               onPressed: () {},
               style: OutlinedButton.styleFrom(
-                side: BorderSide(color: AppColors.textMuted.withOpacity(0.4)),
+                side: BorderSide(
+                  color: AppColors.textMuted.withValues(alpha: 0.4),
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(22),
                 ),

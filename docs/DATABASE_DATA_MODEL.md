@@ -1,464 +1,187 @@
-# WormWise Database and Data Model v1
-
-## 1. Status and scope
-
-- Status: implementation-ready draft derived from `ASSESSMENT_PROTOCOL.md`
-- Crop scope: maize/corn only
-- Database scope: offline field collection, evidence, calculations, intervention history, follow-up comparisons, review, reporting, and synchronization
-- Architecture status: this is a data model, not a claim that the thesis system architecture is final
-- Source of truth: raw field observations and their provenance; calculated metrics are reproducible snapshots
-
-This model replaces the current demo-only in-memory values with a normalized relational structure. The current Flutter project has no persistence dependency. SQLite is recommended for the phone database because the data is relational, must work offline, needs transactions and migrations, and requires reliable aggregate queries. Drift is the recommended Flutter mapping layer when implementation begins, but the logical model is not tied to Drift.
-
-## 2. Core modelling rules
-
-1. Use UUID text identifiers generated on the phone so records can be created offline.
-2. Store timestamps in UTC ISO-8601 text and store the local time-zone offset used at capture.
-3. Never overwrite raw evaluator observations with AI or expert results.
-4. Keep raw observations, calculated metrics, AI suggestions, evaluator decisions, and expert validation separate.
-5. Keep exact, estimated, reported, OCR-extracted, evaluator-confirmed, registry-verified, and expert-confirmed values distinguishable.
-6. Keep stage-specific metrics separate. Vegetative, VT-R2, and R3-R6 results are not interchangeable.
-7. Keep confirmed FAW, FAW-consistent-unconfirmed, other pest, non-pest, mixed, and uncertain diagnoses separate.
-8. Keep naturally observed enemies separate from intentionally released or applied biological-control agents.
-9. Keep intervention history separate from follow-up interpretation.
-10. A before-and-after field comparison stores observed change, not experimental product efficacy.
-11. Soft-delete synchronized records using `deleted_at`; do not destroy audit history.
-12. Version field boundaries, protocols, formulas, reports, registry lookups, and AI models.
-
-## 3. Entity relationship overview
-
-```mermaid
-erDiagram
-    PEOPLE ||--o{ FIELDS : owns_or_manages
-    FIELDS ||--o{ FIELD_BOUNDARY_VERSIONS : has
-    FIELDS ||--o{ CROP_CYCLES : grows
-    CROP_CYCLES ||--o{ FIELD_BLOCKS : divided_into
-    CROP_CYCLES ||--o{ INTERVENTIONS : receives
-    CROP_CYCLES ||--o{ ASSESSMENTS : assessed_by
-
-    ASSESSMENTS ||--o{ SAFETY_CHECKS : requires
-    ASSESSMENTS ||--o{ ASSESSMENT_BLOCK_RUNS : contains
-    ASSESSMENT_BLOCK_RUNS ||--o{ STATIONS : contains
-    STATIONS ||--o{ PLANTING_UNIT_OBSERVATIONS : early_stage_records
-    STATIONS ||--o{ PLANT_OBSERVATIONS : samples
-    PLANT_OBSERVATIONS ||--o| VEGETATIVE_OBSERVATIONS : has
-    PLANT_OBSERVATIONS ||--o| REPRODUCTIVE_OBSERVATIONS : has
-    PLANT_OBSERVATIONS ||--o{ EAR_OBSERVATIONS : has
-    PLANT_OBSERVATIONS ||--o{ DIAGNOSTIC_FINDINGS : classified_as
-    PLANT_OBSERVATIONS ||--o{ NATURAL_ENEMY_OBSERVATIONS : observes
-
-    INTERVENTIONS ||--o{ INTERVENTION_INPUTS : uses
-    PRODUCT_REGISTRY_CACHE ||--o{ INTERVENTION_INPUTS : verifies
-    INTERVENTIONS ||--o{ INTERVENTION_AREAS : covers
-
-    ASSESSMENTS ||--o{ EVIDENCE_MEDIA : documents
-    ASSESSMENTS ||--o{ METRIC_RESULTS : calculates
-    ASSESSMENTS ||--o{ AI_INFERENCES : suggests
-    ASSESSMENTS ||--o{ ASSESSMENT_COMPARISONS : baseline
-    ASSESSMENTS ||--o{ ASSESSMENT_COMPARISONS : followup
-    ASSESSMENT_COMPARISONS ||--o{ COMPARISON_METRICS : compares
-    ASSESSMENT_COMPARISONS ||--o{ COMPARISON_EVENTS : contextualized_by
-    ASSESSMENTS ||--o{ REPORTS : produces
-    ASSESSMENTS ||--o{ EXPERT_REVIEWS : reviewed_by
-```
-
-## 4. Main entity groups
-
-### 4.1 Identity and ownership
-
-#### `people`
-
-Stores farmers/owners, evaluators, applicators, advisers, and reviewers. One person can appear in multiple roles through records that reference them.
-
-Important fields:
-
-- `id`
-- `display_name`
-- `organization`
-- `role_label`
-- optional contact fields protected by the project privacy policy
-
-The report layer decides which personal fields are permitted to appear. Raw assessment data should use identifiers whenever possible.
-
-### 4.2 Field, boundary, crop cycle, and blocks
-
-#### `fields`
-
-Represents the long-lived maize field identity. It does not store a single permanent polygon because boundaries may be corrected.
-
-#### `field_boundary_versions`
-
-Stores every confirmed or corrected boundary as GeoJSON with:
-
-- version number
-- source method: draw, mark corners, walk boundary, suggested imagery, imported polygon, or other
-- calculated area
-- centroid
-- average/worst phone accuracy when applicable
-- boundary confidence
-- confirmation status and user
-
-Assessments retain the exact boundary version used.
-
-#### `crop_cycles`
-
-Represents one planting season/crop cycle on a field. It contains variety, intended use, planting date and precision, irrigation, planting arrangement, intercropping, and other season-specific information.
-
-#### `crop_traits`
-
-Stores claimed or verified Bt/plant-incorporated-protection traits separately from the variety name. Evidence and registry status are required before a trait is treated as verified.
-
-#### `field_blocks`
-
-Stores the approximately one-hectare assessment blocks and any justified subdivisions due to planting date, variety, crop stage, irrigation, or management differences.
-
-### 4.3 Intervention and safety history
-
-#### `interventions`
-
-One row represents one spray, release, physical action, cultural action, fertilizer treatment, or other event. It stores the timing, precision, purpose, coverage, method, weather, applicator/adviser, and incident information.
-
-#### `product_registry_cache`
-
-Stores a dated offline snapshot of a Philippine product/plant-incorporated-protection registry match. It is a cache, not the permanent authority. Every entry carries source URL, source date, retrieved time, expiry/status, approved crop, approved target, label rate, PHI, and REI when available.
-
-#### `intervention_inputs`
-
-Links an intervention to one or more reported products/agents. It preserves reported label text and any registry-cache match separately.
-
-#### `intervention_areas`
-
-Links the event to a whole field, block, or explicit GeoJSON polygon.
-
-#### `safety_checks`
-
-One assessment can have multiple relevant recent interventions, but it has one final entry decision. The table records the input source and one of:
-
-- `no_recent_treatment`
-- `safe_interval_completed`
-- `blocked_rei_active`
-- `cannot_confirm`
-- `history_unknown`
-
-An assessment cannot transition to in-progress while the final safety result is `blocked_rei_active` or `cannot_confirm`.
-
-### 4.4 Assessment hierarchy
-
-#### `assessments`
-
-The root record for one formal or quick assessment session. It stores protocol version, mode, stage, selected pattern, evaluator, language, timing, weather context, completion status, validation status, and boundary version.
-
-#### `assessment_block_runs`
-
-Links the assessment to each field block used that day. Pattern, route geometry, completion, and bias warnings are stored per block because different blocks may require different access patterns.
-
-#### `stations`
-
-Five stations per completed formal one-hectare block. Stores order, GPS, accuracy, time, and any accessibility notes.
-
-#### `planting_unit_observations`
-
-The separate VE-V2 planting-unit sequence. It does not replace the living-plant sample. It records occupancy, intended seedlings, cutting, visible injury, emergence status, and FAW association without automatically attributing an empty position to FAW.
-
-#### `plant_observations`
-
-The selected ten-plant sequence per station. It stores common fields:
-
-- assessable/not-assessable state and reason
-- current infestation status
-- old damage
-- possible non-FAW evidence, independently nullable
-- uncertainty evidence, independently nullable
-- whole-plant context
-- current FAW evidence status
-- natural-enemy quick status
-- capture location/time
-
-Stage-specific details are stored in one of the child tables below.
-
-#### `vegetative_observations`
-
-Stores small fresh windowpanes, fresh scraping, fresh cutting or tearing, derived infested-whorl status, fresh frass, larva information, nullable egg-mass visibility, whorl-feeding signs, inspected newest leaves, and the separate DA-BAFS 0-9 score.
-
-`current_faw_evidence` is the stored SFW/IW current-infestation indicator. It is FAW-consistent field evidence and must not be presented as species confirmation. Possible non-FAW evidence, uncertainty, old damage, and the evaluator-confirmed `plant_status` remain separate so mixed observations are not discarded.
-
-#### `reproductive_observations`
-
-Stores VT-R2 inspection of tassel, ear base, and leaf axils, including larva/fresh-feeding evidence and the %IP-positive decision.
-
-#### `ear_observations`
-
-Stores R3-R6 external and, when permitted, opened-ear data. It keeps these separate:
-
-- externally assessable/damaged
-- active infestation
-- opened status and permission
-- internal damage
-- total and damaged kernel counts
-- ear rot
-
-Kernel damage never becomes yield loss automatically.
-
-### 4.5 Diagnostic and natural-enemy evidence
-
-#### `diagnostic_findings`
-
-Allows multiple findings per plant so mixed causes are representable. Primary categories are:
-
-- `confirmed_faw`
-- `faw_consistent_unconfirmed`
-- `other_pest`
-- `non_pest`
-- `mixed`
-- `uncertain`
-
-The candidate organism/symptom code, broad group, evidence strength, evaluator decision, and expert decision remain separate.
-
-#### `natural_enemy_observations`
-
-Stores predator presence, direct predation, possible/strong/confirmed egg parasitism, possible/confirmed larval parasitism, and possible/confirmed pathogen-associated mortality. The table distinguishes natural occurrence from a linked intentional intervention.
-
-### 4.6 Evidence, AI, and review
-
-#### `evidence_media`
-
-Stores local and remote URIs, checksum, media type, capture time, GPS, quality result, view type, and nullable links to the documented entity. Original files are immutable; edits create a derived media record.
-
-#### `ai_inferences`
-
-Stores model version, target record, suggestion, confidence, visible evidence explanation, missing-view request, and evaluator resolution. It never overwrites the evaluator or expert result.
-
-#### `expert_reviews`
-
-Stores reviewer identity, target type/id, status, decision, corrections, evidence, and review time. Official certification remains a separate institutional workflow.
-
-### 4.7 Calculations, comparisons, and reports
-
-#### `metric_results`
-
-Stores reproducible calculation snapshots at station, block, assessment, or field scope. Raw observations remain authoritative. Each result contains:
-
-- metric code
-- numerator and denominator
-- numeric value and unit
-- formula version
-- validation status
-- calculated time
-
-Examples include:
-
-- `vegetative_current_infestation_percent`
-- `sfw_percent`
-- `iw_percent`
-- `vt_r2_ip_percent`
-- `external_ear_damage_percent`
-- `active_ear_infestation_percent`
-- `internal_ear_damage_percent`
-- `damaged_kernel_percent`
-- `ear_rot_percent`
-- `natural_enemy_observation_percent`
-- `direct_predation_observation_percent`
-
-DA-BAFS scores also produce a distribution, median, range, and uncertainty count; the raw plant scores remain stored in `vegetative_observations`.
-
-#### `assessment_comparisons`
-
-Links one baseline to one follow-up and stores purpose, eligibility, timing, compatibility decisions, limitation statement, and calculation version.
-
-#### `comparison_metrics`
-
-Stores compatible baseline/follow-up raw counts and calculated observed changes:
+# WormWise database and data model
+
+## Status
+
+WormWise uses Drift over local SQLite. The executable schema is
+`lib/data/local/app_database.dart`; the current schema version is **6**. This
+document describes what is implemented and separates it from the longer-term
+protocol model.
+
+`ASSESSMENT_PROTOCOL.md` remains the scientific source of truth. The existence
+of a column does not by itself authorize a scientific derivation or
+classification rule.
+
+## Implemented tables
+
+The schema currently contains:
+
+- `people`
+- `fields`
+- `field_boundary_versions`
+- `crop_cycles`
+- `field_blocks`
+- `interventions`
+- `intervention_inputs`
+- `intervention_areas`
+- `assessments`
+- `safety_checks`
+- `assessment_block_runs`
+- `stations`
+- `planting_unit_observations`
+- `plant_observations`
+- `ve_v2_station_inspections`
+- `vegetative_observations`
+- `reproductive_observations`
+- `ear_observations`
+- `evidence_capture_sessions`
+- `evidence_media`
+- `metric_results`
+- `sync_outbox`
+- `audit_logs`
+- `app_preferences`
+
+Some tables reserve a stable structure for later protocol stages. Their
+presence does not mean the related workflow, calculation, result, or service is
+implemented.
+
+## Implemented assessment scope
+
+| Area | Persistence status |
+| --- | --- |
+| Field and versioned approximate outline | Implemented |
+| Assessment setup and treatment-safety checks | Implemented |
+| Five-station hierarchy and route progress | Implemented for current pilot rules |
+| VE-V2 planting positions and linked living seedlings | Implemented |
+| V3-V12 raw plant and vegetative observations | Implemented |
+| Evidence capture sessions and media | Implemented |
+| Station/block completion validation | Implemented for VE-V2 and V3-V12 |
+| VT-R2 and R3-R6 persistence structures | Reserved; workflows unavailable |
+| Metric/result generation | Not approved as a general results feature |
+| Remote synchronization | Not implemented |
+| AI inference or expert-review records | Not implemented |
+
+## Core modelling rules
+
+1. Use phone-generated UUID text identifiers for offline creation.
+2. Store raw evaluator observations before classifications or calculated
+   projections.
+3. Never overwrite raw observations with a future automated suggestion or
+   expert decision.
+4. Keep stage-specific observations and denominators separate.
+5. Preserve possible non-FAW evidence, uncertainty, old damage, and mixed
+   observation combinations.
+6. Do not infer scientific meaning from similarly named database fields unless
+   the protocol explicitly defines the mapping.
+7. Save each plant or planting-position change atomically with its audit/outbox
+   record.
+8. Version field outlines, evidence policies, protocols, and future formulas.
+9. Use soft deletion and audited tombstones where linked history must remain
+   explainable.
+
+## Assessment hierarchy
 
 ```text
-percentage_point_change = followup_percent - baseline_percent
-count_change = followup_numerator - baseline_numerator
-relative_observed_change = (followup_percent - baseline_percent) / baseline_percent x 100
+field
+└── crop cycle
+    └── assessment
+        └── assessment block run
+            └── station (1-5)
+                ├── planting-unit observations (VE-V2)
+                ├── plant observations (positions 1-10)
+                │   └── stage-specific observations
+                └── evidence capture sessions/media
 ```
 
-Relative change is null when baseline is zero. No field is named `pesticide_effectiveness`.
+The block, station, and plant identifiers—not screen state—provide evidence
+association. Block and station creation is idempotent so reopening a workflow
+does not create duplicates.
 
-#### `comparison_events`
+## VE-V2 relationship
 
-Stores intervening sprays, releases, rainfall, irrigation, stage changes, and other contextual events. Multiple events automatically require an attribution-limitation statement.
+VE-V2 keeps planting-unit and living-seedling records separate because they use
+different denominators. When both records describe the same physical seedling,
+`plant_observations.source_planting_unit_observation_id` links them. The link
+allows reuse of physical context without copying or silently deriving
+biological answers.
 
-#### `reports`
+## V3-V12 observation semantics
 
-Stores generated report version, type, local/remote file, status, protocol/formula versions, validation state, and whether institutional certification was separately obtained.
+`plant_observations` stores common raw/evaluator facts, including assessability,
+old damage, possible non-FAW evidence, uncertainty, natural-enemy quick status,
+and evaluator-confirmed plant status. `vegetative_observations` stores the
+stage-specific raw fields such as fresh windowpanes, scraping, cutting or
+tearing, frass, whorl-feeding signs, larva information, and nullable egg-mass
+visibility.
 
-## 5. Required code sets
+`current_faw_evidence` is not species confirmation. Scraping, cutting or
+tearing, fresh frass, and general whorl-feeding signs must not independently
+create that value unless an approved protocol rule explicitly supports it.
 
-Use text codes in the database and map them to Dart enums. Do not persist user-facing translated labels.
+## Evidence storage
 
-### Assessment
+Accepted evidence uses private persistent app storage. The pilot treats the
+orientation-normalized image, limited to a 2048-pixel longest edge, as the
+canonical WormWise evidence image. It preserves a checksum and has a separate
+thumbnail. The unrestricted camera-source image is not automatically retained.
 
-| Code set | Values |
-|---|---|
-| `assessment_type` | `formal`, `quick_check`, `expert_validation`, `research` |
-| `assessment_status` | `draft`, `safety_blocked`, `in_progress`, `completed`, `incomplete`, `invalid`, `cancelled` |
-| `assessment_mode` | `ve_v6`, `v7_v12`, `vt_r2`, `r3_r6` |
-| `scouting_pattern` | `w`, `ladder`, `none` |
-| `growth_stage` | `ve`, `v1`...`v12`, `vt`, `r1`...`r6`, `uncertain` |
-| `validation_status` | `unreviewed`, `provisional`, `expert_reviewed`, `validated`, `rejected` |
+Capture sessions and media use staged/ready states because SQLite and the
+filesystem cannot be committed atomically together. Reconciliation repairs or
+marks incomplete states without attaching an image to a different plant.
 
-### Plant and diagnosis
+Deliberate deletion removes the accepted file and retains an audited metadata
+tombstone/checksum where appropriate; it must not secretly preserve the image.
 
-| Code set | Values |
-|---|---|
-| `plant_status` | `negative`, `current_positive`, `old_damage_only`, `possible_non_faw`, `uncertain`, `not_assessable` |
-| `larval_size` | `none_seen`, `small`, `medium`, `large`, `uncertain` |
-| `diagnostic_category` | `confirmed_faw`, `faw_consistent_unconfirmed`, `other_pest`, `non_pest`, `mixed`, `uncertain` |
-| `evidence_strength` | `weak`, `moderate`, `strong`, `confirmed`, `uncertain` |
+## Migration history
 
-### Natural enemies
+- **v2** — app preferences.
+- **v3** — possible non-FAW and uncertainty flags and nullable egg-mass field.
+- **v4** — capture sessions and evidence lifecycle metadata.
+- **v5** — VE-V2 station/planting-position persistence and the explicit link
+  from a living-plant record to its source planting-unit record.
+- **v6** — capture-session linkage needed by the current VE-V2 workflow.
 
-| Code set | Values |
-|---|---|
-| `natural_enemy_quick_status` | `none_seen`, `observed`, `uncertain`, `not_assessable`, `not_collected` |
-| `natural_enemy_type` | `predator_present`, `direct_predation`, `egg_parasitism`, `larval_parasitism`, `pathogen_mortality`, `uncertain` |
-| `organism_group` | `earwig`, `ant`, `spider`, `lacewing`, `predatory_beetle`, `predatory_bug`, `bird`, `parasitoid`, `fungus_like`, `virus_like`, `other`, `uncertain` |
-| `origin` | `naturally_observed`, `intentional_release`, `intentional_application`, `uncertain` |
+Every future schema change requires an additive migration where possible,
+rollback/error tests for its transaction boundaries, and preservation tests for
+nullable fields and older records.
 
-### Intervention and safety
+## Persisted facts versus derived UI state
 
-| Code set | Values |
-|---|---|
-| `intervention_type` | `chemical_insecticide`, `microbial_biocontrol`, `beneficial_release`, `botanical_or_homemade`, `physical`, `cultural`, `other_pesticide`, `fertilizer_or_foliar`, `plant_incorporated_protection`, `other`, `uncertain` |
-| `time_precision` | `exact`, `estimated`, `date_only`, `unknown` |
-| `provenance_state` | `reported`, `estimated`, `ocr_extracted`, `evaluator_confirmed`, `registry_verified`, `expert_confirmed`, `unknown` |
-| `entry_safety_status` | `no_recent_treatment`, `safe_interval_completed`, `blocked_rei_active`, `cannot_confirm`, `history_unknown` |
-| `registration_status` | `verified_full`, `verified_conditional`, `expired`, `mismatch`, `not_found`, `not_checked`, `uncertain` |
+Persisted facts include assessment status, safety outcome, station completion,
+plant/position records, evidence lifecycle state, timestamps, route documents,
+and audit entries.
 
-### Synchronization
+The following are derived view states and must not be collapsed into the
+assessment-status column:
 
-| Code set | Values |
-|---|---|
-| `sync_state` | `local_only`, `queued`, `syncing`, `synced`, `conflict`, `error` |
+- resume assessment
+- interrupted presentation state
+- plant in progress
+- station review
+- local save failure
 
-## 6. Completion and integrity rules
+There is no remote synchronization service. Although `sync_state` and
+`sync_outbox` support local mutation bookkeeping and a future boundary, the UI
+must not tell farmers that synchronization is pending.
 
-These rules are enforced in the repository/service layer inside a database transaction because a row-level SQL constraint cannot count related rows reliably.
+## Planned, not implemented
 
-### Formal completed block
+The conceptual protocol model may later require dedicated tables for detailed
+diagnostic findings, detailed natural-enemy observations, product-registry
+snapshots, AI inferences, expert reviews, comparisons, comparison events, and
+reports. None of those should be treated as current schema or silently added to
+an unrelated increment.
 
-- Exactly five stations numbered 1-5.
-- Exactly ten plant records numbered 1-10 per station, including explicit not-assessable records.
-- Every assessable plant has a natural-enemy quick status.
-- Every required stage-specific child record exists.
-- Required evidence exists for the selected evidence mode.
-- GPS/timestamp data exists or an explicit accepted warning is stored.
-- VE-V2 planting-unit supplement has ten explicit positions per station when applicable, or a documented not-assessable reason.
+Likewise, the current `reproductive_observations`, `ear_observations`, and
+`metric_results` tables do not authorize VT-R2, R3-R6, or result UI before their
+separate specifications are approved.
 
-### Assessment start
+## Privacy and deletion
 
-- Intervention-history answer exists.
-- Final safety check is not `blocked_rei_active` or `cannot_confirm`.
-- Boundary version, crop cycle, protocol version, evaluator, mode, and stage decision exist.
-
-### Follow-up comparison
-
-- Baseline and follow-up are different assessments of the same crop cycle.
-- Follow-up time is later than baseline time.
-- Field/block, protocol, stage indicator, sampling design, and denominators pass compatibility checks.
-- Incompatible pairs may be linked but have `eligible = 0` and no calculated change.
-
-## 7. Indexing strategy
-
-The SQL schema adds indexes for:
-
-- field/crop-cycle lookup
-- unsynchronized rows and outbox processing
-- assessment history by crop cycle and time
-- assessment hierarchy traversal
-- plant/station ordering
-- intervention chronology
-- registry product matching
-- evidence-media upload queue
-- comparison baseline/follow-up lookup
-- audit history by target
-
-## 8. Offline and synchronization strategy
-
-Every mutable root record contains:
-
-- `id`
-- `created_at`
-- `updated_at`
-- `deleted_at`
-- `device_id`
-- `sync_state`
-- `server_version`
-
-Child observations are saved after every plant/station. A `sync_outbox` row is written in the same transaction as the domain change. Media upload is queued independently so an assessment can synchronize structured data before large photos finish uploading.
-
-Conflict policy should be field-aware:
-
-- Never automatically merge two different raw observations for the same plant.
-- Preserve both conflicting versions and request resolution.
-- Server-approved expert review does not erase local evaluator data.
-- Boundary corrections create a new version.
-- Calculated metrics can be regenerated after raw-data conflict resolution.
-
-## 9. Privacy and retention
-
-- Separate personally identifying data in `people` from field observations.
-- Reports include personal data only when permitted by project policy and the intended institution.
-- Store image consent/permission where destructive sampling or identifiable persons are involved.
-- Use checksums to detect duplicate or changed evidence files.
-- Audit records are append-only.
-- Deletion requests should anonymize personal fields where legally appropriate without silently altering scientific/audit observations.
-
-## 10. Mapping from protocol to tables
-
-| Protocol area | Primary tables |
-|---|---|
-| Field boundary and blocks | `fields`, `field_boundary_versions`, `field_blocks` |
-| Crop metadata and stages | `crop_cycles`, `crop_traits`, `assessments` |
-| W/ladder route | `assessment_block_runs`, `stations` |
-| VE-V2 establishment | `planting_unit_observations` |
-| Vegetative SFW/IW and 0-9 score | `plant_observations`, `vegetative_observations` |
-| VT-R2 %IP | `plant_observations`, `reproductive_observations` |
-| R3-R6 ears/kernels | `ear_observations` |
-| Pest/symptom differential | `diagnostic_findings` |
-| Natural enemies | `natural_enemy_observations` |
-| Photos and AI | `evidence_media`, `ai_inferences` |
-| Pesticide/intervention history | `interventions`, `intervention_inputs`, `intervention_areas`, `product_registry_cache` |
-| Entry safety | `safety_checks` |
-| Calculated indicators | `metric_results` |
-| Follow-up/trends | `assessment_comparisons`, `comparison_metrics`, `comparison_events` |
-| Reports and validation | `reports`, `expert_reviews` |
-| Offline sync and audit | `sync_outbox`, `audit_log` |
-
-## 11. Recommended implementation boundary
-
-The first implementation slice should include only:
-
-1. `people`
-2. `fields`
-3. `field_boundary_versions`
-4. `crop_cycles`
-5. `field_blocks`
-6. `interventions`
-7. `safety_checks`
-8. `assessments`
-9. `assessment_block_runs`
-10. `stations`
-11. `plant_observations`
-12. the appropriate stage-specific observation table
-13. `evidence_media`
-14. `metric_results`
-15. `sync_outbox`
-16. `audit_log`
-
-Add differential, natural-enemy, opened-ear, registry verification, comparisons, AI, reviews, and reports through migrations after the core assessment transaction is proven. The schema file defines all approved entities now so later migrations do not require redesigning identifiers or relationships.
-
-## 12. Existing demo-model migration
-
-The current `FieldModel.defaultField` and `WormWiseProvider` values are presentation fixtures, not authoritative data. During implementation:
-
-- Replace `FieldModel` string dates and growth-stage labels with typed domain values loaded from repositories.
-- Keep `AssessmentState` as a UI projection or replace it with the persisted assessment status enum.
-- Calculate dashboard totals from `metric_results` and assessment queries.
-- Do not store `damageSeverity = 'Low'` until provisional display bands have been validated and versioned.
-- Do not use remote image URLs as field evidence; evidence media must have an immutable local record and checksum.
-
-The executable schema is defined in `database/schema_v1.sql`.
+- Keep personally identifying information separate from observation data.
+- Avoid people and identifying documents in evidence images.
+- Keep checksums to detect missing or changed evidence.
+- A field moved to Recently Deleted is restorable for 30 days.
+- After the retention period, stored evidence files are removed and local rows
+  are marked deleted; minimal tombstone/audit metadata is retained.
+- Debug test data uses the separate `wormwise_debug_test_data` database and
+  cannot be entered from release builds.

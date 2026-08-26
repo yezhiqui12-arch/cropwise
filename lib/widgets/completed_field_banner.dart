@@ -39,8 +39,8 @@ class CompletedFieldBanner extends StatelessWidget {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.black.withOpacity(0.1),
-                  Colors.black.withOpacity(0.65),
+                  Colors.black.withValues(alpha: 0.1),
+                  Colors.black.withValues(alpha: 0.65),
                 ],
               ),
             ),
@@ -75,7 +75,7 @@ class CompletedFieldBanner extends StatelessWidget {
                             : '${area.toStringAsFixed(2)} ha',
                         style: TextStyle(
                           fontSize: 13,
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withValues(alpha: 0.9),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -89,10 +89,10 @@ class CompletedFieldBanner extends StatelessWidget {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1B4332).withOpacity(0.85),
+                    color: const Color(0xFF1B4332).withValues(alpha: 0.85),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: const Color(0xFF52B788).withOpacity(0.5),
+                      color: const Color(0xFF52B788).withValues(alpha: 0.5),
                     ),
                   ),
                   child: const Row(

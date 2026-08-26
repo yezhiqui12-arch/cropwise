@@ -1,211 +1,58 @@
-WORMWISE FIELD LOCATION AND OPTIONAL BOUNDARY WORKFLOW
-======================================================
+WORMWISE FIELD OUTLINE WORKFLOW
+===============================
 
 CURRENT PROJECT DECISION
 ------------------------
-The complete field boundary is optional. WormWise must not block a Fall
-Armyworm assessment merely because a farmer cannot walk the whole field edge,
-high-resolution imagery is unavailable, or the phone cannot produce
-survey-grade coordinates.
+A field can be registered with its name and reported area before an outline is
+available. A new assessment cannot proceed to setup or Station 1 until that
+field has a confirmed approximate outline.
 
-The minimum field record is:
+If the outline is missing, show:
 
-1. A field name.
-2. A farmer-reported or document-reported area in hectares.
+    Complete field outline
 
-The user may also record an entrance GPS point and may create an approximate
-outline later. The app clearly distinguishes these three states:
+Preserve any saved assessment draft. Do not delete it because the field still
+needs an outline.
 
-    REPORTED AREA ONLY
-    ENTRANCE GPS RECORDED
-    APPROXIMATE OUTLINE SAVED
+The outline is used for scouting orientation, route layout, and area
+comparison. It is not a legal, cadastral, property, or survey-grade boundary.
 
-Every state permits assessment. None is described as a legal or cadastral
-survey.
+WORKFLOW
+--------
+1. Register the field and crop-cycle information.
+2. Optionally record an averaged entrance GPS point. This point is a practical
+   reference and is not a boundary.
+3. Open the outline editor.
+4. Add at least three valid points using visual placement, averaged phone-GNSS
+   corners, or a mixture of both.
+5. Review the polygon, calculated area, and perimeter.
+6. Confirm the approximate-outline statement and save a new boundary version.
+7. Return to Scan, where assessment setup can now proceed.
 
-
-1. CREATE THE FIELD
--------------------
-The user opens My Maize Fields and selects Add Field.
-
-Required entries:
-
-- Field name.
-- Reported area greater than zero hectares.
-
-Optional entries:
-
-- Barangay in Piat.
-- Sitio, landmark, or location note.
-- Maize variety.
-- Intended use.
-- Planting date.
-- Field entrance GPS.
-
-Piat and Cagayan remain prefilled because the current deployment scope is Piat.
-The user can save immediately after entering the required information.
-
-
-2. OPTIONALLY RECORD THE FIELD ENTRANCE
----------------------------------------
-The field entrance is a practical reference point that can help the evaluator
-return to the correct farm. It is not used as proof of the complete boundary.
-
-When Record Field Entrance is selected, WormWise:
-
-1. Checks whether phone location is enabled.
-2. Requests foreground location permission if it has not been decided.
-3. Collects up to five usable GNSS readings for a maximum of 12 seconds.
-4. Rejects impossible coordinates and readings with reported horizontal
-   accuracy worse than 100 metres.
-5. Gives more weight to readings with better reported accuracy.
-6. Calculates one average latitude and longitude.
-7. Records average accuracy, worst accuracy, sample count, date and time, and
-   a confidence code.
-
-The user should stand outdoors near the normal field entrance and remain still
-while readings are collected. Buildings, vehicles, dense trees, weather,
-satellite geometry, and the phone model can reduce accuracy.
-
-If location is disabled, denied, or poor, WormWise explains the issue but still
-allows the field to be saved with reported area only.
-
-
-3. SAVE AND ASSESS WITHOUT A BOUNDARY
--------------------------------------
-After registration, the field is ready for assessment. The home screen must
-not display Boundary Required. It instead shows the evidence available:
-
-- Ready - reported area only.
-- Ready - entrance GPS saved.
-- Ready - approximate outline saved.
-
-The assessment can begin in any of these states. GPS coordinates recorded at
-the scouting stations will later document where actual observations occurred.
-The database supports station latitude, longitude, and accuracy, but the
-station-by-station assessment interface still needs to be implemented.
-
-
-4. OPTIONALLY OPEN THE OUTLINE EDITOR
--------------------------------------
-The user may open Map Field Boundary when an approximate outline is useful for
-orientation, visual reporting, or comparing the reported area with a drawn
-shape.
-
-The current development screen uses a provider-neutral Flutter map. Its online
-OpenStreetMap layer is for orientation during development. The public tile
-server is not a production offline imagery source.
-
-The outline editor still works as an editor when imagery is unavailable, but
-the user must have a reasonable location reference before adding points.
-
-
-5. CHOOSE HOW TO ADD OUTLINE POINTS
------------------------------------
-A. Visual map points
-   Tap the map to add a point. Select an existing point and tap again to move
-   it. This is appropriate only when the field edge can be recognized from the
-   available map or local knowledge.
-
-B. Averaged phone-GNSS corners
-   Stand at an accessible field corner and tap the GPS-pin control. WormWise
-   averages phone readings and adds the result as one point. Repeat at other
-   accessible corners.
-
-C. Mixed method
-   Use averaged GPS at accessible corners and add visual points for unsafe or
-   inaccessible edges. The saved record must say that it used mixed evidence.
-
-The user does not have to walk edge by edge. Tall maize, canals, fences, steep
-ground, animals, pesticide re-entry restrictions, and other hazards are valid
-reasons not to traverse an edge.
-
-
-6. REVIEW THE OUTLINE
+SAFETY AND DATA RULES
 ---------------------
-WormWise requires at least three valid points and checks that the shape is not
-self-intersecting. It displays:
+- Do not require a user to walk an unsafe or recently treated field edge.
+- Store phone-reported accuracy with GPS-derived observations.
+- Never invent GPS accuracy for visually placed points.
+- Never turn an entrance point into a polygon.
+- Never silently replace reported area with calculated polygon area.
+- Preserve prior boundary versions and linked assessment records.
+- Missing online map tiles must not block the local outline and assessment
+  workflow.
 
-- Number of points.
-- Calculated area in hectares.
-- Calculated perimeter in metres.
-- A validation message when the shape cannot be saved.
+CURRENT MAP FOUNDATION
+----------------------
+The field overview and outline editor currently use Esri World Imagery as an
+online reference and provide an OpenStreetMap alternative. That direct online
+imagery integration still needs production review for terms, attribution,
+authentication, and expected usage.
 
-Before saving, the user compares the outline with their knowledge of the field.
-If the calculated area differs greatly from the reported area, the user should
-check misplaced points instead of silently replacing the farmer's record.
+Scan uses the same Esri World Imagery online background as the Map tab and has
+a deterministic illustrated-field fallback. Licensed local imagery packages
+may be added under the rules in:
 
+    docs/SCAN_IMAGERY_DEPLOYMENT.md
 
-7. LABEL AND SAVE THE EVIDENCE HONESTLY
----------------------------------------
-The source method is saved as one of:
+The maintained detailed specification is:
 
-- manual_draw
-- phone_gnss_corners
-- mixed_draw_phone_gnss
-
-GPS-derived points also contribute average and worst reported accuracy and a
-confidence code. Visually placed points do not receive invented GPS accuracy.
-
-The confirmation statement says:
-
-    This is an approximate field outline for scouting orientation and area
-    estimation. It is not a cadastral, legal, or survey-grade boundary.
-
-Saving the outline creates a new boundary version and preserves earlier field
-records in the local SQLite database.
-
-
-8. MAP STRATEGY FOR DEPLOYMENT
-------------------------------
-Google Maps and its API-key/billing setup are not required by WormWise.
-
-For a deployable offline map, the project should later prepare a legally usable
-Piat map package and render it with MapLibre or another provider-neutral map
-engine. Possible content includes roads, waterways, labels, known field
-polygons, and suitably licensed imagery. Preparing that package is a separate
-data task; MapLibre itself does not supply high-resolution satellite imagery.
-
-Until such a package exists:
-
-- Do not bulk-download public OpenStreetMap tiles.
-- Do not promise high-resolution satellite boundary detection.
-- Keep reported-area, GPS, assessment, and local storage features usable even
-  when the basemap is blank or offline.
-
-
-9. SAFETY AND QUALITY RULES
----------------------------
-- Never require the user to enter a dangerous or recently treated field only
-  to complete a boundary.
-- Never claim centimetre accuracy from a normal phone.
-- Store the phone-reported accuracy with every GPS observation.
-- Treat an entrance point as a point, not as a polygon.
-- Treat a polygon as approximate unless an authorized survey record supports
-  a stronger claim.
-- Preserve manual correction and version history.
-- Do not let missing imagery or a missing outline prevent FAW assessment.
-
-
-10. CURRENT IMPLEMENTATION STATUS
----------------------------------
-Implemented in this change:
-
-- Reported-area-only field registration.
-- Optional averaged entrance GPS during field registration.
-- Three visible spatial states.
-- Assessment no longer blocked by missing outline.
-- Optional visual, GPS-corner, and mixed outline editing.
-- Accuracy and confidence storage using the existing SQLite schema.
-- Removal of Google Maps, API-key, and billing dependencies.
-
-Still to be implemented:
-
-- The five-station guided scouting and plant-observation screens. The
-  database-backed assessment setup and field-entry safety gate are now
-  implemented.
-- GPS capture at every assessment station.
-- A prepared and licensed offline Piat map package.
-- MapLibre integration after the offline package format is selected.
-- Field validation with local agricultural users and comparison against known
-  reference locations or official parcel records where available.
+    docs/FIELD_LOCATION_AND_OPTIONAL_BOUNDARY.md
