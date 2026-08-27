@@ -43,7 +43,7 @@ void main() {
 
     expect(corrected.growthStage, 'vt_r2');
     expect(corrected.growthStageUncertain, isFalse);
-    expect(corrected.status, DatabaseCodes.draft);
+    expect(corrected.status, DatabaseCodes.inProgress);
     expect(await database.select(database.assessmentBlockRuns).get(), isEmpty);
   });
 }

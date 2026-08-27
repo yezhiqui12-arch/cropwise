@@ -33,6 +33,7 @@ class PlantCaptureBoardStep extends StatefulWidget {
     this.onSaveVeV2UnitException,
     this.onMarkAllHealthy,
     this.cvDiagnoses = const {},
+    this.primaryViewType,
   });
 
   final int blockNumber;
@@ -64,6 +65,7 @@ class PlantCaptureBoardStep extends StatefulWidget {
   onSaveVeV2UnitException;
   final VoidCallback? onMarkAllHealthy;
   final Map<int, PlantDiagnosisResult> cvDiagnoses;
+  final String? primaryViewType;
 
   @override
   State<PlantCaptureBoardStep> createState() => _PlantCaptureBoardStepState();
@@ -74,7 +76,7 @@ class _PlantCaptureBoardStepState extends State<PlantCaptureBoardStep> {
 
   String get _primaryViewType => widget.isVeV2
       ? DatabaseCodes.evidenceViewWholeSeedling
-      : DatabaseCodes.evidenceViewWhorlOverview;
+      : widget.primaryViewType ?? DatabaseCodes.evidenceViewWhorlOverview;
 
   @override
   void initState() {
@@ -186,6 +188,7 @@ class _PlantCaptureBoardStepState extends State<PlantCaptureBoardStep> {
                 diagnosis: diagnosis,
                 isSaving: widget.isSaving,
                 evidencePolicy: widget.evidencePolicy,
+                primaryViewType: _primaryViewType,
                 resolveFile: widget.resolveFile,
                 onTap: () => _togglePlant(position),
                 onCapture: widget.onCapture,
@@ -436,6 +439,7 @@ class _PlantTile extends StatelessWidget {
     this.diagnosis,
     required this.isSaving,
     required this.evidencePolicy,
+    required this.primaryViewType,
     required this.resolveFile,
     required this.onTap,
     required this.onCapture,
@@ -458,6 +462,7 @@ class _PlantTile extends StatelessWidget {
   final PlantDiagnosisResult? diagnosis;
   final bool isSaving;
   final StationEvidencePolicy evidencePolicy;
+  final String primaryViewType;
   final Future<File> Function(String localUri) resolveFile;
   final VoidCallback onTap;
   final Future<String?> Function(int position, String viewType) onCapture;
@@ -476,9 +481,8 @@ class _PlantTile extends StatelessWidget {
   final VoidCallback? onChoosePositionException;
   final VoidCallback onNextPlant;
 
-  String get _primaryViewType => isVeV2
-      ? DatabaseCodes.evidenceViewWholeSeedling
-      : DatabaseCodes.evidenceViewWhorlOverview;
+  String get _primaryViewType =>
+      isVeV2 ? DatabaseCodes.evidenceViewWholeSeedling : primaryViewType;
 
   String get _primaryViewLabel => isVeV2 ? 'Seedling' : 'Overview';
 

@@ -33,6 +33,8 @@ enum Station1ViewState {
   veV2LivingSeedlingEntry,
   veV2StationReview,
   veV2PilotComplete,
+  lateSeasonSetup,
+  openedEarEntry,
   plantSelection,
   plantCapture,
   plantEntry,

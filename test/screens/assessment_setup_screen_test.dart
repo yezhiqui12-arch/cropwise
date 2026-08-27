@@ -190,7 +190,7 @@ void main() {
   );
 
   test(
-    'unsupported reproductive stages remain drafts before progress records exist',
+    'implemented reproductive stages start before progress records exist',
     () async {
       final database = AppDatabase(NativeDatabase.memory());
       final fields = FieldRepository(database);
@@ -222,14 +222,15 @@ void main() {
         preferredLanguage: 'en',
       );
 
-      expect(draft.status, DatabaseCodes.draft);
+      expect(draft.status, DatabaseCodes.inProgress);
+      expect(draft.startedAt, isNotNull);
       expect(
         await database.select(database.assessmentBlockRuns).get(),
         isEmpty,
       );
       expect(await database.select(database.stations).get(), isEmpty);
       expect(await database.select(database.plantObservations).get(), isEmpty);
-      expect(assessments.startAssessment(draft.id), throwsA(isA<StateError>()));
+      await assessments.startAssessment(draft.id);
 
       provider.dispose();
       await database.close();

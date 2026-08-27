@@ -9,6 +9,8 @@ abstract final class DatabaseCodes {
     'v2',
     'v3_v6',
     'v7_v12',
+    'vt_r2',
+    'r3_r6',
   };
 
   static bool isGrowthStageImplemented(String stage) =>

@@ -12,6 +12,7 @@ import '../data/repositories/scouting_route_repository.dart';
 import '../data/services/atomic_plant_save_service.dart';
 import '../data/services/atomic_ve_v2_save_service.dart';
 import '../data/services/five_station_completion_service.dart';
+import '../data/services/stage_plant_save_service.dart';
 import '../services/computer_vision/faw_computer_vision_service.dart';
 import '../services/computer_vision/tflite_faw_detector.dart';
 import '../services/evidence_capture_coordinator.dart';
@@ -75,6 +76,7 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
   }) : _workflow = workflowRepository,
        _assessments = assessmentRepository,
        _plantSaves = plantSaveService,
+       _stageSaves = StagePlantSaveService(plantSaveService.database),
        _completion = completionService,
        _veV2 = veV2SaveService,
        _routes = routeRepository,
@@ -86,6 +88,7 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
   final ScoutingWorkflowRepository _workflow;
   final AssessmentRepository _assessments;
   final AtomicPlantSaveService _plantSaves;
+  final StagePlantSaveService _stageSaves;
   final FiveStationCompletionService _completion;
   final AtomicVeV2SaveService? _veV2;
   final ScoutingRouteRepository? _routes;
@@ -114,6 +117,9 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
   Map<int, PlantEvidenceReview> _plantEvidenceReviews = const {};
   PilotWorkloadMetrics _pilotWorkloadMetrics = PilotWorkloadMetrics.empty;
   Map<int, int> _capturedLeavesInspected = const {};
+  LateSeasonAssessmentSetupRecord? _lateSeasonSetup;
+  List<EarOpeningSelectionRecord> _openingPlan = const [];
+  EarOpeningSelectionRecord? _activeOpeningSelection;
   VeV2StationInspectionRecord? _veV2Inspection;
   List<PlantingUnitObservationRecord> _veV2Units = const [];
   EvidenceCaptureBundle? _veV2RowContextEvidence;
@@ -140,6 +146,33 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
   int? get currentPlantPosition => _currentPlantPosition;
   bool get isVeV2 =>
       const {'ve', 'v1', 'v2'}.contains(_assessment?.growthStage);
+  bool get isVtR2 => _assessment?.growthStage == 'vt_r2';
+  bool get isR3R6 => _assessment?.growthStage == 'r3_r6';
+  LateSeasonAssessmentSetupRecord? get lateSeasonSetup => _lateSeasonSetup;
+  List<EarOpeningSelectionRecord> get openingPlan => _openingPlan;
+  EarOpeningSelectionRecord? get activeOpeningSelection =>
+      _activeOpeningSelection;
+  List<EarOpeningSelectionRecord> get activeOpeningTargets => _openingPlan
+      .where(
+        (item) =>
+            item.initiallySelected ||
+            item.selectionStatus == 'replacement_selected' ||
+            item.selectionStatus == 'opened' ||
+            item.selectionStatus == 'failed',
+      )
+      .toList(growable: false);
+  bool get openedEarSubsampleComplete =>
+      !isR3R6 ||
+      _lateSeasonSetup?.openingPermission !=
+          DatabaseCodes.openingPermissionGranted ||
+      activeOpeningTargets.every(
+        (item) =>
+            item.selectionStatus == 'opened' ||
+            item.selectionStatus == 'failed',
+      );
+  String get primaryEvidenceViewType => isVtR2 || isR3R6
+      ? DatabaseCodes.evidenceViewEarRegionOverview
+      : DatabaseCodes.evidenceViewWhorlOverview;
   VeV2StationInspectionRecord? get veV2Inspection => _veV2Inspection;
   List<PlantingUnitObservationRecord> get veV2Units => _veV2Units;
   EvidenceCaptureBundle? get veV2RowContextEvidence => _veV2RowContextEvidence;
@@ -212,6 +245,7 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
     Station1ViewState.stationLocation => _routePlan?.isReady == true,
     Station1ViewState.plantEntry ||
     Station1ViewState.plantCapture ||
+    Station1ViewState.openedEarEntry ||
     Station1ViewState.stationReview ||
     Station1ViewState.veV2StationSetup ||
     Station1ViewState.veV2RowContextEvidence ||
@@ -367,6 +401,72 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
       );
       _activeRunIndex = _firstIncompleteRunIndex();
       _stationNumber = 1;
+      await _loadSnapshot(askForResume: false);
+    });
+  }
+
+  Future<void> saveLateSeasonSetup(LateSeasonSetupInput input) async {
+    if (!isR3R6 || input.assessmentId != assessmentId) {
+      throw StateError('Late-season setup does not match this assessment.');
+    }
+    final expectedRunIds = _preparedRuns.map((item) => item.run.id).toSet();
+    if (!setEquals(expectedRunIds, input.blockRunIds.toSet())) {
+      throw StateError(
+        'Late-season opening plan does not match prepared blocks.',
+      );
+    }
+    await _perform(() async {
+      await _ensureAssessmentActive();
+      _lateSeasonSetup = await _stageSaves.saveLateSeasonSetup(input);
+      await _loadSnapshot(askForResume: false);
+    });
+  }
+
+  Future<void> beginOpenedEar(EarOpeningSelectionRecord selection) async {
+    if (!isR3R6 ||
+        !(selection.initiallySelected ||
+            selection.selectionStatus == 'replacement_selected')) {
+      throw StateError('This ear is not in the preselected opening sample.');
+    }
+    final plant = _snapshot?.plants
+        .where((item) => item.plant.sequenceNumber == selection.plantPosition)
+        .firstOrNull;
+    if (plant?.ear == null || plant!.ear!.externallyAssessable != true) {
+      throw StateError(
+        'Record a failed selection and reason when the selected ear cannot be opened.',
+      );
+    }
+    _activeOpeningSelection = selection;
+    _currentPlantPosition = selection.plantPosition;
+    await _loadCurrentEvidence();
+    _setState(Station1ViewState.openedEarEntry);
+  }
+
+  Future<void> failOpenedEarSelection(
+    EarOpeningSelectionRecord selection,
+    String reason,
+  ) async {
+    await _perform(() async {
+      await _stageSaves.markOpeningSelectionFailed(
+        selectionId: selection.id,
+        reason: reason,
+        actorPersonId: _requireAssessment().evaluatorPersonId,
+      );
+      _activeOpeningSelection = null;
+      _currentPlantPosition = null;
+      await _loadSnapshot(askForResume: false);
+    });
+  }
+
+  Future<void> saveOpenedEar(OpenedEarSave input) async {
+    final selection = _activeOpeningSelection;
+    if (selection == null || selection.id != input.selectionId) {
+      throw StateError('Opened-ear save does not match the active selection.');
+    }
+    await _perform(() async {
+      await _stageSaves.saveOpenedEar(input);
+      _activeOpeningSelection = null;
+      _currentPlantPosition = null;
       await _loadSnapshot(askForResume: false);
     });
   }
@@ -539,9 +639,9 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
         actorPersonId: _requireAssessment().evaluatorPersonId,
         activeDuration: activeDuration,
         newestLeavesInspectedCount: newestLeavesInspectedCount,
-        requiredViewTypes: _policyForBundle(
-          bundle,
-        ).captureCompletionViews(bundle),
+        requiredViewTypes: isVtR2 || isR3R6
+            ? {primaryEvidenceViewType}
+            : _policyForBundle(bundle).captureCompletionViews(bundle),
       );
       await _loadSnapshot(askForResume: false);
     });
@@ -569,6 +669,63 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
     final evidence = _currentEvidence;
     if (station == null || position == null || evidence == null) {
       throw StateError('The active plant position is unavailable.');
+    }
+    if (isVtR2) {
+      await saveReproductivePlant(
+        ReproductivePlantSave(
+          stationId: station.id,
+          plantPosition: position,
+          assessable: false,
+          notAssessableReason: reason,
+          classification: DatabaseCodes.reproductiveNotAssessable,
+          tasselExamined: false,
+          earBaseExamined: false,
+          upperAxilExamined: false,
+          lowerAxilExamined: false,
+          freshFeedingPresent: false,
+          frassPresent: false,
+          earHuskPenetrationVisible: false,
+          larvaPresent: false,
+          larvalSize: 'none_seen',
+          possibleNonFawEvidence: null,
+          uncertainEvidence: null,
+          naturalEnemyQuickStatus: DatabaseCodes.naturalEnemyNotAssessable,
+          actorPersonId: _requireAssessment().evaluatorPersonId,
+          evidenceCaptureSessionId: evidence.session.id,
+          pilotActiveDurationMs: activeDuration.inMilliseconds,
+        ),
+        DatabaseCodes.evidenceReviewSufficient,
+      );
+      return;
+    }
+    if (isR3R6) {
+      await saveExternalEar(
+        EarExternalPlantSave(
+          stationId: station.id,
+          plantPosition: position,
+          earPresent: null,
+          externallyAssessable: false,
+          designatedEarIdentity: null,
+          exteriorEarTipExamined: false,
+          baseShankSilkAxilsExamined: false,
+          externalDamagePresent: null,
+          activeInfestationPresent: null,
+          silkDamagePresent: null,
+          huskDamagePresent: null,
+          entryHolePresent: null,
+          frassPresent: null,
+          larvaPresent: null,
+          moldRotLikeSymptoms: null,
+          externalClassification: DatabaseCodes.earExternalNotAssessable,
+          naturalEnemyQuickStatus: DatabaseCodes.naturalEnemyNotAssessable,
+          notAssessableReason: reason,
+          actorPersonId: _requireAssessment().evaluatorPersonId,
+          evidenceCaptureSessionId: evidence.session.id,
+          pilotActiveDurationMs: activeDuration.inMilliseconds,
+        ),
+        DatabaseCodes.evidenceReviewSufficient,
+      );
+      return;
     }
     await savePlant(
       VegetativePlantSave(
@@ -646,6 +803,11 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
         }
         return;
       case Station1ViewState.plantEntry:
+        _currentPlantPosition = null;
+        _setState(Station1ViewState.stationReview);
+        return;
+      case Station1ViewState.openedEarEntry:
+        _activeOpeningSelection = null;
         _currentPlantPosition = null;
         _setState(Station1ViewState.stationReview);
         return;
@@ -769,6 +931,68 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
       await _plantSaves.saveVegetativePlant(input);
       await _loadSnapshot(askForResume: false);
     });
+  }
+
+  Future<void> saveReproductivePlant(
+    ReproductivePlantSave input,
+    String evidenceReviewStatus,
+  ) async {
+    _validateStagePlantIdentity(input.stationId, input.plantPosition);
+    _validateExplicitEvidenceReview(evidenceReviewStatus);
+    await _perform(() async {
+      await _ensureAssessmentActive();
+      await _stageSaves.saveReproductivePlant(input);
+      await _recordStageEvidenceReview(evidenceReviewStatus);
+      await _loadSnapshot(askForResume: false);
+    });
+  }
+
+  Future<void> saveExternalEar(
+    EarExternalPlantSave input,
+    String evidenceReviewStatus,
+  ) async {
+    _validateStagePlantIdentity(input.stationId, input.plantPosition);
+    _validateExplicitEvidenceReview(evidenceReviewStatus);
+    if (_lateSeasonSetup == null) {
+      throw StateError('Complete late-season authorization first.');
+    }
+    await _perform(() async {
+      await _ensureAssessmentActive();
+      await _stageSaves.saveExternalEar(input);
+      await _recordStageEvidenceReview(evidenceReviewStatus);
+      await _loadSnapshot(askForResume: false);
+    });
+  }
+
+  void _validateStagePlantIdentity(String stationId, int position) {
+    final station = _snapshot?.station;
+    if (station == null ||
+        stationId != station.id ||
+        position != _currentPlantPosition) {
+      throw StateError(
+        'Plant save does not match the active block, station, and position.',
+      );
+    }
+  }
+
+  void _validateExplicitEvidenceReview(String status) {
+    if (status != DatabaseCodes.evidenceReviewSufficient) {
+      throw StateError(
+        'Resolve insufficient evidence before confirming observations.',
+      );
+    }
+  }
+
+  Future<void> _recordStageEvidenceReview(String status) async {
+    final bundle = _currentEvidence;
+    if (bundle == null) return;
+    await _requireEvidenceCoordinator().repository.recordPlantEvidenceReview(
+      bundle: await _requireEvidenceCoordinator().repository.loadBundle(
+        bundle.session.id,
+      ),
+      status: status,
+      actorPersonId: _requireAssessment().evaluatorPersonId,
+    );
   }
 
   Future<void> saveReviewedPlant(
@@ -1255,7 +1479,7 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
     }
     final requiredView = isVeV2
         ? DatabaseCodes.evidenceViewWholeSeedling
-        : DatabaseCodes.evidenceViewWhorlOverview;
+        : primaryEvidenceViewType;
     for (var position = 1; position <= 10; position++) {
       final matches = _stationEvidenceBundles.where(
         (bundle) =>
@@ -1707,6 +1931,15 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
     _veV2RowContextEvidence = null;
     _veV2CaptureTarget = null;
     _veV2AnalysisPresentations = const {};
+    _lateSeasonSetup = isR3R6
+        ? await _stageSaves.loadLateSeasonSetup(assessmentId)
+        : null;
+    _openingPlan = isR3R6 && _lateSeasonSetup != null
+        ? await _stageSaves.loadOpeningPlan(
+            blockRunId: _requirePrepared().run.id,
+            stationNumber: _stationNumber,
+          )
+        : const [];
     final station = _snapshot!.station;
     if (station != null && _evidence != null) {
       _stationContextEvidence = await _evidence.ensureStationContext(
@@ -1839,6 +2072,9 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
       return Station1ViewState.stationContextEvidence;
     }
     if (isVeV2) return _veV2TargetFor(snapshot);
+    if (isR3R6 && _lateSeasonSetup == null) {
+      return Station1ViewState.lateSeasonSetup;
+    }
     if (_evidence == null) {
       if (snapshot.plants.isEmpty) return Station1ViewState.plantSelection;
       if (snapshot.plants.length < 10) {
@@ -1916,7 +2152,7 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
     if (bundle.session.completedAt != null) return true;
     final requiredView = isVeV2
         ? DatabaseCodes.evidenceViewWholeSeedling
-        : DatabaseCodes.evidenceViewWhorlOverview;
+        : primaryEvidenceViewType;
     return bundle.isViewSatisfied(requiredView);
   }
 
@@ -2077,6 +2313,23 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
           'Plant ${item.plant.sequenceNumber} evidence association or policy version is invalid.',
         );
       }
+      if (isVtR2 || isR3R6) {
+        if (item.plant.assessable &&
+            !bundle.isViewSatisfied(primaryEvidenceViewType)) {
+          throw StateError(
+            'Plant ${item.plant.sequenceNumber} needs its stage-specific overview or documented fallback.',
+          );
+        }
+        final review = _plantEvidenceReviews[item.plant.sequenceNumber];
+        if (item.plant.assessable &&
+            (review?.isCurrent != true ||
+                review?.status != DatabaseCodes.evidenceReviewSufficient)) {
+          throw StateError(
+            'Plant ${item.plant.sequenceNumber} requires a current sufficient evidence review.',
+          );
+        }
+        continue;
+      }
       for (final view in sessionPolicy.requiredViewsForObservation(
         plant: item.plant,
         vegetative: item.vegetative,
@@ -2087,6 +2340,11 @@ class FiveStationWorkflowProvider extends ChangeNotifier {
           );
         }
       }
+    }
+    if (isR3R6 && !openedEarSubsampleComplete) {
+      throw StateError(
+        'Complete or document failure for every active opened-ear selection.',
+      );
     }
   }
 

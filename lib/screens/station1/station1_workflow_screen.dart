@@ -25,6 +25,9 @@ import '../growth_stage_correction_screen.dart';
 import '../ve_v2/ve_v2_pilot_steps.dart';
 import 'plant_capture_board_step.dart';
 import 'plant_observation_step.dart';
+import 'stage_plant_observation_steps.dart';
+import 'late_season_workflow_steps.dart';
+import 'stage_station_review_step.dart';
 import 'evidence_capture_panel.dart';
 import 'evidence_photo_viewer.dart';
 import 'guided_camera_screen.dart';
@@ -514,14 +517,60 @@ class Station1WorkflowScreen extends StatelessWidget {
                     actionLabel: 'Return to Scan',
                     onAction: () => Navigator.pop(context),
                   ),
+                  Station1ViewState.lateSeasonSetup => LateSeasonSetupStep(
+                    assessmentId: workflow.assessment!.id,
+                    evaluatorPersonId: workflow.assessment!.evaluatorPersonId,
+                    blockRunIds: workflow.preparedRuns
+                        .map((item) => item.run.id)
+                        .toList(growable: false),
+                    isSaving: workflow.isSaving,
+                    onSave: workflow.saveLateSeasonSetup,
+                  ),
+                  Station1ViewState.openedEarEntry => OpenedEarEntryStep(
+                    selection: workflow.activeOpeningSelection!,
+                    plant: workflow.currentPlant!,
+                    evidence: workflow.currentEvidence!,
+                    actorPersonId: workflow.assessment!.evaluatorPersonId,
+                    isSaving: workflow.isSaving,
+                    resolveFile: workflow.resolveEvidenceFile,
+                    onCapture: (viewType) async {
+                      await _captureEvidence(context, workflow, viewType);
+                    },
+                    onInspect: (media) async {
+                      await _inspectEvidence(context, workflow, media);
+                    },
+                    onAccept: (media) =>
+                        _run(context, () => workflow.acceptEvidence(media)),
+                    onRetake: (media) async {
+                      await _retakeEvidence(context, workflow, media);
+                    },
+                    onRemove: (media) =>
+                        _run(context, () => workflow.removeEvidence(media)),
+                    onManualFallback: (viewType, reason, note) => _run(
+                      context,
+                      () => workflow.waiveEvidence(
+                        viewType: viewType,
+                        reasonCode: reason,
+                        note: note,
+                      ),
+                    ),
+                    onSave: (input) =>
+                        _run(context, () => workflow.saveOpenedEar(input)),
+                  ),
                   Station1ViewState.plantSelection => PlantSelectionStep(
                     blockNumber: workflow.blockNumber,
                     stationNumber: workflow.stationNumber,
                     evidencePolicy: workflow.evidencePolicy,
                     onBegin: () =>
                         _run(context, workflow.beginTenConsecutivePlants),
-                    onMarkAllHealthy: () =>
-                        _run(context, workflow.markEntireStationClean),
+                    onMarkAllHealthy:
+                        const {
+                          'v7_v12',
+                          'vt_r2',
+                          'r3_r6',
+                        }.contains(workflow.assessment!.growthStage)
+                        ? null
+                        : () => _run(context, workflow.markEntireStationClean),
                   ),
                   Station1ViewState.plantCapture => PlantCaptureBoardStep(
                     key: const ValueKey('plant_capture_board_step'),
@@ -533,11 +582,25 @@ class Station1WorkflowScreen extends StatelessWidget {
                     stationBundles: workflow.stationEvidenceBundles,
                     isSaving: workflow.isSaving,
                     resolveFile: workflow.resolveEvidenceFile,
-                    cvDiagnoses: workflow.cvDiagnoses,
+                    cvDiagnoses:
+                        const {
+                          'v7_v12',
+                          'vt_r2',
+                          'r3_r6',
+                        }.contains(workflow.assessment!.growthStage)
+                        ? const {}
+                        : workflow.cvDiagnoses,
+                    primaryViewType: workflow.primaryEvidenceViewType,
                     onSelectPlant: (pos) =>
                         _run(context, () => workflow.selectCapturePlant(pos)),
-                    onMarkAllHealthy: () =>
-                        _run(context, workflow.markEntireStationClean),
+                    onMarkAllHealthy:
+                        const {
+                          'v7_v12',
+                          'vt_r2',
+                          'r3_r6',
+                        }.contains(workflow.assessment!.growthStage)
+                        ? null
+                        : () => _run(context, workflow.markEntireStationClean),
                     onCapture: (position, viewType) async {
                       await workflow.selectCapturePlant(position);
                       if (!context.mounted) return null;
@@ -547,7 +610,9 @@ class Station1WorkflowScreen extends StatelessWidget {
                         _inspectEvidence(context, workflow, media),
                     onAccept: (media) => _tryRun(context, () async {
                       await workflow.acceptEvidence(media);
-                      if (workflow.currentPlantPosition != null) {
+                      if (!workflow.isVtR2 &&
+                          !workflow.isR3R6 &&
+                          workflow.currentPlantPosition != null) {
                         await workflow.analyzePlantEvidence(
                           media: media,
                           plantPosition: workflow.currentPlantPosition!,
@@ -578,104 +643,222 @@ class Station1WorkflowScreen extends StatelessWidget {
                           );
                         }),
                   ),
-                  Station1ViewState.plantEntry => PlantObservationStep(
-                    key: ValueKey('plant_${workflow.currentPlantPosition}'),
-                    position: workflow.currentPlantPosition!,
-                    blockNumber: workflow.blockNumber,
-                    stationNumber: workflow.stationNumber,
-                    evidencePolicy: workflow.currentEvidencePolicy,
-                    savedCount: workflow.savedPlantCount,
-                    stationId: workflow.snapshot!.station!.id,
-                    actorPersonId: workflow.assessment!.evaluatorPersonId,
-                    existing: workflow.currentPlant,
-                    initialLeavesInspectedCount: workflow
-                        .capturedLeavesInspectedFor(
-                          workflow.currentPlantPosition!,
+                  Station1ViewState.plantEntry => switch (workflow
+                      .assessment!
+                      .growthStage) {
+                    'vt_r2' => ReproductivePlantObservationStep(
+                      key: ValueKey(
+                        'vt_plant_${workflow.currentPlantPosition}',
+                      ),
+                      position: workflow.currentPlantPosition!,
+                      blockNumber: workflow.blockNumber,
+                      stationNumber: workflow.stationNumber,
+                      stationId: workflow.snapshot!.station!.id,
+                      actorPersonId: workflow.assessment!.evaluatorPersonId,
+                      existing: workflow.currentPlant,
+                      isSaving: workflow.isSaving,
+                      onSave: (input, review) => _run(
+                        context,
+                        () => workflow.saveReproductivePlant(input, review),
+                      ),
+                      evidence: workflow.currentEvidence,
+                      resolveEvidenceFile: workflow.resolveEvidenceFile,
+                      onCaptureEvidence: (viewType) =>
+                          _captureEvidence(context, workflow, viewType),
+                      onInspectEvidence: (media) =>
+                          _inspectEvidence(context, workflow, media),
+                      onAcceptEvidence: (media) =>
+                          _run(context, () => workflow.acceptEvidence(media)),
+                      onRetakeEvidence: (media) =>
+                          _retakeEvidence(context, workflow, media),
+                      onRemoveEvidence: (media) =>
+                          _run(context, () => workflow.removeEvidence(media)),
+                      onManualFallback: (viewType, reason, note) => _run(
+                        context,
+                        () => workflow.waiveEvidence(
+                          viewType: viewType,
+                          reasonCode: reason,
+                          note: note,
                         ),
-                    isSaving: workflow.isSaving,
-                    onSave: workflow.savePlant,
-                    onSaveReviewed: workflow.saveReviewedPlant,
-                    onMarkAllHealthy: () =>
-                        _run(context, workflow.markEntireStationClean),
-                    cvDiagnosis:
-                        workflow.cvDiagnoses[workflow.currentPlantPosition],
-                    initialEvidenceReviewStatus:
-                        workflow
-                                .plantEvidenceReviews[workflow
-                                    .currentPlantPosition!]
-                                ?.isCurrent ==
-                            true
-                        ? workflow
-                              .plantEvidenceReviews[workflow
-                                  .currentPlantPosition!]
-                              ?.status
-                        : null,
-                    onCancelEdit: () => _handleSystemBack(context, workflow),
-                    evidence: workflow.currentEvidence,
-                    resolveEvidenceFile: workflow.resolveEvidenceFile,
-                    onCaptureEvidence: (viewType) async {
-                      await _captureEvidence(context, workflow, viewType);
-                    },
-                    onInspectEvidence: (media) async {
-                      await _inspectEvidence(context, workflow, media);
-                    },
-                    onAcceptEvidence: (media) => _run(context, () async {
-                      await workflow.acceptEvidence(media);
-                      if (workflow.currentPlantPosition != null) {
-                        await workflow.analyzePlantEvidence(
-                          media: media,
-                          plantPosition: workflow.currentPlantPosition!,
-                        );
-                      }
-                    }),
-                    onRetakeEvidence: (media) async {
-                      await _retakeEvidence(context, workflow, media);
-                    },
-                    onRemoveEvidence: (media) =>
-                        _run(context, () => workflow.removeEvidence(media)),
-                    onManualFallback: (viewType, reason, note) => _run(
-                      context,
-                      () => workflow.waiveEvidence(
-                        viewType: viewType,
-                        reasonCode: reason,
-                        note: note,
                       ),
                     ),
-                  ),
-                  Station1ViewState.stationReview => StationReviewStep(
-                    snapshot: workflow.snapshot!,
-                    blockNumber: workflow.blockNumber,
-                    stationNumber: workflow.stationNumber,
-                    evidencePolicy: workflow.evidencePolicy,
-                    evidenceReviews: workflow.plantEvidenceReviews,
-                    isSaving: workflow.isSaving,
-                    onEdit: (position) =>
-                        _run(context, () => workflow.editPlant(position)),
-                    onConfirm: () =>
-                        _run(context, workflow.confirmStationReview),
-                    onCompleteWithoutManualConfirmation: () => _run(
-                      context,
-                      workflow.completeStationWithoutManualConfirmation,
-                    ),
-                    onCompleteTestStation:
-                        kDebugMode && debugFeaturesEnabled && testMode
-                        ? () => _run(context, workflow.completeTestStation)
-                        : null,
-                    onMarkInsufficient: (position) => _run(
-                      context,
-                      () => workflow.markPlantEvidenceInsufficient(position),
-                    ),
-                    evidenceBundles: workflow.stationEvidenceBundles,
-                    resolveEvidenceFile: workflow.resolveEvidenceFile,
-                    onOpenEvidence: (media, scopeLabel) =>
-                        _openReadOnlyEvidence(
-                          context,
-                          workflow,
-                          media,
-                          scopeLabel,
+                    'r3_r6' => EarExternalObservationStep(
+                      key: ValueKey(
+                        'ear_plant_${workflow.currentPlantPosition}',
+                      ),
+                      position: workflow.currentPlantPosition!,
+                      blockNumber: workflow.blockNumber,
+                      stationNumber: workflow.stationNumber,
+                      stationId: workflow.snapshot!.station!.id,
+                      actorPersonId: workflow.assessment!.evaluatorPersonId,
+                      designatedEarRule:
+                          workflow.lateSeasonSetup!.earDesignationRule,
+                      existing: workflow.currentPlant,
+                      isSaving: workflow.isSaving,
+                      onSave: (input, review) => _run(
+                        context,
+                        () => workflow.saveExternalEar(input, review),
+                      ),
+                      evidence: workflow.currentEvidence,
+                      resolveEvidenceFile: workflow.resolveEvidenceFile,
+                      onCaptureEvidence: (viewType) =>
+                          _captureEvidence(context, workflow, viewType),
+                      onInspectEvidence: (media) =>
+                          _inspectEvidence(context, workflow, media),
+                      onAcceptEvidence: (media) =>
+                          _run(context, () => workflow.acceptEvidence(media)),
+                      onRetakeEvidence: (media) =>
+                          _retakeEvidence(context, workflow, media),
+                      onRemoveEvidence: (media) =>
+                          _run(context, () => workflow.removeEvidence(media)),
+                      onManualFallback: (viewType, reason, note) => _run(
+                        context,
+                        () => workflow.waiveEvidence(
+                          viewType: viewType,
+                          reasonCode: reason,
+                          note: note,
                         ),
-                    pilotWorkloadMetrics: workflow.pilotWorkloadMetrics,
-                  ),
+                      ),
+                    ),
+                    _ => PlantObservationStep(
+                      key: ValueKey('plant_${workflow.currentPlantPosition}'),
+                      position: workflow.currentPlantPosition!,
+                      blockNumber: workflow.blockNumber,
+                      stationNumber: workflow.stationNumber,
+                      evidencePolicy: workflow.currentEvidencePolicy,
+                      savedCount: workflow.savedPlantCount,
+                      stationId: workflow.snapshot!.station!.id,
+                      actorPersonId: workflow.assessment!.evaluatorPersonId,
+                      existing: workflow.currentPlant,
+                      growthStage: workflow.assessment!.growthStage,
+                      initialLeavesInspectedCount: workflow
+                          .capturedLeavesInspectedFor(
+                            workflow.currentPlantPosition!,
+                          ),
+                      isSaving: workflow.isSaving,
+                      onSave: workflow.savePlant,
+                      onSaveReviewed: workflow.saveReviewedPlant,
+                      onMarkAllHealthy:
+                          workflow.assessment!.growthStage == 'v7_v12'
+                          ? null
+                          : () =>
+                                _run(context, workflow.markEntireStationClean),
+                      cvDiagnosis: workflow.assessment!.growthStage == 'v7_v12'
+                          ? null
+                          : workflow.cvDiagnoses[workflow.currentPlantPosition],
+                      initialEvidenceReviewStatus:
+                          workflow
+                                  .plantEvidenceReviews[workflow
+                                      .currentPlantPosition!]
+                                  ?.isCurrent ==
+                              true
+                          ? workflow
+                                .plantEvidenceReviews[workflow
+                                    .currentPlantPosition!]
+                                ?.status
+                          : null,
+                      onCancelEdit: () => _handleSystemBack(context, workflow),
+                      evidence: workflow.currentEvidence,
+                      resolveEvidenceFile: workflow.resolveEvidenceFile,
+                      onCaptureEvidence: (viewType) async {
+                        await _captureEvidence(context, workflow, viewType);
+                      },
+                      onInspectEvidence: (media) async {
+                        await _inspectEvidence(context, workflow, media);
+                      },
+                      onAcceptEvidence: (media) => _run(context, () async {
+                        await workflow.acceptEvidence(media);
+                        if (workflow.currentPlantPosition != null) {
+                          await workflow.analyzePlantEvidence(
+                            media: media,
+                            plantPosition: workflow.currentPlantPosition!,
+                          );
+                        }
+                      }),
+                      onRetakeEvidence: (media) async {
+                        await _retakeEvidence(context, workflow, media);
+                      },
+                      onRemoveEvidence: (media) =>
+                          _run(context, () => workflow.removeEvidence(media)),
+                      onManualFallback: (viewType, reason, note) => _run(
+                        context,
+                        () => workflow.waiveEvidence(
+                          viewType: viewType,
+                          reasonCode: reason,
+                          note: note,
+                        ),
+                      ),
+                    ),
+                  },
+                  Station1ViewState.stationReview =>
+                    workflow.isVtR2 || workflow.isR3R6
+                        ? StageStationReviewStep(
+                            growthStage: workflow.assessment!.growthStage,
+                            snapshot: workflow.snapshot!,
+                            evidenceReviews: workflow.plantEvidenceReviews,
+                            openingPlan: workflow.openingPlan,
+                            openedEarSubsampleComplete:
+                                workflow.openedEarSubsampleComplete,
+                            isSaving: workflow.isSaving,
+                            onEditPlant: (position) => _run(
+                              context,
+                              () => workflow.editPlant(position),
+                            ),
+                            onBeginOpenedEar: (selection) => _run(
+                              context,
+                              () => workflow.beginOpenedEar(selection),
+                            ),
+                            onFailOpenedEar: (selection, reason) => _run(
+                              context,
+                              () => workflow.failOpenedEarSelection(
+                                selection,
+                                reason,
+                              ),
+                            ),
+                            onConfirm: () =>
+                                _run(context, workflow.confirmStationReview),
+                          )
+                        : StationReviewStep(
+                            snapshot: workflow.snapshot!,
+                            blockNumber: workflow.blockNumber,
+                            stationNumber: workflow.stationNumber,
+                            evidencePolicy: workflow.evidencePolicy,
+                            evidenceReviews: workflow.plantEvidenceReviews,
+                            isSaving: workflow.isSaving,
+                            onEdit: (position) => _run(
+                              context,
+                              () => workflow.editPlant(position),
+                            ),
+                            onConfirm: () =>
+                                _run(context, workflow.confirmStationReview),
+                            onCompleteWithoutManualConfirmation: () => _run(
+                              context,
+                              workflow.completeStationWithoutManualConfirmation,
+                            ),
+                            onCompleteTestStation:
+                                kDebugMode && debugFeaturesEnabled && testMode
+                                ? () => _run(
+                                    context,
+                                    workflow.completeTestStation,
+                                  )
+                                : null,
+                            onMarkInsufficient: (position) => _run(
+                              context,
+                              () => workflow.markPlantEvidenceInsufficient(
+                                position,
+                              ),
+                            ),
+                            evidenceBundles: workflow.stationEvidenceBundles,
+                            resolveEvidenceFile: workflow.resolveEvidenceFile,
+                            onOpenEvidence: (media, scopeLabel) =>
+                                _openReadOnlyEvidence(
+                                  context,
+                                  workflow,
+                                  media,
+                                  scopeLabel,
+                                ),
+                            pilotWorkloadMetrics: workflow.pilotWorkloadMetrics,
+                          ),
                   Station1ViewState.stationComplete => _MessageStep(
                     key: const Key('station1_complete'),
                     status: 'STATION REVIEWED',

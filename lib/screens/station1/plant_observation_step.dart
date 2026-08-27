@@ -38,6 +38,7 @@ class PlantObservationStep extends StatefulWidget {
     this.onManualFallback,
     this.onMarkAllHealthy,
     this.cvDiagnosis,
+    this.growthStage = 'legacy_vegetative',
   });
 
   final int position;
@@ -66,6 +67,7 @@ class PlantObservationStep extends StatefulWidget {
   onManualFallback;
   final VoidCallback? onMarkAllHealthy;
   final PlantDiagnosisResult? cvDiagnosis;
+  final String growthStage;
 
   @override
   State<PlantObservationStep> createState() => _PlantObservationStepState();
@@ -89,6 +91,11 @@ class _PlantObservationStepState extends State<PlantObservationStep>
   bool? _possibleNonFaw;
   bool? _uncertain;
   String? _plantStatus;
+  int? _damageScore;
+  bool _damageScoreUncertain = false;
+  String? _damageAttribution;
+  String? _damageFreshness;
+  String? _naturalEnemyStatus;
   String? _evidenceReviewStatus;
   String? _validationMessage;
   late final TextEditingController _notAssessableReason;
@@ -127,6 +134,17 @@ class _PlantObservationStepState extends State<PlantObservationStep>
       _oldDamage = existing.plant.oldDamagePresent;
       _possibleNonFaw = existing.plant.possibleNonFawEvidence;
       _uncertain = existing.plant.uncertainEvidence;
+      if (widget.growthStage == 'v7_v12') {
+        _damageScore = existing.vegetative.daBafsLeafDamageScore;
+        _damageScoreUncertain = existing.vegetative.damageScoreUncertain;
+        _damageAttribution = existing.vegetative.damageAttribution;
+        _damageFreshness = existing.vegetative.damageFreshness;
+        _naturalEnemyStatus =
+            existing.plant.naturalEnemyQuickStatus ==
+                DatabaseCodes.naturalEnemyNotCollected
+            ? null
+            : existing.plant.naturalEnemyQuickStatus;
+      }
       // Edits require a new, unpreselected evaluator interpretation.
       _plantStatus = null;
     }
@@ -447,6 +465,85 @@ class _PlantObservationStepState extends State<PlantObservationStep>
                   onChanged: (value) => setState(() => _uncertain = value),
                 ),
                 const _InterpretationHelp(),
+                if (widget.growthStage == 'v7_v12') ...[
+                  const SizedBox(height: 18),
+                  const _SectionTitle('Leaf-damage severity'),
+                  const Text(
+                    'Score damage from 0 to 9 using the approved DA-BAFS reference. Keep this ordinal score separate from current infestation.',
+                    style: TextStyle(height: 1.35),
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<int>(
+                    key: const Key('da_bafs_score_field'),
+                    initialValue: _damageScore,
+                    decoration: const InputDecoration(
+                      labelText: 'DA-BAFS score (0–9)',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: List.generate(
+                      10,
+                      (score) => DropdownMenuItem(
+                        value: score,
+                        child: Text('$score · ${_damageScoreLabel(score)}'),
+                      ),
+                    ),
+                    onChanged: (value) => setState(() => _damageScore = value),
+                  ),
+                  const SizedBox(height: 10),
+                  _CompactChoices<String>(
+                    keyBase: 'damage_attribution',
+                    label: 'Damage attribution',
+                    value: _damageAttribution,
+                    maxColumns: 1,
+                    choices: const {
+                      DatabaseCodes.damageAttributionFawConsistent:
+                          'Consistent with FAW',
+                      DatabaseCodes.damageAttributionPossibleFaw:
+                          'Possible FAW',
+                      DatabaseCodes.damageAttributionLikelyNonFaw:
+                          'Likely non-FAW',
+                      DatabaseCodes.damageAttributionUncertain: 'Uncertain',
+                    },
+                    onChanged: (value) =>
+                        setState(() => _damageAttribution = value),
+                  ),
+                  const SizedBox(height: 10),
+                  _CompactChoices<String>(
+                    keyBase: 'damage_freshness',
+                    label: 'Damage freshness',
+                    value: _damageFreshness,
+                    choices: const {
+                      DatabaseCodes.evidenceFresh: 'Fresh',
+                      DatabaseCodes.evidenceOld: 'Old',
+                      DatabaseCodes.evidenceMixed: 'Mixed',
+                      DatabaseCodes.evidenceFreshnessUncertain: 'Uncertain',
+                    },
+                    onChanged: (value) =>
+                        setState(() => _damageFreshness = value),
+                  ),
+                  CheckboxListTile(
+                    key: const Key('damage_score_uncertain_field'),
+                    value: _damageScoreUncertain,
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('The selected score is uncertain'),
+                    onChanged: (value) =>
+                        setState(() => _damageScoreUncertain = value ?? false),
+                  ),
+                  const SizedBox(height: 18),
+                  const _SectionTitle('Natural-enemy quick observation'),
+                  _CompactChoices<String>(
+                    keyBase: 'natural_enemy',
+                    value: _naturalEnemyStatus,
+                    choices: const {
+                      DatabaseCodes.naturalEnemyNoneSeen: 'None observed',
+                      DatabaseCodes.naturalEnemyObserved: 'Observed',
+                      DatabaseCodes.naturalEnemyUncertain: 'Uncertain',
+                      DatabaseCodes.naturalEnemyNotAssessable: 'Not assessable',
+                    },
+                    onChanged: (value) =>
+                        setState(() => _naturalEnemyStatus = value),
+                  ),
+                ],
                 if (widget.evidence != null &&
                     widget.evidencePolicy ==
                         StationEvidencePolicy.humanWorkloadSafe &&
@@ -703,6 +800,26 @@ class _PlantObservationStepState extends State<PlantObservationStep>
       oldDamagePresent: assessable && _oldDamage == true,
       possibleNonFawEvidence: assessable ? _possibleNonFaw : null,
       uncertainEvidence: assessable ? _uncertain : null,
+      naturalEnemyQuickStatus: widget.growthStage == 'v7_v12'
+          ? assessable
+                ? _naturalEnemyStatus!
+                : DatabaseCodes.naturalEnemyNotAssessable
+          : DatabaseCodes.naturalEnemyNotCollected,
+      daBafsLeafDamageScore: assessable && widget.growthStage == 'v7_v12'
+          ? _damageScore
+          : null,
+      damageScoreUncertain:
+          assessable && widget.growthStage == 'v7_v12' && _damageScoreUncertain,
+      damageScoreReason:
+          assessable && widget.growthStage == 'v7_v12' && _damageScoreUncertain
+          ? 'Adjacent score boundary; evaluator marked uncertain.'
+          : null,
+      damageAttribution: assessable && widget.growthStage == 'v7_v12'
+          ? _damageAttribution
+          : null,
+      damageFreshness: assessable && widget.growthStage == 'v7_v12'
+          ? _damageFreshness
+          : null,
       evaluatorNotes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
       actorPersonId: widget.actorPersonId,
       evidenceCaptureSessionId: widget.evidence?.session.id,
@@ -790,6 +907,14 @@ class _PlantObservationStepState extends State<PlantObservationStep>
     }
     if (_uncertain == null) {
       return 'Answer whether uncertain evidence is present.';
+    }
+    if (widget.growthStage == 'v7_v12') {
+      if (_damageScore == null) return 'Select a DA-BAFS score from 0 to 9.';
+      if (_damageAttribution == null) return 'Select the damage attribution.';
+      if (_damageFreshness == null) return 'Select the damage freshness.';
+      if (_naturalEnemyStatus == null) {
+        return 'Complete the natural-enemy quick observation.';
+      }
     }
     if (_plantStatus == null) {
       return 'Confirm the primary interpretation. WormWise will not select it automatically.';
@@ -1095,6 +1220,20 @@ String _choiceKey(Object? value) => switch (value) {
   true => 'yes',
   false => 'no',
   _ => '$value',
+};
+
+String _damageScoreLabel(int score) => switch (score) {
+  0 => 'No damage',
+  1 => 'Pinholes',
+  2 => 'Pinholes and shot-holes',
+  3 => 'Small elongated lesions',
+  4 => 'Mid-size lesions on several leaves',
+  5 => 'Long lesions; small portions eaten',
+  6 => 'Long lesions; large portions eaten',
+  7 => 'About half of one leaf eaten',
+  8 => 'About seventy percent of one leaf eaten',
+  9 => 'Severe lesions or complete defoliation',
+  _ => 'Invalid score',
 };
 
 class _ObservationHelp extends StatelessWidget {
