@@ -6,6 +6,7 @@ import '../local/database_codes.dart';
 import '../repositories/evidence_capture_repository.dart';
 import '../repositories/scouting_workflow_repository.dart';
 import 'assessment_completion_validator.dart';
+import 'assessment_metrics_service.dart';
 
 /// Completes five-station sampling without calculating an assessment result.
 class FiveStationCompletionService {
@@ -96,6 +97,7 @@ class FiveStationCompletionService {
         );
       }
     });
+    await AssessmentMetricsService(database).recalculateBlock(blockRunId);
   }
 
   Future<void> _validateStation({
@@ -158,13 +160,75 @@ class FiveStationCompletionService {
           await (database.select(database.vegetativeObservations)
                 ..where((row) => row.plantObservationId.equals(plant.id)))
               .getSingleOrNull();
-      if (vegetative == null &&
+      final reproductive =
+          await (database.select(database.reproductiveObservations)
+                ..where((row) => row.plantObservationId.equals(plant.id)))
+              .getSingleOrNull();
+      final ear =
+          await (database.select(database.earObservations)..where(
+                (row) =>
+                    row.plantObservationId.equals(plant.id) &
+                    row.earSequence.equals(1) &
+                    row.deletedAt.isNull(),
+              ))
+              .getSingleOrNull();
+      final stageRecordPresent = switch (assessment.assessmentMode) {
+        DatabaseCodes.modeVeV6 || DatabaseCodes.modeV7V12 => vegetative != null,
+        DatabaseCodes.modeVtR2 => reproductive != null,
+        DatabaseCodes.modeR3R6 => ear != null,
+        _ => false,
+      };
+      if (!stageRecordPresent &&
           !manualConfirmationDeferred &&
           !_isVeV2Stage(assessment.growthStage)) {
         issues.add(
           ValidationIssue(
             'stage_record_missing',
-            'Plant ${plant.sequenceNumber} at Station ${station.stationNumber} is missing its V3-V12 observation.',
+            'Plant ${plant.sequenceNumber} at Station ${station.stationNumber} is missing its ${assessment.assessmentMode} observation.',
+            stationId: station.id,
+          ),
+        );
+      }
+      if (assessment.growthStage == 'v7_v12' &&
+          plant.assessable &&
+          (vegetative?.daBafsLeafDamageScore == null ||
+              vegetative?.damageAttribution == null ||
+              vegetative?.damageFreshness == null ||
+              plant.naturalEnemyQuickStatus ==
+                  DatabaseCodes.naturalEnemyNotCollected)) {
+        issues.add(
+          ValidationIssue(
+            'v7_v12_observation_incomplete',
+            'Plant ${plant.sequenceNumber} at Station ${station.stationNumber} needs DA-BAFS, attribution, freshness, and natural-enemy observations.',
+            stationId: station.id,
+          ),
+        );
+      }
+      if (assessment.assessmentMode == DatabaseCodes.modeVtR2 &&
+          plant.assessable &&
+          (reproductive?.tasselExamined != true ||
+              reproductive?.earBaseExamined != true ||
+              reproductive?.upperAxilExamined != true ||
+              reproductive?.lowerAxilExamined != true ||
+              reproductive?.classification == null)) {
+        issues.add(
+          ValidationIssue(
+            'vt_r2_observation_incomplete',
+            'Plant ${plant.sequenceNumber} at Station ${station.stationNumber} needs all four target zones and a classification.',
+            stationId: station.id,
+          ),
+        );
+      }
+      if (assessment.assessmentMode == DatabaseCodes.modeR3R6 &&
+          plant.assessable &&
+          (ear?.earPresent != true ||
+              ear?.exteriorEarTipExamined != true ||
+              ear?.baseShankSilkAxilsExamined != true ||
+              ear?.externalClassification == null)) {
+        issues.add(
+          ValidationIssue(
+            'r3_r6_external_observation_incomplete',
+            'Plant ${plant.sequenceNumber} at Station ${station.stationNumber} needs its complete external-ear observation.',
             stationId: station.id,
           ),
         );
@@ -188,6 +252,8 @@ class FiveStationCompletionService {
                 createdAt: plant.createdAt,
                 updatedAt: plant.updatedAt,
               ),
+          reproductive: reproductive,
+          ear: ear,
         ),
       );
     }
@@ -206,9 +272,17 @@ class FiveStationCompletionService {
       );
     } else {
       await _validateEvidence(
+        assessmentMode: assessment.assessmentMode,
         assessmentId: assessment.id,
         station: station,
         plants: joined,
+        issues: issues,
+      );
+    }
+    if (assessment.assessmentMode == DatabaseCodes.modeR3R6) {
+      await _validateOpenedEarSubsample(
+        assessment: assessment,
+        station: station,
         issues: issues,
       );
     }
@@ -363,6 +437,7 @@ class FiveStationCompletionService {
   }
 
   Future<void> _validateEvidence({
+    required String assessmentMode,
     required String assessmentId,
     required StationRecord station,
     required List<StationPlantRecord> plants,
@@ -446,13 +521,19 @@ class FiveStationCompletionService {
           ),
         );
       }
-      for (final view
-          in (sessionPolicy ??
-                  StationEvidencePolicy.cameraFirstOverviewConditional)
-              .requiredViewsForObservation(
-                plant: item.plant,
-                vegetative: item.vegetative,
-              )) {
+      final requiredViews =
+          assessmentMode == DatabaseCodes.modeVtR2 ||
+              assessmentMode == DatabaseCodes.modeR3R6
+          ? item.plant.assessable
+                ? const {DatabaseCodes.evidenceViewEarRegionOverview}
+                : const <String>{}
+          : (sessionPolicy ??
+                    StationEvidencePolicy.cameraFirstOverviewConditional)
+                .requiredViewsForObservation(
+                  plant: item.plant,
+                  vegetative: item.vegetative,
+                );
+      for (final view in requiredViews) {
         if (!bundle.isViewSatisfied(view)) {
           issues.add(
             ValidationIssue(
@@ -475,6 +556,63 @@ class FiveStationCompletionService {
           ),
         );
       }
+    }
+  }
+
+  Future<void> _validateOpenedEarSubsample({
+    required AssessmentRecord assessment,
+    required StationRecord station,
+    required List<ValidationIssue> issues,
+  }) async {
+    final setup =
+        await (database.select(database.lateSeasonAssessmentSetups)..where(
+              (row) =>
+                  row.assessmentId.equals(assessment.id) &
+                  row.deletedAt.isNull(),
+            ))
+            .getSingleOrNull();
+    if (setup == null) {
+      issues.add(
+        ValidationIssue(
+          'late_season_setup_missing',
+          'R3-R6 requires crop use, harvest status, permission, and an ear-designation rule.',
+          stationId: station.id,
+        ),
+      );
+      return;
+    }
+    if (setup.openingPermission != DatabaseCodes.openingPermissionGranted) {
+      return;
+    }
+    final run = await (database.select(
+      database.assessmentBlockRuns,
+    )..where((row) => row.id.equals(station.assessmentBlockRunId))).getSingle();
+    final selections =
+        await (database.select(database.earOpeningSelections)..where(
+              (row) =>
+                  row.assessmentBlockRunId.equals(run.id) &
+                  row.stationNumber.equals(station.stationNumber) &
+                  row.deletedAt.isNull(),
+            ))
+            .get();
+    final active = selections.where(
+      (item) =>
+          item.initiallySelected ||
+          item.selectionStatus == 'replacement_selected' ||
+          item.selectionStatus == 'opened' ||
+          item.selectionStatus == 'failed',
+    );
+    if (active.any(
+      (item) =>
+          item.selectionStatus != 'opened' && item.selectionStatus != 'failed',
+    )) {
+      issues.add(
+        ValidationIssue(
+          'opened_ear_subsample_incomplete',
+          'Station ${station.stationNumber} has an unfinished preselected opened-ear target.',
+          stationId: station.id,
+        ),
+      );
     }
   }
 

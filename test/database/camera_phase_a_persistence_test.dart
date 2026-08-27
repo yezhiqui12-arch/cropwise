@@ -21,7 +21,7 @@ const _polygon =
 
 void main() {
   test(
-    'schema v3 migrates evidence metadata through v6 without data loss',
+    'schema v3 migrates evidence metadata through v7 without data loss',
     () async {
       final database = AppDatabase(
         NativeDatabase.memory(
@@ -51,7 +51,7 @@ void main() {
         database.evidenceMedia,
       )..where((row) => row.id.equals('legacy-media'))).getSingle();
 
-      expect(version.read<int>('user_version'), 6);
+      expect(version.read<int>('user_version'), 7);
       expect(legacy.sha256Checksum, 'legacy-checksum');
       expect(legacy.captureSessionId, isNull);
       expect(legacy.captureSource, isNull);

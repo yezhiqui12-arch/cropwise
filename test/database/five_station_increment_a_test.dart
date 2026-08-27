@@ -321,7 +321,13 @@ void main() {
       final assessment = await workflow.assessmentById(fixture.assessment.id);
       expect(run.status, DatabaseCodes.completed);
       expect(assessment.status, DatabaseCodes.completed);
-      expect(await database.select(database.metricResults).get(), isEmpty);
+      final metrics = await database.select(database.metricResults).get();
+      expect(metrics.map((row) => row.metricCode).toSet(), {
+        DatabaseCodes.vegetativeCurrentInfestationPercent,
+        DatabaseCodes.smallFreshWindowpanePercent,
+        DatabaseCodes.infestedWhorlPercent,
+      });
+      expect(metrics.every((row) => row.denominator == 50), isTrue);
     },
   );
 

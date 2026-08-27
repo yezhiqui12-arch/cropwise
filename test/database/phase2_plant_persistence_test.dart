@@ -16,7 +16,7 @@ const _fieldPolygon =
 
 void main() {
   test(
-    'schema v2 migrates through v6 without rewriting old observations',
+    'schema v2 migrates through v7 without rewriting old observations',
     () async {
       final database = AppDatabase(
         NativeDatabase.memory(
@@ -61,7 +61,7 @@ void main() {
                 ..where((row) => row.plantObservationId.equals('legacy-plant')))
               .getSingle();
 
-      expect(version.read<int>('user_version'), 6);
+      expect(version.read<int>('user_version'), 7);
       expect(plant.plantStatus, 'uncertain');
       expect(plant.currentFawEvidence, isNull);
       expect(plant.oldDamagePresent, isTrue);

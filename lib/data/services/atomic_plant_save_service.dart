@@ -36,6 +36,11 @@ class VegetativePlantSave {
     this.requireCameraPhaseAEvidence = false,
     this.pilotActiveDurationMs = 0,
     this.manualFormUsed = true,
+    this.daBafsLeafDamageScore,
+    this.damageScoreUncertain = false,
+    this.damageScoreReason,
+    this.damageAttribution,
+    this.damageFreshness,
   });
 
   final String stationId;
@@ -69,6 +74,11 @@ class VegetativePlantSave {
   final bool requireCameraPhaseAEvidence;
   final int pilotActiveDurationMs;
   final bool manualFormUsed;
+  final int? daBafsLeafDamageScore;
+  final bool damageScoreUncertain;
+  final String? damageScoreReason;
+  final String? damageAttribution;
+  final String? damageFreshness;
 }
 
 class SavedVegetativePlant {
@@ -248,6 +258,11 @@ class AtomicPlantSaveService {
         larvaVisible: Value(input.larvaVisible),
         larvalSize: Value(input.larvalSize),
         eggMassVisible: Value(input.eggMassVisible),
+        daBafsLeafDamageScore: Value(input.daBafsLeafDamageScore),
+        damageScoreUncertain: Value(input.damageScoreUncertain),
+        damageScoreReason: Value(input.damageScoreReason),
+        damageAttribution: Value(input.damageAttribution),
+        damageFreshness: Value(input.damageFreshness),
         updatedAt: Value(now),
       );
       if (previousVegetative == null) {
@@ -267,6 +282,11 @@ class AtomicPlantSaveService {
                 larvaVisible: vegetativeValues.larvaVisible,
                 larvalSize: vegetativeValues.larvalSize,
                 eggMassVisible: vegetativeValues.eggMassVisible,
+                daBafsLeafDamageScore: vegetativeValues.daBafsLeafDamageScore,
+                damageScoreUncertain: vegetativeValues.damageScoreUncertain,
+                damageScoreReason: vegetativeValues.damageScoreReason,
+                damageAttribution: vegetativeValues.damageAttribution,
+                damageFreshness: vegetativeValues.damageFreshness,
                 updatedAt: vegetativeValues.updatedAt,
               ),
             );
@@ -402,6 +422,38 @@ class AtomicPlantSaveService {
         'Larval size must be none_seen when no larva is visible.',
       );
     }
+    if (input.daBafsLeafDamageScore != null &&
+        (input.daBafsLeafDamageScore! < 0 ||
+            input.daBafsLeafDamageScore! > 9)) {
+      throw ArgumentError.value(
+        input.daBafsLeafDamageScore,
+        'daBafsLeafDamageScore',
+        'DA-BAFS score must be an integer from 0 through 9',
+      );
+    }
+    if (input.damageAttribution != null &&
+        !DatabaseCodes.damageAttributions.contains(input.damageAttribution)) {
+      throw ArgumentError.value(
+        input.damageAttribution,
+        'damageAttribution',
+        'Unsupported damage attribution',
+      );
+    }
+    if (input.damageFreshness != null &&
+        !DatabaseCodes.evidenceFreshnessValues.contains(
+          input.damageFreshness,
+        )) {
+      throw ArgumentError.value(
+        input.damageFreshness,
+        'damageFreshness',
+        'Unsupported damage freshness',
+      );
+    }
+    if (input.damageScoreUncertain &&
+        (input.damageScoreReason == null ||
+            input.damageScoreReason!.trim().isEmpty)) {
+      throw ArgumentError('An uncertain DA-BAFS score requires a reason.');
+    }
   }
 
   Map<String, Object?> _auditSnapshot(
@@ -431,6 +483,11 @@ class AtomicPlantSaveService {
       'larva_visible': vegetative?.larvaVisible,
       'larval_size': vegetative?.larvalSize,
       'egg_mass_visible': vegetative?.eggMassVisible,
+      'da_bafs_leaf_damage_score': vegetative?.daBafsLeafDamageScore,
+      'damage_score_uncertain': vegetative?.damageScoreUncertain,
+      'damage_score_reason': vegetative?.damageScoreReason,
+      'damage_attribution': vegetative?.damageAttribution,
+      'damage_freshness': vegetative?.damageFreshness,
     };
   }
 }

@@ -3,7 +3,13 @@
 /// Persist these values instead of translated labels. UI copy can change without
 /// requiring a database migration.
 abstract final class DatabaseCodes {
-  static const implementedGrowthStages = {'ve', 'v1', 'v2', 'v3_v6', 'v7_v12'};
+  static const implementedGrowthStages = {
+    've',
+    'v1',
+    'v2',
+    'v3_v6',
+    'v7_v12',
+  };
 
   static bool isGrowthStageImplemented(String stage) =>
       implementedGrowthStages.contains(stage);
@@ -129,6 +135,82 @@ abstract final class DatabaseCodes {
     'uncertain',
   };
 
+  // Stage-specific evaluator classifications.
+  static const reproductiveInfested = 'currently_infested';
+  static const reproductiveNotInfested = 'not_currently_infested';
+  static const reproductiveUncertain = 'uncertain';
+  static const reproductiveNotAssessable = 'not_assessable';
+  static const reproductiveClassifications = {
+    reproductiveInfested,
+    reproductiveNotInfested,
+    reproductiveUncertain,
+    reproductiveNotAssessable,
+  };
+
+  static const damageAttributionFawConsistent = 'consistent_with_faw';
+  static const damageAttributionPossibleFaw = 'possible_faw';
+  static const damageAttributionLikelyNonFaw = 'likely_non_faw';
+  static const damageAttributionUncertain = 'uncertain';
+  static const damageAttributions = {
+    damageAttributionFawConsistent,
+    damageAttributionPossibleFaw,
+    damageAttributionLikelyNonFaw,
+    damageAttributionUncertain,
+  };
+  static const evidenceFresh = 'fresh';
+  static const evidenceOld = 'old';
+  static const evidenceMixed = 'mixed';
+  static const evidenceFreshnessUncertain = 'uncertain';
+  static const evidenceFreshnessValues = {
+    evidenceFresh,
+    evidenceOld,
+    evidenceMixed,
+    evidenceFreshnessUncertain,
+  };
+
+  static const earExternalActive = 'active_ear_infestation';
+  static const earExternalDamaged = 'externally_damaged_ear';
+  static const earExternalOldDamage = 'old_damage_only';
+  static const earExternalOtherPest = 'possible_other_pest';
+  static const earExternalNonPest = 'likely_non_pest';
+  static const earExternalMoldRot = 'mold_or_rot_present';
+  static const earExternalNegative = 'no_relevant_evidence';
+  static const earExternalUncertain = 'uncertain';
+  static const earExternalNotAssessable = 'not_assessable';
+  static const earExternalClassifications = {
+    earExternalActive,
+    earExternalDamaged,
+    earExternalOldDamage,
+    earExternalOtherPest,
+    earExternalNonPest,
+    earExternalMoldRot,
+    earExternalNegative,
+    earExternalUncertain,
+    earExternalNotAssessable,
+  };
+
+  static const earInternalConfirmedFaw = 'confirmed_faw';
+  static const earInternalFawConsistent = 'faw_consistent';
+  static const earInternalOtherPest = 'other_pest';
+  static const earInternalNonPest = 'likely_non_pest';
+  static const earInternalUncertain = 'uncertain';
+  static const earInternalClassifications = {
+    earInternalConfirmedFaw,
+    earInternalFawConsistent,
+    earInternalOtherPest,
+    earInternalNonPest,
+    earInternalUncertain,
+  };
+
+  static const openingPermissionGranted = 'granted';
+  static const openingPermissionRefused = 'refused';
+  static const openingPermissionUnavailable = 'not_available';
+  static const openingPermissions = {
+    openingPermissionGranted,
+    openingPermissionRefused,
+    openingPermissionUnavailable,
+  };
+
   // Station location-unavailable reasons.
   static const stationLocationServicesOff = 'location_services_off';
   static const stationPermissionDenied = 'permission_denied';
@@ -154,6 +236,13 @@ abstract final class DatabaseCodes {
   static const evidenceScopePlantingUnit = 'planting_unit';
   static const evidenceViewStationContext = 'station_context';
   static const evidenceViewWhorlOverview = 'whorl_newest_leaves_overview';
+  static const evidenceViewLeafDamageCloseUp = 'leaf_damage_close_up';
+  static const evidenceViewEarRegionOverview = 'ear_region_axils_overview';
+  static const evidenceViewEarTargetCloseUp = 'ear_target_close_up';
+  static const evidenceViewWholeEarBeforeOpening =
+      'whole_ear_before_husk_removal';
+  static const evidenceViewOpenedEarSideA = 'opened_ear_side_a';
+  static const evidenceViewOpenedEarSideB = 'opened_ear_side_b';
   static const evidenceViewCloseUp = 'evidence_close_up';
   static const evidenceViewDiagnosticDetail = 'diagnostic_detail';
   static const evidenceViewVeRowContext = 've_v2_row_context';
@@ -227,7 +316,14 @@ abstract final class DatabaseCodes {
       'vegetative_current_infestation_percent';
   static const smallFreshWindowpanePercent = 'sfw_percent';
   static const infestedWhorlPercent = 'iw_percent';
+  static const daBafsMedianScore = 'da_bafs_median_score';
   static const vtR2InfestedPlantPercent = 'vt_r2_ip_percent';
   static const externalEarDamagePercent = 'external_ear_damage_percent';
   static const activeEarInfestationPercent = 'active_ear_infestation_percent';
+  static const openedEarInternalDamagePercent =
+      'opened_ear_internal_damage_percent';
+  static const pooledDamagedKernelPercent = 'pooled_damaged_kernel_percent';
+  static const meanDamagedKernelsPerOpenedEar =
+      'mean_damaged_kernels_per_opened_ear';
+  static const earRotIncidencePercent = 'ear_rot_incidence_percent';
 }

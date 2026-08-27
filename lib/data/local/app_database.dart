@@ -386,6 +386,8 @@ class VegetativeObservations extends Table {
   BoolColumn get damageScoreUncertain =>
       boolean().withDefault(const Constant(false))();
   TextColumn get damageScoreReason => text().nullable()();
+  TextColumn get damageAttribution => text().nullable()();
+  TextColumn get damageFreshness => text().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 
@@ -409,6 +411,15 @@ class ReproductiveObservations extends Table {
       boolean().withDefault(const Constant(false))();
   BoolColumn get larvaPresent => boolean().withDefault(const Constant(false))();
   IntColumn get larvaCount => integer().nullable()();
+  TextColumn get larvalSize =>
+      text().withDefault(const Constant('none_seen'))();
+  BoolColumn get frassPresent => boolean().withDefault(const Constant(false))();
+  BoolColumn get earHuskPenetrationVisible =>
+      boolean().withDefault(const Constant(false))();
+  BoolColumn get possibleNonFawEvidence => boolean().nullable()();
+  BoolColumn get uncertainEvidence => boolean().nullable()();
+  TextColumn get classification => text().nullable()();
+  TextColumn get causeTagsJson => text().nullable()();
   BoolColumn get percentInfestedPositive =>
       boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
@@ -418,29 +429,88 @@ class ReproductiveObservations extends Table {
   Set<Column<Object>> get primaryKey => {plantObservationId};
 }
 
+@DataClassName('LateSeasonAssessmentSetupRecord')
+class LateSeasonAssessmentSetups extends SyncableTable {
+  TextColumn get assessmentId => text().references(Assessments, #id).unique()();
+  TextColumn get cropUse => text()();
+  BoolColumn get commercialHarvestStarted => boolean()();
+  BoolColumn get selectedEarsPartOfHarvest => boolean()();
+  TextColumn get openingPermission => text()();
+  IntColumn get maximumEarsPermitted =>
+      integer().withDefault(const Constant(0))();
+  TextColumn get openingReason => text().nullable()();
+  TextColumn get permissionGrantedBy => text().nullable()();
+  TextColumn get evaluatorPersonId =>
+      text().nullable().references(People, #id)();
+  DateTimeColumn get permissionRecordedAt => dateTime()();
+  TextColumn get earDesignationRule => text()();
+  TextColumn get remarks => text().nullable()();
+  TextColumn get protocolVersion =>
+      text().withDefault(const Constant('r3_r6_external_opened_v1'))();
+}
+
+@DataClassName('EarOpeningSelectionRecord')
+class EarOpeningSelections extends SyncableTable {
+  TextColumn get assessmentBlockRunId =>
+      text().references(AssessmentBlockRuns, #id)();
+  IntColumn get stationNumber => integer()();
+  IntColumn get plantPosition => integer()();
+  IntColumn get selectionOrder => integer()();
+  BoolColumn get initiallySelected =>
+      boolean().withDefault(const Constant(false))();
+  TextColumn get selectionStatus =>
+      text().withDefault(const Constant('planned'))();
+  IntColumn get replacesPlantPosition => integer().nullable()();
+  TextColumn get failureReason => text().nullable()();
+
+  @override
+  List<Set<Column<Object>>> get uniqueKeys => [
+    {assessmentBlockRunId, stationNumber, plantPosition},
+    {assessmentBlockRunId, stationNumber, selectionOrder},
+  ];
+}
+
 @DataClassName('EarObservationRecord')
 class EarObservations extends SyncableTable {
   TextColumn get plantObservationId =>
       text().references(PlantObservations, #id)();
   IntColumn get earSequence => integer().withDefault(const Constant(1))();
+  BoolColumn get earPresent => boolean().nullable()();
+  TextColumn get designatedEarIdentity => text().nullable()();
   BoolColumn get externallyAssessable =>
       boolean().withDefault(const Constant(true))();
+  BoolColumn get exteriorEarTipExamined =>
+      boolean().withDefault(const Constant(false))();
+  BoolColumn get baseShankSilkAxilsExamined =>
+      boolean().withDefault(const Constant(false))();
   BoolColumn get externalDamagePresent => boolean().nullable()();
   BoolColumn get activeInfestationPresent => boolean().nullable()();
   BoolColumn get silkDamagePresent => boolean().nullable()();
   BoolColumn get huskDamagePresent => boolean().nullable()();
   BoolColumn get entryHolePresent => boolean().nullable()();
   BoolColumn get frassPresent => boolean().nullable()();
+  TextColumn get frassFreshness => text().nullable()();
   BoolColumn get larvaPresent => boolean().nullable()();
+  TextColumn get larvalSize => text().nullable()();
+  TextColumn get feedingFreshness => text().nullable()();
+  BoolColumn get moldRotLikeSymptoms => boolean().nullable()();
+  TextColumn get causeTagsJson => text().nullable()();
+  TextColumn get externalClassification => text().nullable()();
   TextColumn get openingPermission =>
       text().withDefault(const Constant('not_requested'))();
   BoolColumn get opened => boolean().withDefault(const Constant(false))();
+  BoolColumn get huskIntactBeforeOpening => boolean().nullable()();
   BoolColumn get internalDamagePresent => boolean().nullable()();
   IntColumn get totalKernelsCounted => integer().nullable()();
   IntColumn get damagedKernelsCounted => integer().nullable()();
   TextColumn get kernelCountMethod => text().nullable()();
+  RealColumn get earTipDamageLengthMm => real().nullable()();
+  BoolColumn get cobDamagePresent => boolean().nullable()();
+  BoolColumn get brokenMissingUnderdevelopedKernels => boolean().nullable()();
   BoolColumn get earRotPresent => boolean().nullable()();
+  IntColumn get moldRotKernelsCounted => integer().nullable()();
   TextColumn get earRotSuspectedType => text().nullable()();
+  TextColumn get internalClassification => text().nullable()();
   TextColumn get notes => text().nullable()();
 
   @override
@@ -618,6 +688,8 @@ class AppPreferences extends Table {
     VeV2StationInspections,
     VegetativeObservations,
     ReproductiveObservations,
+    LateSeasonAssessmentSetups,
+    EarOpeningSelections,
     EarObservations,
     EvidenceCaptureSessions,
     EvidenceMedia,
@@ -642,7 +714,7 @@ class AppDatabase extends _$AppDatabase {
       );
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -771,11 +843,129 @@ class AppDatabase extends _$AppDatabase {
           evidenceCaptureSessions.sourcePlantingUnitObservationId,
         );
       }
+      if (from < 7) {
+        if (await _tableExists(vegetativeObservations.actualTableName)) {
+          await migrator.addColumn(
+            vegetativeObservations,
+            vegetativeObservations.damageAttribution,
+          );
+          await migrator.addColumn(
+            vegetativeObservations,
+            vegetativeObservations.damageFreshness,
+          );
+        } else {
+          await migrator.createTable(vegetativeObservations);
+        }
+        if (await _tableExists(reproductiveObservations.actualTableName)) {
+          await migrator.addColumn(
+            reproductiveObservations,
+            reproductiveObservations.larvalSize,
+          );
+          await migrator.addColumn(
+            reproductiveObservations,
+            reproductiveObservations.frassPresent,
+          );
+          await migrator.addColumn(
+            reproductiveObservations,
+            reproductiveObservations.earHuskPenetrationVisible,
+          );
+          await migrator.addColumn(
+            reproductiveObservations,
+            reproductiveObservations.possibleNonFawEvidence,
+          );
+          await migrator.addColumn(
+            reproductiveObservations,
+            reproductiveObservations.uncertainEvidence,
+          );
+          await migrator.addColumn(
+            reproductiveObservations,
+            reproductiveObservations.classification,
+          );
+          await migrator.addColumn(
+            reproductiveObservations,
+            reproductiveObservations.causeTagsJson,
+          );
+        } else {
+          await migrator.createTable(reproductiveObservations);
+        }
+        await migrator.createTable(lateSeasonAssessmentSetups);
+        await migrator.createTable(earOpeningSelections);
+        if (await _tableExists(earObservations.actualTableName)) {
+          await migrator.addColumn(earObservations, earObservations.earPresent);
+          await migrator.addColumn(
+            earObservations,
+            earObservations.designatedEarIdentity,
+          );
+          await migrator.addColumn(
+            earObservations,
+            earObservations.exteriorEarTipExamined,
+          );
+          await migrator.addColumn(
+            earObservations,
+            earObservations.baseShankSilkAxilsExamined,
+          );
+          await migrator.addColumn(
+            earObservations,
+            earObservations.frassFreshness,
+          );
+          await migrator.addColumn(earObservations, earObservations.larvalSize);
+          await migrator.addColumn(
+            earObservations,
+            earObservations.feedingFreshness,
+          );
+          await migrator.addColumn(
+            earObservations,
+            earObservations.moldRotLikeSymptoms,
+          );
+          await migrator.addColumn(
+            earObservations,
+            earObservations.causeTagsJson,
+          );
+          await migrator.addColumn(
+            earObservations,
+            earObservations.externalClassification,
+          );
+          await migrator.addColumn(
+            earObservations,
+            earObservations.huskIntactBeforeOpening,
+          );
+          await migrator.addColumn(
+            earObservations,
+            earObservations.earTipDamageLengthMm,
+          );
+          await migrator.addColumn(
+            earObservations,
+            earObservations.cobDamagePresent,
+          );
+          await migrator.addColumn(
+            earObservations,
+            earObservations.brokenMissingUnderdevelopedKernels,
+          );
+          await migrator.addColumn(
+            earObservations,
+            earObservations.moldRotKernelsCounted,
+          );
+          await migrator.addColumn(
+            earObservations,
+            earObservations.internalClassification,
+          );
+        } else {
+          await migrator.createTable(earObservations);
+        }
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
     },
   );
+
+  Future<bool> _tableExists(String tableName) async {
+    final match = await customSelect(
+      "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1",
+      variables: [Variable<String>(tableName)],
+    ).getSingleOrNull();
+    return match != null;
+  }
 
   static QueryExecutor _openConnection() {
     return driftDatabase(

@@ -16,7 +16,7 @@ const _polygon =
 
 void main() {
   test(
-    'schema v4 migrates VE-V2 fields through v6 without rewriting records',
+    'schema v4 migrates VE-V2 fields through v7 without rewriting records',
     () async {
       final database = AppDatabase(
         NativeDatabase.memory(
@@ -60,7 +60,7 @@ void main() {
           .select(database.plantObservations)
           .getSingle();
 
-      expect(version.read<int>('user_version'), 6);
+      expect(version.read<int>('user_version'), 7);
       expect(unit.observedSeedlingCount, 2);
       expect(unit.primaryCondition, isNull);
       expect(unit.alternativeCauseCodesJson, isNull);

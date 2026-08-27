@@ -31,10 +31,23 @@ class PreparedScoutingRun {
 }
 
 class StationPlantRecord {
-  const StationPlantRecord({required this.plant, required this.vegetative});
+  const StationPlantRecord({
+    required this.plant,
+    this._vegetative,
+    this.reproductive,
+    this.ear,
+  });
 
   final PlantObservationRecord plant;
-  final VegetativeObservationRecord vegetative;
+  final VegetativeObservationRecord? _vegetative;
+  final ReproductiveObservationRecord? reproductive;
+  final EarObservationRecord? ear;
+
+  VegetativeObservationRecord get vegetative =>
+      _vegetative ??
+      (throw StateError('This plant does not use the vegetative protocol.'));
+
+  VegetativeObservationRecord? get vegetativeOrNull => _vegetative;
 }
 
 class StationSnapshot {
@@ -291,10 +304,30 @@ class ScoutingWorkflowRepository {
             .get();
     final joined = <StationPlantRecord>[];
     for (final plant in plants) {
-      final vegetative = await (database.select(
-        database.vegetativeObservations,
-      )..where((row) => row.plantObservationId.equals(plant.id))).getSingle();
-      joined.add(StationPlantRecord(plant: plant, vegetative: vegetative));
+      final vegetative =
+          await (database.select(database.vegetativeObservations)
+                ..where((row) => row.plantObservationId.equals(plant.id)))
+              .getSingleOrNull();
+      final reproductive =
+          await (database.select(database.reproductiveObservations)
+                ..where((row) => row.plantObservationId.equals(plant.id)))
+              .getSingleOrNull();
+      final ear =
+          await (database.select(database.earObservations)..where(
+                (row) =>
+                    row.plantObservationId.equals(plant.id) &
+                    row.earSequence.equals(1) &
+                    row.deletedAt.isNull(),
+              ))
+              .getSingleOrNull();
+      joined.add(
+        StationPlantRecord(
+          plant: plant,
+          vegetative: vegetative,
+          reproductive: reproductive,
+          ear: ear,
+        ),
+      );
     }
 
     final review =
@@ -537,11 +570,29 @@ class ScoutingWorkflowRepository {
         : await (database.select(database.evidenceMedia)
                 ..where((row) => row.captureSessionId.isIn(evidenceSessionIds)))
               .get();
+    final plantIds = plants
+        .map((item) => item.plant.id)
+        .toList(growable: false);
+    final reproductive = plantIds.isEmpty
+        ? const <ReproductiveObservationRecord>[]
+        : await (database.select(
+            database.reproductiveObservations,
+          )..where((row) => row.plantObservationId.isIn(plantIds))).get();
+    final ears = plantIds.isEmpty
+        ? const <EarObservationRecord>[]
+        : await (database.select(database.earObservations)..where(
+                (row) =>
+                    row.plantObservationId.isIn(plantIds) &
+                    row.deletedAt.isNull(),
+              ))
+              .get();
     final entityIds = <String>[
       station.id,
       ...plants.map((item) => item.plant.id),
       ...evidenceSessionIds,
       ...evidenceMedia.map((item) => item.id),
+      ...reproductive.map((item) => item.plantObservationId),
+      ...ears.map((item) => item.id),
     ];
     final audits = entityIds.isEmpty
         ? const <AuditLogRecord>[]
@@ -560,7 +611,13 @@ class ScoutingWorkflowRepository {
                   (audit.entityType == 'evidence_capture_sessions' &&
                       evidenceSessionIds.contains(audit.entityId)) ||
                   (audit.entityType == 'evidence_media' &&
-                      evidenceMedia.any((item) => item.id == audit.entityId)),
+                      evidenceMedia.any((item) => item.id == audit.entityId)) ||
+                  (audit.entityType == 'reproductive_observations' &&
+                      reproductive.any(
+                        (item) => item.plantObservationId == audit.entityId,
+                      )) ||
+                  (audit.entityType == 'ear_observations' &&
+                      ears.any((item) => item.id == audit.entityId)),
             )
             .map((audit) => audit.id)
             .toList(growable: false)

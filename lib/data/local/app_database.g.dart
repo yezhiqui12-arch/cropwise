@@ -19413,6 +19413,29 @@ class $VegetativeObservationsTable extends VegetativeObservations
         type: DriftSqlType.string,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _damageAttributionMeta = const VerificationMeta(
+    'damageAttribution',
+  );
+  @override
+  late final GeneratedColumn<String> damageAttribution =
+      GeneratedColumn<String>(
+        'damage_attribution',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _damageFreshnessMeta = const VerificationMeta(
+    'damageFreshness',
+  );
+  @override
+  late final GeneratedColumn<String> damageFreshness = GeneratedColumn<String>(
+    'damage_freshness',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -19454,6 +19477,8 @@ class $VegetativeObservationsTable extends VegetativeObservations
     daBafsLeafDamageScore,
     damageScoreUncertain,
     damageScoreReason,
+    damageAttribution,
+    damageFreshness,
     createdAt,
     updatedAt,
   ];
@@ -19594,6 +19619,24 @@ class $VegetativeObservationsTable extends VegetativeObservations
         ),
       );
     }
+    if (data.containsKey('damage_attribution')) {
+      context.handle(
+        _damageAttributionMeta,
+        damageAttribution.isAcceptableOrUnknown(
+          data['damage_attribution']!,
+          _damageAttributionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('damage_freshness')) {
+      context.handle(
+        _damageFreshnessMeta,
+        damageFreshness.isAcceptableOrUnknown(
+          data['damage_freshness']!,
+          _damageFreshnessMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -19678,6 +19721,14 @@ class $VegetativeObservationsTable extends VegetativeObservations
         DriftSqlType.string,
         data['${effectivePrefix}damage_score_reason'],
       ),
+      damageAttribution: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}damage_attribution'],
+      ),
+      damageFreshness: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}damage_freshness'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -19712,6 +19763,8 @@ class VegetativeObservationRecord extends DataClass
   final int? daBafsLeafDamageScore;
   final bool damageScoreUncertain;
   final String? damageScoreReason;
+  final String? damageAttribution;
+  final String? damageFreshness;
   final DateTime createdAt;
   final DateTime updatedAt;
   const VegetativeObservationRecord({
@@ -19730,6 +19783,8 @@ class VegetativeObservationRecord extends DataClass
     this.daBafsLeafDamageScore,
     required this.damageScoreUncertain,
     this.damageScoreReason,
+    this.damageAttribution,
+    this.damageFreshness,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -19762,6 +19817,12 @@ class VegetativeObservationRecord extends DataClass
     map['damage_score_uncertain'] = Variable<bool>(damageScoreUncertain);
     if (!nullToAbsent || damageScoreReason != null) {
       map['damage_score_reason'] = Variable<String>(damageScoreReason);
+    }
+    if (!nullToAbsent || damageAttribution != null) {
+      map['damage_attribution'] = Variable<String>(damageAttribution);
+    }
+    if (!nullToAbsent || damageFreshness != null) {
+      map['damage_freshness'] = Variable<String>(damageFreshness);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -19796,6 +19857,12 @@ class VegetativeObservationRecord extends DataClass
       damageScoreReason: damageScoreReason == null && nullToAbsent
           ? const Value.absent()
           : Value(damageScoreReason),
+      damageAttribution: damageAttribution == null && nullToAbsent
+          ? const Value.absent()
+          : Value(damageAttribution),
+      damageFreshness: damageFreshness == null && nullToAbsent
+          ? const Value.absent()
+          : Value(damageFreshness),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -19834,6 +19901,10 @@ class VegetativeObservationRecord extends DataClass
       damageScoreReason: serializer.fromJson<String?>(
         json['damageScoreReason'],
       ),
+      damageAttribution: serializer.fromJson<String?>(
+        json['damageAttribution'],
+      ),
+      damageFreshness: serializer.fromJson<String?>(json['damageFreshness']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -19859,6 +19930,8 @@ class VegetativeObservationRecord extends DataClass
       'daBafsLeafDamageScore': serializer.toJson<int?>(daBafsLeafDamageScore),
       'damageScoreUncertain': serializer.toJson<bool>(damageScoreUncertain),
       'damageScoreReason': serializer.toJson<String?>(damageScoreReason),
+      'damageAttribution': serializer.toJson<String?>(damageAttribution),
+      'damageFreshness': serializer.toJson<String?>(damageFreshness),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -19880,6 +19953,8 @@ class VegetativeObservationRecord extends DataClass
     Value<int?> daBafsLeafDamageScore = const Value.absent(),
     bool? damageScoreUncertain,
     Value<String?> damageScoreReason = const Value.absent(),
+    Value<String?> damageAttribution = const Value.absent(),
+    Value<String?> damageFreshness = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => VegetativeObservationRecord(
@@ -19906,6 +19981,12 @@ class VegetativeObservationRecord extends DataClass
     damageScoreReason: damageScoreReason.present
         ? damageScoreReason.value
         : this.damageScoreReason,
+    damageAttribution: damageAttribution.present
+        ? damageAttribution.value
+        : this.damageAttribution,
+    damageFreshness: damageFreshness.present
+        ? damageFreshness.value
+        : this.damageFreshness,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -19956,6 +20037,12 @@ class VegetativeObservationRecord extends DataClass
       damageScoreReason: data.damageScoreReason.present
           ? data.damageScoreReason.value
           : this.damageScoreReason,
+      damageAttribution: data.damageAttribution.present
+          ? data.damageAttribution.value
+          : this.damageAttribution,
+      damageFreshness: data.damageFreshness.present
+          ? data.damageFreshness.value
+          : this.damageFreshness,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -19979,6 +20066,8 @@ class VegetativeObservationRecord extends DataClass
           ..write('daBafsLeafDamageScore: $daBafsLeafDamageScore, ')
           ..write('damageScoreUncertain: $damageScoreUncertain, ')
           ..write('damageScoreReason: $damageScoreReason, ')
+          ..write('damageAttribution: $damageAttribution, ')
+          ..write('damageFreshness: $damageFreshness, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -20002,6 +20091,8 @@ class VegetativeObservationRecord extends DataClass
     daBafsLeafDamageScore,
     damageScoreUncertain,
     damageScoreReason,
+    damageAttribution,
+    damageFreshness,
     createdAt,
     updatedAt,
   );
@@ -20024,6 +20115,8 @@ class VegetativeObservationRecord extends DataClass
           other.daBafsLeafDamageScore == this.daBafsLeafDamageScore &&
           other.damageScoreUncertain == this.damageScoreUncertain &&
           other.damageScoreReason == this.damageScoreReason &&
+          other.damageAttribution == this.damageAttribution &&
+          other.damageFreshness == this.damageFreshness &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -20045,6 +20138,8 @@ class VegetativeObservationsCompanion
   final Value<int?> daBafsLeafDamageScore;
   final Value<bool> damageScoreUncertain;
   final Value<String?> damageScoreReason;
+  final Value<String?> damageAttribution;
+  final Value<String?> damageFreshness;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
@@ -20064,6 +20159,8 @@ class VegetativeObservationsCompanion
     this.daBafsLeafDamageScore = const Value.absent(),
     this.damageScoreUncertain = const Value.absent(),
     this.damageScoreReason = const Value.absent(),
+    this.damageAttribution = const Value.absent(),
+    this.damageFreshness = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -20084,6 +20181,8 @@ class VegetativeObservationsCompanion
     this.daBafsLeafDamageScore = const Value.absent(),
     this.damageScoreUncertain = const Value.absent(),
     this.damageScoreReason = const Value.absent(),
+    this.damageAttribution = const Value.absent(),
+    this.damageFreshness = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -20104,6 +20203,8 @@ class VegetativeObservationsCompanion
     Expression<int>? daBafsLeafDamageScore,
     Expression<bool>? damageScoreUncertain,
     Expression<String>? damageScoreReason,
+    Expression<String>? damageAttribution,
+    Expression<String>? damageFreshness,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
@@ -20129,6 +20230,8 @@ class VegetativeObservationsCompanion
       if (damageScoreUncertain != null)
         'damage_score_uncertain': damageScoreUncertain,
       if (damageScoreReason != null) 'damage_score_reason': damageScoreReason,
+      if (damageAttribution != null) 'damage_attribution': damageAttribution,
+      if (damageFreshness != null) 'damage_freshness': damageFreshness,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -20151,6 +20254,8 @@ class VegetativeObservationsCompanion
     Value<int?>? daBafsLeafDamageScore,
     Value<bool>? damageScoreUncertain,
     Value<String?>? damageScoreReason,
+    Value<String?>? damageAttribution,
+    Value<String?>? damageFreshness,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<int>? rowid,
@@ -20174,6 +20279,8 @@ class VegetativeObservationsCompanion
           daBafsLeafDamageScore ?? this.daBafsLeafDamageScore,
       damageScoreUncertain: damageScoreUncertain ?? this.damageScoreUncertain,
       damageScoreReason: damageScoreReason ?? this.damageScoreReason,
+      damageAttribution: damageAttribution ?? this.damageAttribution,
+      damageFreshness: damageFreshness ?? this.damageFreshness,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -20236,6 +20343,12 @@ class VegetativeObservationsCompanion
     if (damageScoreReason.present) {
       map['damage_score_reason'] = Variable<String>(damageScoreReason.value);
     }
+    if (damageAttribution.present) {
+      map['damage_attribution'] = Variable<String>(damageAttribution.value);
+    }
+    if (damageFreshness.present) {
+      map['damage_freshness'] = Variable<String>(damageFreshness.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -20266,6 +20379,8 @@ class VegetativeObservationsCompanion
           ..write('daBafsLeafDamageScore: $daBafsLeafDamageScore, ')
           ..write('damageScoreUncertain: $damageScoreUncertain, ')
           ..write('damageScoreReason: $damageScoreReason, ')
+          ..write('damageAttribution: $damageAttribution, ')
+          ..write('damageFreshness: $damageFreshness, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
@@ -20398,6 +20513,98 @@ class $ReproductiveObservationsTable extends ReproductiveObservations
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _larvalSizeMeta = const VerificationMeta(
+    'larvalSize',
+  );
+  @override
+  late final GeneratedColumn<String> larvalSize = GeneratedColumn<String>(
+    'larval_size',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('none_seen'),
+  );
+  static const VerificationMeta _frassPresentMeta = const VerificationMeta(
+    'frassPresent',
+  );
+  @override
+  late final GeneratedColumn<bool> frassPresent = GeneratedColumn<bool>(
+    'frass_present',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("frass_present" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _earHuskPenetrationVisibleMeta =
+      const VerificationMeta('earHuskPenetrationVisible');
+  @override
+  late final GeneratedColumn<bool> earHuskPenetrationVisible =
+      GeneratedColumn<bool>(
+        'ear_husk_penetration_visible',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("ear_husk_penetration_visible" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
+  static const VerificationMeta _possibleNonFawEvidenceMeta =
+      const VerificationMeta('possibleNonFawEvidence');
+  @override
+  late final GeneratedColumn<bool> possibleNonFawEvidence =
+      GeneratedColumn<bool>(
+        'possible_non_faw_evidence',
+        aliasedName,
+        true,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("possible_non_faw_evidence" IN (0, 1))',
+        ),
+      );
+  static const VerificationMeta _uncertainEvidenceMeta = const VerificationMeta(
+    'uncertainEvidence',
+  );
+  @override
+  late final GeneratedColumn<bool> uncertainEvidence = GeneratedColumn<bool>(
+    'uncertain_evidence',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("uncertain_evidence" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _classificationMeta = const VerificationMeta(
+    'classification',
+  );
+  @override
+  late final GeneratedColumn<String> classification = GeneratedColumn<String>(
+    'classification',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _causeTagsJsonMeta = const VerificationMeta(
+    'causeTagsJson',
+  );
+  @override
+  late final GeneratedColumn<String> causeTagsJson = GeneratedColumn<String>(
+    'cause_tags_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _percentInfestedPositiveMeta =
       const VerificationMeta('percentInfestedPositive');
   @override
@@ -20447,6 +20654,13 @@ class $ReproductiveObservationsTable extends ReproductiveObservations
     freshFeedingPresent,
     larvaPresent,
     larvaCount,
+    larvalSize,
+    frassPresent,
+    earHuskPenetrationVisible,
+    possibleNonFawEvidence,
+    uncertainEvidence,
+    classification,
+    causeTagsJson,
     percentInfestedPositive,
     createdAt,
     updatedAt,
@@ -20534,6 +20748,66 @@ class $ReproductiveObservationsTable extends ReproductiveObservations
         larvaCount.isAcceptableOrUnknown(data['larva_count']!, _larvaCountMeta),
       );
     }
+    if (data.containsKey('larval_size')) {
+      context.handle(
+        _larvalSizeMeta,
+        larvalSize.isAcceptableOrUnknown(data['larval_size']!, _larvalSizeMeta),
+      );
+    }
+    if (data.containsKey('frass_present')) {
+      context.handle(
+        _frassPresentMeta,
+        frassPresent.isAcceptableOrUnknown(
+          data['frass_present']!,
+          _frassPresentMeta,
+        ),
+      );
+    }
+    if (data.containsKey('ear_husk_penetration_visible')) {
+      context.handle(
+        _earHuskPenetrationVisibleMeta,
+        earHuskPenetrationVisible.isAcceptableOrUnknown(
+          data['ear_husk_penetration_visible']!,
+          _earHuskPenetrationVisibleMeta,
+        ),
+      );
+    }
+    if (data.containsKey('possible_non_faw_evidence')) {
+      context.handle(
+        _possibleNonFawEvidenceMeta,
+        possibleNonFawEvidence.isAcceptableOrUnknown(
+          data['possible_non_faw_evidence']!,
+          _possibleNonFawEvidenceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('uncertain_evidence')) {
+      context.handle(
+        _uncertainEvidenceMeta,
+        uncertainEvidence.isAcceptableOrUnknown(
+          data['uncertain_evidence']!,
+          _uncertainEvidenceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('classification')) {
+      context.handle(
+        _classificationMeta,
+        classification.isAcceptableOrUnknown(
+          data['classification']!,
+          _classificationMeta,
+        ),
+      );
+    }
+    if (data.containsKey('cause_tags_json')) {
+      context.handle(
+        _causeTagsJsonMeta,
+        causeTagsJson.isAcceptableOrUnknown(
+          data['cause_tags_json']!,
+          _causeTagsJsonMeta,
+        ),
+      );
+    }
     if (data.containsKey('percent_infested_positive')) {
       context.handle(
         _percentInfestedPositiveMeta,
@@ -20599,6 +20873,34 @@ class $ReproductiveObservationsTable extends ReproductiveObservations
         DriftSqlType.int,
         data['${effectivePrefix}larva_count'],
       ),
+      larvalSize: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}larval_size'],
+      )!,
+      frassPresent: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}frass_present'],
+      )!,
+      earHuskPenetrationVisible: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}ear_husk_penetration_visible'],
+      )!,
+      possibleNonFawEvidence: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}possible_non_faw_evidence'],
+      ),
+      uncertainEvidence: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}uncertain_evidence'],
+      ),
+      classification: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}classification'],
+      ),
+      causeTagsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cause_tags_json'],
+      ),
       percentInfestedPositive: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}percent_infested_positive'],
@@ -20630,6 +20932,13 @@ class ReproductiveObservationRecord extends DataClass
   final bool freshFeedingPresent;
   final bool larvaPresent;
   final int? larvaCount;
+  final String larvalSize;
+  final bool frassPresent;
+  final bool earHuskPenetrationVisible;
+  final bool? possibleNonFawEvidence;
+  final bool? uncertainEvidence;
+  final String? classification;
+  final String? causeTagsJson;
   final bool percentInfestedPositive;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -20642,6 +20951,13 @@ class ReproductiveObservationRecord extends DataClass
     required this.freshFeedingPresent,
     required this.larvaPresent,
     this.larvaCount,
+    required this.larvalSize,
+    required this.frassPresent,
+    required this.earHuskPenetrationVisible,
+    this.possibleNonFawEvidence,
+    this.uncertainEvidence,
+    this.classification,
+    this.causeTagsJson,
     required this.percentInfestedPositive,
     required this.createdAt,
     required this.updatedAt,
@@ -20658,6 +20974,23 @@ class ReproductiveObservationRecord extends DataClass
     map['larva_present'] = Variable<bool>(larvaPresent);
     if (!nullToAbsent || larvaCount != null) {
       map['larva_count'] = Variable<int>(larvaCount);
+    }
+    map['larval_size'] = Variable<String>(larvalSize);
+    map['frass_present'] = Variable<bool>(frassPresent);
+    map['ear_husk_penetration_visible'] = Variable<bool>(
+      earHuskPenetrationVisible,
+    );
+    if (!nullToAbsent || possibleNonFawEvidence != null) {
+      map['possible_non_faw_evidence'] = Variable<bool>(possibleNonFawEvidence);
+    }
+    if (!nullToAbsent || uncertainEvidence != null) {
+      map['uncertain_evidence'] = Variable<bool>(uncertainEvidence);
+    }
+    if (!nullToAbsent || classification != null) {
+      map['classification'] = Variable<String>(classification);
+    }
+    if (!nullToAbsent || causeTagsJson != null) {
+      map['cause_tags_json'] = Variable<String>(causeTagsJson);
     }
     map['percent_infested_positive'] = Variable<bool>(percentInfestedPositive);
     map['created_at'] = Variable<DateTime>(createdAt);
@@ -20677,6 +21010,21 @@ class ReproductiveObservationRecord extends DataClass
       larvaCount: larvaCount == null && nullToAbsent
           ? const Value.absent()
           : Value(larvaCount),
+      larvalSize: Value(larvalSize),
+      frassPresent: Value(frassPresent),
+      earHuskPenetrationVisible: Value(earHuskPenetrationVisible),
+      possibleNonFawEvidence: possibleNonFawEvidence == null && nullToAbsent
+          ? const Value.absent()
+          : Value(possibleNonFawEvidence),
+      uncertainEvidence: uncertainEvidence == null && nullToAbsent
+          ? const Value.absent()
+          : Value(uncertainEvidence),
+      classification: classification == null && nullToAbsent
+          ? const Value.absent()
+          : Value(classification),
+      causeTagsJson: causeTagsJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(causeTagsJson),
       percentInfestedPositive: Value(percentInfestedPositive),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
@@ -20701,6 +21049,17 @@ class ReproductiveObservationRecord extends DataClass
       ),
       larvaPresent: serializer.fromJson<bool>(json['larvaPresent']),
       larvaCount: serializer.fromJson<int?>(json['larvaCount']),
+      larvalSize: serializer.fromJson<String>(json['larvalSize']),
+      frassPresent: serializer.fromJson<bool>(json['frassPresent']),
+      earHuskPenetrationVisible: serializer.fromJson<bool>(
+        json['earHuskPenetrationVisible'],
+      ),
+      possibleNonFawEvidence: serializer.fromJson<bool?>(
+        json['possibleNonFawEvidence'],
+      ),
+      uncertainEvidence: serializer.fromJson<bool?>(json['uncertainEvidence']),
+      classification: serializer.fromJson<String?>(json['classification']),
+      causeTagsJson: serializer.fromJson<String?>(json['causeTagsJson']),
       percentInfestedPositive: serializer.fromJson<bool>(
         json['percentInfestedPositive'],
       ),
@@ -20720,6 +21079,17 @@ class ReproductiveObservationRecord extends DataClass
       'freshFeedingPresent': serializer.toJson<bool>(freshFeedingPresent),
       'larvaPresent': serializer.toJson<bool>(larvaPresent),
       'larvaCount': serializer.toJson<int?>(larvaCount),
+      'larvalSize': serializer.toJson<String>(larvalSize),
+      'frassPresent': serializer.toJson<bool>(frassPresent),
+      'earHuskPenetrationVisible': serializer.toJson<bool>(
+        earHuskPenetrationVisible,
+      ),
+      'possibleNonFawEvidence': serializer.toJson<bool?>(
+        possibleNonFawEvidence,
+      ),
+      'uncertainEvidence': serializer.toJson<bool?>(uncertainEvidence),
+      'classification': serializer.toJson<String?>(classification),
+      'causeTagsJson': serializer.toJson<String?>(causeTagsJson),
       'percentInfestedPositive': serializer.toJson<bool>(
         percentInfestedPositive,
       ),
@@ -20737,6 +21107,13 @@ class ReproductiveObservationRecord extends DataClass
     bool? freshFeedingPresent,
     bool? larvaPresent,
     Value<int?> larvaCount = const Value.absent(),
+    String? larvalSize,
+    bool? frassPresent,
+    bool? earHuskPenetrationVisible,
+    Value<bool?> possibleNonFawEvidence = const Value.absent(),
+    Value<bool?> uncertainEvidence = const Value.absent(),
+    Value<String?> classification = const Value.absent(),
+    Value<String?> causeTagsJson = const Value.absent(),
     bool? percentInfestedPositive,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -20749,6 +21126,22 @@ class ReproductiveObservationRecord extends DataClass
     freshFeedingPresent: freshFeedingPresent ?? this.freshFeedingPresent,
     larvaPresent: larvaPresent ?? this.larvaPresent,
     larvaCount: larvaCount.present ? larvaCount.value : this.larvaCount,
+    larvalSize: larvalSize ?? this.larvalSize,
+    frassPresent: frassPresent ?? this.frassPresent,
+    earHuskPenetrationVisible:
+        earHuskPenetrationVisible ?? this.earHuskPenetrationVisible,
+    possibleNonFawEvidence: possibleNonFawEvidence.present
+        ? possibleNonFawEvidence.value
+        : this.possibleNonFawEvidence,
+    uncertainEvidence: uncertainEvidence.present
+        ? uncertainEvidence.value
+        : this.uncertainEvidence,
+    classification: classification.present
+        ? classification.value
+        : this.classification,
+    causeTagsJson: causeTagsJson.present
+        ? causeTagsJson.value
+        : this.causeTagsJson,
     percentInfestedPositive:
         percentInfestedPositive ?? this.percentInfestedPositive,
     createdAt: createdAt ?? this.createdAt,
@@ -20782,6 +21175,27 @@ class ReproductiveObservationRecord extends DataClass
       larvaCount: data.larvaCount.present
           ? data.larvaCount.value
           : this.larvaCount,
+      larvalSize: data.larvalSize.present
+          ? data.larvalSize.value
+          : this.larvalSize,
+      frassPresent: data.frassPresent.present
+          ? data.frassPresent.value
+          : this.frassPresent,
+      earHuskPenetrationVisible: data.earHuskPenetrationVisible.present
+          ? data.earHuskPenetrationVisible.value
+          : this.earHuskPenetrationVisible,
+      possibleNonFawEvidence: data.possibleNonFawEvidence.present
+          ? data.possibleNonFawEvidence.value
+          : this.possibleNonFawEvidence,
+      uncertainEvidence: data.uncertainEvidence.present
+          ? data.uncertainEvidence.value
+          : this.uncertainEvidence,
+      classification: data.classification.present
+          ? data.classification.value
+          : this.classification,
+      causeTagsJson: data.causeTagsJson.present
+          ? data.causeTagsJson.value
+          : this.causeTagsJson,
       percentInfestedPositive: data.percentInfestedPositive.present
           ? data.percentInfestedPositive.value
           : this.percentInfestedPositive,
@@ -20801,6 +21215,13 @@ class ReproductiveObservationRecord extends DataClass
           ..write('freshFeedingPresent: $freshFeedingPresent, ')
           ..write('larvaPresent: $larvaPresent, ')
           ..write('larvaCount: $larvaCount, ')
+          ..write('larvalSize: $larvalSize, ')
+          ..write('frassPresent: $frassPresent, ')
+          ..write('earHuskPenetrationVisible: $earHuskPenetrationVisible, ')
+          ..write('possibleNonFawEvidence: $possibleNonFawEvidence, ')
+          ..write('uncertainEvidence: $uncertainEvidence, ')
+          ..write('classification: $classification, ')
+          ..write('causeTagsJson: $causeTagsJson, ')
           ..write('percentInfestedPositive: $percentInfestedPositive, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
@@ -20818,6 +21239,13 @@ class ReproductiveObservationRecord extends DataClass
     freshFeedingPresent,
     larvaPresent,
     larvaCount,
+    larvalSize,
+    frassPresent,
+    earHuskPenetrationVisible,
+    possibleNonFawEvidence,
+    uncertainEvidence,
+    classification,
+    causeTagsJson,
     percentInfestedPositive,
     createdAt,
     updatedAt,
@@ -20834,6 +21262,13 @@ class ReproductiveObservationRecord extends DataClass
           other.freshFeedingPresent == this.freshFeedingPresent &&
           other.larvaPresent == this.larvaPresent &&
           other.larvaCount == this.larvaCount &&
+          other.larvalSize == this.larvalSize &&
+          other.frassPresent == this.frassPresent &&
+          other.earHuskPenetrationVisible == this.earHuskPenetrationVisible &&
+          other.possibleNonFawEvidence == this.possibleNonFawEvidence &&
+          other.uncertainEvidence == this.uncertainEvidence &&
+          other.classification == this.classification &&
+          other.causeTagsJson == this.causeTagsJson &&
           other.percentInfestedPositive == this.percentInfestedPositive &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
@@ -20849,6 +21284,13 @@ class ReproductiveObservationsCompanion
   final Value<bool> freshFeedingPresent;
   final Value<bool> larvaPresent;
   final Value<int?> larvaCount;
+  final Value<String> larvalSize;
+  final Value<bool> frassPresent;
+  final Value<bool> earHuskPenetrationVisible;
+  final Value<bool?> possibleNonFawEvidence;
+  final Value<bool?> uncertainEvidence;
+  final Value<String?> classification;
+  final Value<String?> causeTagsJson;
   final Value<bool> percentInfestedPositive;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -20862,6 +21304,13 @@ class ReproductiveObservationsCompanion
     this.freshFeedingPresent = const Value.absent(),
     this.larvaPresent = const Value.absent(),
     this.larvaCount = const Value.absent(),
+    this.larvalSize = const Value.absent(),
+    this.frassPresent = const Value.absent(),
+    this.earHuskPenetrationVisible = const Value.absent(),
+    this.possibleNonFawEvidence = const Value.absent(),
+    this.uncertainEvidence = const Value.absent(),
+    this.classification = const Value.absent(),
+    this.causeTagsJson = const Value.absent(),
     this.percentInfestedPositive = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -20876,6 +21325,13 @@ class ReproductiveObservationsCompanion
     this.freshFeedingPresent = const Value.absent(),
     this.larvaPresent = const Value.absent(),
     this.larvaCount = const Value.absent(),
+    this.larvalSize = const Value.absent(),
+    this.frassPresent = const Value.absent(),
+    this.earHuskPenetrationVisible = const Value.absent(),
+    this.possibleNonFawEvidence = const Value.absent(),
+    this.uncertainEvidence = const Value.absent(),
+    this.classification = const Value.absent(),
+    this.causeTagsJson = const Value.absent(),
     this.percentInfestedPositive = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -20890,6 +21346,13 @@ class ReproductiveObservationsCompanion
     Expression<bool>? freshFeedingPresent,
     Expression<bool>? larvaPresent,
     Expression<int>? larvaCount,
+    Expression<String>? larvalSize,
+    Expression<bool>? frassPresent,
+    Expression<bool>? earHuskPenetrationVisible,
+    Expression<bool>? possibleNonFawEvidence,
+    Expression<bool>? uncertainEvidence,
+    Expression<String>? classification,
+    Expression<String>? causeTagsJson,
     Expression<bool>? percentInfestedPositive,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -20906,6 +21369,15 @@ class ReproductiveObservationsCompanion
         'fresh_feeding_present': freshFeedingPresent,
       if (larvaPresent != null) 'larva_present': larvaPresent,
       if (larvaCount != null) 'larva_count': larvaCount,
+      if (larvalSize != null) 'larval_size': larvalSize,
+      if (frassPresent != null) 'frass_present': frassPresent,
+      if (earHuskPenetrationVisible != null)
+        'ear_husk_penetration_visible': earHuskPenetrationVisible,
+      if (possibleNonFawEvidence != null)
+        'possible_non_faw_evidence': possibleNonFawEvidence,
+      if (uncertainEvidence != null) 'uncertain_evidence': uncertainEvidence,
+      if (classification != null) 'classification': classification,
+      if (causeTagsJson != null) 'cause_tags_json': causeTagsJson,
       if (percentInfestedPositive != null)
         'percent_infested_positive': percentInfestedPositive,
       if (createdAt != null) 'created_at': createdAt,
@@ -20923,6 +21395,13 @@ class ReproductiveObservationsCompanion
     Value<bool>? freshFeedingPresent,
     Value<bool>? larvaPresent,
     Value<int?>? larvaCount,
+    Value<String>? larvalSize,
+    Value<bool>? frassPresent,
+    Value<bool>? earHuskPenetrationVisible,
+    Value<bool?>? possibleNonFawEvidence,
+    Value<bool?>? uncertainEvidence,
+    Value<String?>? classification,
+    Value<String?>? causeTagsJson,
     Value<bool>? percentInfestedPositive,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
@@ -20937,6 +21416,15 @@ class ReproductiveObservationsCompanion
       freshFeedingPresent: freshFeedingPresent ?? this.freshFeedingPresent,
       larvaPresent: larvaPresent ?? this.larvaPresent,
       larvaCount: larvaCount ?? this.larvaCount,
+      larvalSize: larvalSize ?? this.larvalSize,
+      frassPresent: frassPresent ?? this.frassPresent,
+      earHuskPenetrationVisible:
+          earHuskPenetrationVisible ?? this.earHuskPenetrationVisible,
+      possibleNonFawEvidence:
+          possibleNonFawEvidence ?? this.possibleNonFawEvidence,
+      uncertainEvidence: uncertainEvidence ?? this.uncertainEvidence,
+      classification: classification ?? this.classification,
+      causeTagsJson: causeTagsJson ?? this.causeTagsJson,
       percentInfestedPositive:
           percentInfestedPositive ?? this.percentInfestedPositive,
       createdAt: createdAt ?? this.createdAt,
@@ -20972,6 +21460,31 @@ class ReproductiveObservationsCompanion
     if (larvaCount.present) {
       map['larva_count'] = Variable<int>(larvaCount.value);
     }
+    if (larvalSize.present) {
+      map['larval_size'] = Variable<String>(larvalSize.value);
+    }
+    if (frassPresent.present) {
+      map['frass_present'] = Variable<bool>(frassPresent.value);
+    }
+    if (earHuskPenetrationVisible.present) {
+      map['ear_husk_penetration_visible'] = Variable<bool>(
+        earHuskPenetrationVisible.value,
+      );
+    }
+    if (possibleNonFawEvidence.present) {
+      map['possible_non_faw_evidence'] = Variable<bool>(
+        possibleNonFawEvidence.value,
+      );
+    }
+    if (uncertainEvidence.present) {
+      map['uncertain_evidence'] = Variable<bool>(uncertainEvidence.value);
+    }
+    if (classification.present) {
+      map['classification'] = Variable<String>(classification.value);
+    }
+    if (causeTagsJson.present) {
+      map['cause_tags_json'] = Variable<String>(causeTagsJson.value);
+    }
     if (percentInfestedPositive.present) {
       map['percent_infested_positive'] = Variable<bool>(
         percentInfestedPositive.value,
@@ -21000,9 +21513,2145 @@ class ReproductiveObservationsCompanion
           ..write('freshFeedingPresent: $freshFeedingPresent, ')
           ..write('larvaPresent: $larvaPresent, ')
           ..write('larvaCount: $larvaCount, ')
+          ..write('larvalSize: $larvalSize, ')
+          ..write('frassPresent: $frassPresent, ')
+          ..write('earHuskPenetrationVisible: $earHuskPenetrationVisible, ')
+          ..write('possibleNonFawEvidence: $possibleNonFawEvidence, ')
+          ..write('uncertainEvidence: $uncertainEvidence, ')
+          ..write('classification: $classification, ')
+          ..write('causeTagsJson: $causeTagsJson, ')
           ..write('percentInfestedPositive: $percentInfestedPositive, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $LateSeasonAssessmentSetupsTable extends LateSeasonAssessmentSetups
+    with
+        TableInfo<
+          $LateSeasonAssessmentSetupsTable,
+          LateSeasonAssessmentSetupRecord
+        > {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LateSeasonAssessmentSetupsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deviceIdMeta = const VerificationMeta(
+    'deviceId',
+  );
+  @override
+  late final GeneratedColumn<String> deviceId = GeneratedColumn<String>(
+    'device_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _syncStateMeta = const VerificationMeta(
+    'syncState',
+  );
+  @override
+  late final GeneratedColumn<String> syncState = GeneratedColumn<String>(
+    'sync_state',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(DatabaseCodes.localOnly),
+  );
+  static const VerificationMeta _serverVersionMeta = const VerificationMeta(
+    'serverVersion',
+  );
+  @override
+  late final GeneratedColumn<int> serverVersion = GeneratedColumn<int>(
+    'server_version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _assessmentIdMeta = const VerificationMeta(
+    'assessmentId',
+  );
+  @override
+  late final GeneratedColumn<String> assessmentId = GeneratedColumn<String>(
+    'assessment_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'UNIQUE REFERENCES assessments (id)',
+    ),
+  );
+  static const VerificationMeta _cropUseMeta = const VerificationMeta(
+    'cropUse',
+  );
+  @override
+  late final GeneratedColumn<String> cropUse = GeneratedColumn<String>(
+    'crop_use',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _commercialHarvestStartedMeta =
+      const VerificationMeta('commercialHarvestStarted');
+  @override
+  late final GeneratedColumn<bool> commercialHarvestStarted =
+      GeneratedColumn<bool>(
+        'commercial_harvest_started',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: true,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("commercial_harvest_started" IN (0, 1))',
+        ),
+      );
+  static const VerificationMeta _selectedEarsPartOfHarvestMeta =
+      const VerificationMeta('selectedEarsPartOfHarvest');
+  @override
+  late final GeneratedColumn<bool> selectedEarsPartOfHarvest =
+      GeneratedColumn<bool>(
+        'selected_ears_part_of_harvest',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: true,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("selected_ears_part_of_harvest" IN (0, 1))',
+        ),
+      );
+  static const VerificationMeta _openingPermissionMeta = const VerificationMeta(
+    'openingPermission',
+  );
+  @override
+  late final GeneratedColumn<String> openingPermission =
+      GeneratedColumn<String>(
+        'opening_permission',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _maximumEarsPermittedMeta =
+      const VerificationMeta('maximumEarsPermitted');
+  @override
+  late final GeneratedColumn<int> maximumEarsPermitted = GeneratedColumn<int>(
+    'maximum_ears_permitted',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _openingReasonMeta = const VerificationMeta(
+    'openingReason',
+  );
+  @override
+  late final GeneratedColumn<String> openingReason = GeneratedColumn<String>(
+    'opening_reason',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _permissionGrantedByMeta =
+      const VerificationMeta('permissionGrantedBy');
+  @override
+  late final GeneratedColumn<String> permissionGrantedBy =
+      GeneratedColumn<String>(
+        'permission_granted_by',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _evaluatorPersonIdMeta = const VerificationMeta(
+    'evaluatorPersonId',
+  );
+  @override
+  late final GeneratedColumn<String> evaluatorPersonId =
+      GeneratedColumn<String>(
+        'evaluator_person_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'REFERENCES people (id)',
+        ),
+      );
+  static const VerificationMeta _permissionRecordedAtMeta =
+      const VerificationMeta('permissionRecordedAt');
+  @override
+  late final GeneratedColumn<DateTime> permissionRecordedAt =
+      GeneratedColumn<DateTime>(
+        'permission_recorded_at',
+        aliasedName,
+        false,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _earDesignationRuleMeta =
+      const VerificationMeta('earDesignationRule');
+  @override
+  late final GeneratedColumn<String> earDesignationRule =
+      GeneratedColumn<String>(
+        'ear_designation_rule',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _remarksMeta = const VerificationMeta(
+    'remarks',
+  );
+  @override
+  late final GeneratedColumn<String> remarks = GeneratedColumn<String>(
+    'remarks',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _protocolVersionMeta = const VerificationMeta(
+    'protocolVersion',
+  );
+  @override
+  late final GeneratedColumn<String> protocolVersion = GeneratedColumn<String>(
+    'protocol_version',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('r3_r6_external_opened_v1'),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    deviceId,
+    syncState,
+    serverVersion,
+    assessmentId,
+    cropUse,
+    commercialHarvestStarted,
+    selectedEarsPartOfHarvest,
+    openingPermission,
+    maximumEarsPermitted,
+    openingReason,
+    permissionGrantedBy,
+    evaluatorPersonId,
+    permissionRecordedAt,
+    earDesignationRule,
+    remarks,
+    protocolVersion,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'late_season_assessment_setups';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LateSeasonAssessmentSetupRecord> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('device_id')) {
+      context.handle(
+        _deviceIdMeta,
+        deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta),
+      );
+    }
+    if (data.containsKey('sync_state')) {
+      context.handle(
+        _syncStateMeta,
+        syncState.isAcceptableOrUnknown(data['sync_state']!, _syncStateMeta),
+      );
+    }
+    if (data.containsKey('server_version')) {
+      context.handle(
+        _serverVersionMeta,
+        serverVersion.isAcceptableOrUnknown(
+          data['server_version']!,
+          _serverVersionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('assessment_id')) {
+      context.handle(
+        _assessmentIdMeta,
+        assessmentId.isAcceptableOrUnknown(
+          data['assessment_id']!,
+          _assessmentIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_assessmentIdMeta);
+    }
+    if (data.containsKey('crop_use')) {
+      context.handle(
+        _cropUseMeta,
+        cropUse.isAcceptableOrUnknown(data['crop_use']!, _cropUseMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_cropUseMeta);
+    }
+    if (data.containsKey('commercial_harvest_started')) {
+      context.handle(
+        _commercialHarvestStartedMeta,
+        commercialHarvestStarted.isAcceptableOrUnknown(
+          data['commercial_harvest_started']!,
+          _commercialHarvestStartedMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_commercialHarvestStartedMeta);
+    }
+    if (data.containsKey('selected_ears_part_of_harvest')) {
+      context.handle(
+        _selectedEarsPartOfHarvestMeta,
+        selectedEarsPartOfHarvest.isAcceptableOrUnknown(
+          data['selected_ears_part_of_harvest']!,
+          _selectedEarsPartOfHarvestMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_selectedEarsPartOfHarvestMeta);
+    }
+    if (data.containsKey('opening_permission')) {
+      context.handle(
+        _openingPermissionMeta,
+        openingPermission.isAcceptableOrUnknown(
+          data['opening_permission']!,
+          _openingPermissionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_openingPermissionMeta);
+    }
+    if (data.containsKey('maximum_ears_permitted')) {
+      context.handle(
+        _maximumEarsPermittedMeta,
+        maximumEarsPermitted.isAcceptableOrUnknown(
+          data['maximum_ears_permitted']!,
+          _maximumEarsPermittedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('opening_reason')) {
+      context.handle(
+        _openingReasonMeta,
+        openingReason.isAcceptableOrUnknown(
+          data['opening_reason']!,
+          _openingReasonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('permission_granted_by')) {
+      context.handle(
+        _permissionGrantedByMeta,
+        permissionGrantedBy.isAcceptableOrUnknown(
+          data['permission_granted_by']!,
+          _permissionGrantedByMeta,
+        ),
+      );
+    }
+    if (data.containsKey('evaluator_person_id')) {
+      context.handle(
+        _evaluatorPersonIdMeta,
+        evaluatorPersonId.isAcceptableOrUnknown(
+          data['evaluator_person_id']!,
+          _evaluatorPersonIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('permission_recorded_at')) {
+      context.handle(
+        _permissionRecordedAtMeta,
+        permissionRecordedAt.isAcceptableOrUnknown(
+          data['permission_recorded_at']!,
+          _permissionRecordedAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_permissionRecordedAtMeta);
+    }
+    if (data.containsKey('ear_designation_rule')) {
+      context.handle(
+        _earDesignationRuleMeta,
+        earDesignationRule.isAcceptableOrUnknown(
+          data['ear_designation_rule']!,
+          _earDesignationRuleMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_earDesignationRuleMeta);
+    }
+    if (data.containsKey('remarks')) {
+      context.handle(
+        _remarksMeta,
+        remarks.isAcceptableOrUnknown(data['remarks']!, _remarksMeta),
+      );
+    }
+    if (data.containsKey('protocol_version')) {
+      context.handle(
+        _protocolVersionMeta,
+        protocolVersion.isAcceptableOrUnknown(
+          data['protocol_version']!,
+          _protocolVersionMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LateSeasonAssessmentSetupRecord map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LateSeasonAssessmentSetupRecord(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      deviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_id'],
+      ),
+      syncState: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_state'],
+      )!,
+      serverVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}server_version'],
+      )!,
+      assessmentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}assessment_id'],
+      )!,
+      cropUse: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}crop_use'],
+      )!,
+      commercialHarvestStarted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}commercial_harvest_started'],
+      )!,
+      selectedEarsPartOfHarvest: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}selected_ears_part_of_harvest'],
+      )!,
+      openingPermission: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}opening_permission'],
+      )!,
+      maximumEarsPermitted: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}maximum_ears_permitted'],
+      )!,
+      openingReason: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}opening_reason'],
+      ),
+      permissionGrantedBy: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}permission_granted_by'],
+      ),
+      evaluatorPersonId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}evaluator_person_id'],
+      ),
+      permissionRecordedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}permission_recorded_at'],
+      )!,
+      earDesignationRule: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}ear_designation_rule'],
+      )!,
+      remarks: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}remarks'],
+      ),
+      protocolVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}protocol_version'],
+      )!,
+    );
+  }
+
+  @override
+  $LateSeasonAssessmentSetupsTable createAlias(String alias) {
+    return $LateSeasonAssessmentSetupsTable(attachedDatabase, alias);
+  }
+}
+
+class LateSeasonAssessmentSetupRecord extends DataClass
+    implements Insertable<LateSeasonAssessmentSetupRecord> {
+  final String id;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+  final String? deviceId;
+  final String syncState;
+  final int serverVersion;
+  final String assessmentId;
+  final String cropUse;
+  final bool commercialHarvestStarted;
+  final bool selectedEarsPartOfHarvest;
+  final String openingPermission;
+  final int maximumEarsPermitted;
+  final String? openingReason;
+  final String? permissionGrantedBy;
+  final String? evaluatorPersonId;
+  final DateTime permissionRecordedAt;
+  final String earDesignationRule;
+  final String? remarks;
+  final String protocolVersion;
+  const LateSeasonAssessmentSetupRecord({
+    required this.id,
+    required this.createdAt,
+    required this.updatedAt,
+    this.deletedAt,
+    this.deviceId,
+    required this.syncState,
+    required this.serverVersion,
+    required this.assessmentId,
+    required this.cropUse,
+    required this.commercialHarvestStarted,
+    required this.selectedEarsPartOfHarvest,
+    required this.openingPermission,
+    required this.maximumEarsPermitted,
+    this.openingReason,
+    this.permissionGrantedBy,
+    this.evaluatorPersonId,
+    required this.permissionRecordedAt,
+    required this.earDesignationRule,
+    this.remarks,
+    required this.protocolVersion,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    if (!nullToAbsent || deviceId != null) {
+      map['device_id'] = Variable<String>(deviceId);
+    }
+    map['sync_state'] = Variable<String>(syncState);
+    map['server_version'] = Variable<int>(serverVersion);
+    map['assessment_id'] = Variable<String>(assessmentId);
+    map['crop_use'] = Variable<String>(cropUse);
+    map['commercial_harvest_started'] = Variable<bool>(
+      commercialHarvestStarted,
+    );
+    map['selected_ears_part_of_harvest'] = Variable<bool>(
+      selectedEarsPartOfHarvest,
+    );
+    map['opening_permission'] = Variable<String>(openingPermission);
+    map['maximum_ears_permitted'] = Variable<int>(maximumEarsPermitted);
+    if (!nullToAbsent || openingReason != null) {
+      map['opening_reason'] = Variable<String>(openingReason);
+    }
+    if (!nullToAbsent || permissionGrantedBy != null) {
+      map['permission_granted_by'] = Variable<String>(permissionGrantedBy);
+    }
+    if (!nullToAbsent || evaluatorPersonId != null) {
+      map['evaluator_person_id'] = Variable<String>(evaluatorPersonId);
+    }
+    map['permission_recorded_at'] = Variable<DateTime>(permissionRecordedAt);
+    map['ear_designation_rule'] = Variable<String>(earDesignationRule);
+    if (!nullToAbsent || remarks != null) {
+      map['remarks'] = Variable<String>(remarks);
+    }
+    map['protocol_version'] = Variable<String>(protocolVersion);
+    return map;
+  }
+
+  LateSeasonAssessmentSetupsCompanion toCompanion(bool nullToAbsent) {
+    return LateSeasonAssessmentSetupsCompanion(
+      id: Value(id),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      deviceId: deviceId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deviceId),
+      syncState: Value(syncState),
+      serverVersion: Value(serverVersion),
+      assessmentId: Value(assessmentId),
+      cropUse: Value(cropUse),
+      commercialHarvestStarted: Value(commercialHarvestStarted),
+      selectedEarsPartOfHarvest: Value(selectedEarsPartOfHarvest),
+      openingPermission: Value(openingPermission),
+      maximumEarsPermitted: Value(maximumEarsPermitted),
+      openingReason: openingReason == null && nullToAbsent
+          ? const Value.absent()
+          : Value(openingReason),
+      permissionGrantedBy: permissionGrantedBy == null && nullToAbsent
+          ? const Value.absent()
+          : Value(permissionGrantedBy),
+      evaluatorPersonId: evaluatorPersonId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(evaluatorPersonId),
+      permissionRecordedAt: Value(permissionRecordedAt),
+      earDesignationRule: Value(earDesignationRule),
+      remarks: remarks == null && nullToAbsent
+          ? const Value.absent()
+          : Value(remarks),
+      protocolVersion: Value(protocolVersion),
+    );
+  }
+
+  factory LateSeasonAssessmentSetupRecord.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LateSeasonAssessmentSetupRecord(
+      id: serializer.fromJson<String>(json['id']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      deviceId: serializer.fromJson<String?>(json['deviceId']),
+      syncState: serializer.fromJson<String>(json['syncState']),
+      serverVersion: serializer.fromJson<int>(json['serverVersion']),
+      assessmentId: serializer.fromJson<String>(json['assessmentId']),
+      cropUse: serializer.fromJson<String>(json['cropUse']),
+      commercialHarvestStarted: serializer.fromJson<bool>(
+        json['commercialHarvestStarted'],
+      ),
+      selectedEarsPartOfHarvest: serializer.fromJson<bool>(
+        json['selectedEarsPartOfHarvest'],
+      ),
+      openingPermission: serializer.fromJson<String>(json['openingPermission']),
+      maximumEarsPermitted: serializer.fromJson<int>(
+        json['maximumEarsPermitted'],
+      ),
+      openingReason: serializer.fromJson<String?>(json['openingReason']),
+      permissionGrantedBy: serializer.fromJson<String?>(
+        json['permissionGrantedBy'],
+      ),
+      evaluatorPersonId: serializer.fromJson<String?>(
+        json['evaluatorPersonId'],
+      ),
+      permissionRecordedAt: serializer.fromJson<DateTime>(
+        json['permissionRecordedAt'],
+      ),
+      earDesignationRule: serializer.fromJson<String>(
+        json['earDesignationRule'],
+      ),
+      remarks: serializer.fromJson<String?>(json['remarks']),
+      protocolVersion: serializer.fromJson<String>(json['protocolVersion']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'deviceId': serializer.toJson<String?>(deviceId),
+      'syncState': serializer.toJson<String>(syncState),
+      'serverVersion': serializer.toJson<int>(serverVersion),
+      'assessmentId': serializer.toJson<String>(assessmentId),
+      'cropUse': serializer.toJson<String>(cropUse),
+      'commercialHarvestStarted': serializer.toJson<bool>(
+        commercialHarvestStarted,
+      ),
+      'selectedEarsPartOfHarvest': serializer.toJson<bool>(
+        selectedEarsPartOfHarvest,
+      ),
+      'openingPermission': serializer.toJson<String>(openingPermission),
+      'maximumEarsPermitted': serializer.toJson<int>(maximumEarsPermitted),
+      'openingReason': serializer.toJson<String?>(openingReason),
+      'permissionGrantedBy': serializer.toJson<String?>(permissionGrantedBy),
+      'evaluatorPersonId': serializer.toJson<String?>(evaluatorPersonId),
+      'permissionRecordedAt': serializer.toJson<DateTime>(permissionRecordedAt),
+      'earDesignationRule': serializer.toJson<String>(earDesignationRule),
+      'remarks': serializer.toJson<String?>(remarks),
+      'protocolVersion': serializer.toJson<String>(protocolVersion),
+    };
+  }
+
+  LateSeasonAssessmentSetupRecord copyWith({
+    String? id,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    Value<DateTime?> deletedAt = const Value.absent(),
+    Value<String?> deviceId = const Value.absent(),
+    String? syncState,
+    int? serverVersion,
+    String? assessmentId,
+    String? cropUse,
+    bool? commercialHarvestStarted,
+    bool? selectedEarsPartOfHarvest,
+    String? openingPermission,
+    int? maximumEarsPermitted,
+    Value<String?> openingReason = const Value.absent(),
+    Value<String?> permissionGrantedBy = const Value.absent(),
+    Value<String?> evaluatorPersonId = const Value.absent(),
+    DateTime? permissionRecordedAt,
+    String? earDesignationRule,
+    Value<String?> remarks = const Value.absent(),
+    String? protocolVersion,
+  }) => LateSeasonAssessmentSetupRecord(
+    id: id ?? this.id,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    deviceId: deviceId.present ? deviceId.value : this.deviceId,
+    syncState: syncState ?? this.syncState,
+    serverVersion: serverVersion ?? this.serverVersion,
+    assessmentId: assessmentId ?? this.assessmentId,
+    cropUse: cropUse ?? this.cropUse,
+    commercialHarvestStarted:
+        commercialHarvestStarted ?? this.commercialHarvestStarted,
+    selectedEarsPartOfHarvest:
+        selectedEarsPartOfHarvest ?? this.selectedEarsPartOfHarvest,
+    openingPermission: openingPermission ?? this.openingPermission,
+    maximumEarsPermitted: maximumEarsPermitted ?? this.maximumEarsPermitted,
+    openingReason: openingReason.present
+        ? openingReason.value
+        : this.openingReason,
+    permissionGrantedBy: permissionGrantedBy.present
+        ? permissionGrantedBy.value
+        : this.permissionGrantedBy,
+    evaluatorPersonId: evaluatorPersonId.present
+        ? evaluatorPersonId.value
+        : this.evaluatorPersonId,
+    permissionRecordedAt: permissionRecordedAt ?? this.permissionRecordedAt,
+    earDesignationRule: earDesignationRule ?? this.earDesignationRule,
+    remarks: remarks.present ? remarks.value : this.remarks,
+    protocolVersion: protocolVersion ?? this.protocolVersion,
+  );
+  LateSeasonAssessmentSetupRecord copyWithCompanion(
+    LateSeasonAssessmentSetupsCompanion data,
+  ) {
+    return LateSeasonAssessmentSetupRecord(
+      id: data.id.present ? data.id.value : this.id,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+      syncState: data.syncState.present ? data.syncState.value : this.syncState,
+      serverVersion: data.serverVersion.present
+          ? data.serverVersion.value
+          : this.serverVersion,
+      assessmentId: data.assessmentId.present
+          ? data.assessmentId.value
+          : this.assessmentId,
+      cropUse: data.cropUse.present ? data.cropUse.value : this.cropUse,
+      commercialHarvestStarted: data.commercialHarvestStarted.present
+          ? data.commercialHarvestStarted.value
+          : this.commercialHarvestStarted,
+      selectedEarsPartOfHarvest: data.selectedEarsPartOfHarvest.present
+          ? data.selectedEarsPartOfHarvest.value
+          : this.selectedEarsPartOfHarvest,
+      openingPermission: data.openingPermission.present
+          ? data.openingPermission.value
+          : this.openingPermission,
+      maximumEarsPermitted: data.maximumEarsPermitted.present
+          ? data.maximumEarsPermitted.value
+          : this.maximumEarsPermitted,
+      openingReason: data.openingReason.present
+          ? data.openingReason.value
+          : this.openingReason,
+      permissionGrantedBy: data.permissionGrantedBy.present
+          ? data.permissionGrantedBy.value
+          : this.permissionGrantedBy,
+      evaluatorPersonId: data.evaluatorPersonId.present
+          ? data.evaluatorPersonId.value
+          : this.evaluatorPersonId,
+      permissionRecordedAt: data.permissionRecordedAt.present
+          ? data.permissionRecordedAt.value
+          : this.permissionRecordedAt,
+      earDesignationRule: data.earDesignationRule.present
+          ? data.earDesignationRule.value
+          : this.earDesignationRule,
+      remarks: data.remarks.present ? data.remarks.value : this.remarks,
+      protocolVersion: data.protocolVersion.present
+          ? data.protocolVersion.value
+          : this.protocolVersion,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LateSeasonAssessmentSetupRecord(')
+          ..write('id: $id, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('syncState: $syncState, ')
+          ..write('serverVersion: $serverVersion, ')
+          ..write('assessmentId: $assessmentId, ')
+          ..write('cropUse: $cropUse, ')
+          ..write('commercialHarvestStarted: $commercialHarvestStarted, ')
+          ..write('selectedEarsPartOfHarvest: $selectedEarsPartOfHarvest, ')
+          ..write('openingPermission: $openingPermission, ')
+          ..write('maximumEarsPermitted: $maximumEarsPermitted, ')
+          ..write('openingReason: $openingReason, ')
+          ..write('permissionGrantedBy: $permissionGrantedBy, ')
+          ..write('evaluatorPersonId: $evaluatorPersonId, ')
+          ..write('permissionRecordedAt: $permissionRecordedAt, ')
+          ..write('earDesignationRule: $earDesignationRule, ')
+          ..write('remarks: $remarks, ')
+          ..write('protocolVersion: $protocolVersion')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    deviceId,
+    syncState,
+    serverVersion,
+    assessmentId,
+    cropUse,
+    commercialHarvestStarted,
+    selectedEarsPartOfHarvest,
+    openingPermission,
+    maximumEarsPermitted,
+    openingReason,
+    permissionGrantedBy,
+    evaluatorPersonId,
+    permissionRecordedAt,
+    earDesignationRule,
+    remarks,
+    protocolVersion,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LateSeasonAssessmentSetupRecord &&
+          other.id == this.id &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.deviceId == this.deviceId &&
+          other.syncState == this.syncState &&
+          other.serverVersion == this.serverVersion &&
+          other.assessmentId == this.assessmentId &&
+          other.cropUse == this.cropUse &&
+          other.commercialHarvestStarted == this.commercialHarvestStarted &&
+          other.selectedEarsPartOfHarvest == this.selectedEarsPartOfHarvest &&
+          other.openingPermission == this.openingPermission &&
+          other.maximumEarsPermitted == this.maximumEarsPermitted &&
+          other.openingReason == this.openingReason &&
+          other.permissionGrantedBy == this.permissionGrantedBy &&
+          other.evaluatorPersonId == this.evaluatorPersonId &&
+          other.permissionRecordedAt == this.permissionRecordedAt &&
+          other.earDesignationRule == this.earDesignationRule &&
+          other.remarks == this.remarks &&
+          other.protocolVersion == this.protocolVersion);
+}
+
+class LateSeasonAssessmentSetupsCompanion
+    extends UpdateCompanion<LateSeasonAssessmentSetupRecord> {
+  final Value<String> id;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<String?> deviceId;
+  final Value<String> syncState;
+  final Value<int> serverVersion;
+  final Value<String> assessmentId;
+  final Value<String> cropUse;
+  final Value<bool> commercialHarvestStarted;
+  final Value<bool> selectedEarsPartOfHarvest;
+  final Value<String> openingPermission;
+  final Value<int> maximumEarsPermitted;
+  final Value<String?> openingReason;
+  final Value<String?> permissionGrantedBy;
+  final Value<String?> evaluatorPersonId;
+  final Value<DateTime> permissionRecordedAt;
+  final Value<String> earDesignationRule;
+  final Value<String?> remarks;
+  final Value<String> protocolVersion;
+  final Value<int> rowid;
+  const LateSeasonAssessmentSetupsCompanion({
+    this.id = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.syncState = const Value.absent(),
+    this.serverVersion = const Value.absent(),
+    this.assessmentId = const Value.absent(),
+    this.cropUse = const Value.absent(),
+    this.commercialHarvestStarted = const Value.absent(),
+    this.selectedEarsPartOfHarvest = const Value.absent(),
+    this.openingPermission = const Value.absent(),
+    this.maximumEarsPermitted = const Value.absent(),
+    this.openingReason = const Value.absent(),
+    this.permissionGrantedBy = const Value.absent(),
+    this.evaluatorPersonId = const Value.absent(),
+    this.permissionRecordedAt = const Value.absent(),
+    this.earDesignationRule = const Value.absent(),
+    this.remarks = const Value.absent(),
+    this.protocolVersion = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LateSeasonAssessmentSetupsCompanion.insert({
+    required String id,
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.syncState = const Value.absent(),
+    this.serverVersion = const Value.absent(),
+    required String assessmentId,
+    required String cropUse,
+    required bool commercialHarvestStarted,
+    required bool selectedEarsPartOfHarvest,
+    required String openingPermission,
+    this.maximumEarsPermitted = const Value.absent(),
+    this.openingReason = const Value.absent(),
+    this.permissionGrantedBy = const Value.absent(),
+    this.evaluatorPersonId = const Value.absent(),
+    required DateTime permissionRecordedAt,
+    required String earDesignationRule,
+    this.remarks = const Value.absent(),
+    this.protocolVersion = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       assessmentId = Value(assessmentId),
+       cropUse = Value(cropUse),
+       commercialHarvestStarted = Value(commercialHarvestStarted),
+       selectedEarsPartOfHarvest = Value(selectedEarsPartOfHarvest),
+       openingPermission = Value(openingPermission),
+       permissionRecordedAt = Value(permissionRecordedAt),
+       earDesignationRule = Value(earDesignationRule);
+  static Insertable<LateSeasonAssessmentSetupRecord> custom({
+    Expression<String>? id,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<String>? deviceId,
+    Expression<String>? syncState,
+    Expression<int>? serverVersion,
+    Expression<String>? assessmentId,
+    Expression<String>? cropUse,
+    Expression<bool>? commercialHarvestStarted,
+    Expression<bool>? selectedEarsPartOfHarvest,
+    Expression<String>? openingPermission,
+    Expression<int>? maximumEarsPermitted,
+    Expression<String>? openingReason,
+    Expression<String>? permissionGrantedBy,
+    Expression<String>? evaluatorPersonId,
+    Expression<DateTime>? permissionRecordedAt,
+    Expression<String>? earDesignationRule,
+    Expression<String>? remarks,
+    Expression<String>? protocolVersion,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (deviceId != null) 'device_id': deviceId,
+      if (syncState != null) 'sync_state': syncState,
+      if (serverVersion != null) 'server_version': serverVersion,
+      if (assessmentId != null) 'assessment_id': assessmentId,
+      if (cropUse != null) 'crop_use': cropUse,
+      if (commercialHarvestStarted != null)
+        'commercial_harvest_started': commercialHarvestStarted,
+      if (selectedEarsPartOfHarvest != null)
+        'selected_ears_part_of_harvest': selectedEarsPartOfHarvest,
+      if (openingPermission != null) 'opening_permission': openingPermission,
+      if (maximumEarsPermitted != null)
+        'maximum_ears_permitted': maximumEarsPermitted,
+      if (openingReason != null) 'opening_reason': openingReason,
+      if (permissionGrantedBy != null)
+        'permission_granted_by': permissionGrantedBy,
+      if (evaluatorPersonId != null) 'evaluator_person_id': evaluatorPersonId,
+      if (permissionRecordedAt != null)
+        'permission_recorded_at': permissionRecordedAt,
+      if (earDesignationRule != null)
+        'ear_designation_rule': earDesignationRule,
+      if (remarks != null) 'remarks': remarks,
+      if (protocolVersion != null) 'protocol_version': protocolVersion,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LateSeasonAssessmentSetupsCompanion copyWith({
+    Value<String>? id,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<String?>? deviceId,
+    Value<String>? syncState,
+    Value<int>? serverVersion,
+    Value<String>? assessmentId,
+    Value<String>? cropUse,
+    Value<bool>? commercialHarvestStarted,
+    Value<bool>? selectedEarsPartOfHarvest,
+    Value<String>? openingPermission,
+    Value<int>? maximumEarsPermitted,
+    Value<String?>? openingReason,
+    Value<String?>? permissionGrantedBy,
+    Value<String?>? evaluatorPersonId,
+    Value<DateTime>? permissionRecordedAt,
+    Value<String>? earDesignationRule,
+    Value<String?>? remarks,
+    Value<String>? protocolVersion,
+    Value<int>? rowid,
+  }) {
+    return LateSeasonAssessmentSetupsCompanion(
+      id: id ?? this.id,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      deviceId: deviceId ?? this.deviceId,
+      syncState: syncState ?? this.syncState,
+      serverVersion: serverVersion ?? this.serverVersion,
+      assessmentId: assessmentId ?? this.assessmentId,
+      cropUse: cropUse ?? this.cropUse,
+      commercialHarvestStarted:
+          commercialHarvestStarted ?? this.commercialHarvestStarted,
+      selectedEarsPartOfHarvest:
+          selectedEarsPartOfHarvest ?? this.selectedEarsPartOfHarvest,
+      openingPermission: openingPermission ?? this.openingPermission,
+      maximumEarsPermitted: maximumEarsPermitted ?? this.maximumEarsPermitted,
+      openingReason: openingReason ?? this.openingReason,
+      permissionGrantedBy: permissionGrantedBy ?? this.permissionGrantedBy,
+      evaluatorPersonId: evaluatorPersonId ?? this.evaluatorPersonId,
+      permissionRecordedAt: permissionRecordedAt ?? this.permissionRecordedAt,
+      earDesignationRule: earDesignationRule ?? this.earDesignationRule,
+      remarks: remarks ?? this.remarks,
+      protocolVersion: protocolVersion ?? this.protocolVersion,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (deviceId.present) {
+      map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (syncState.present) {
+      map['sync_state'] = Variable<String>(syncState.value);
+    }
+    if (serverVersion.present) {
+      map['server_version'] = Variable<int>(serverVersion.value);
+    }
+    if (assessmentId.present) {
+      map['assessment_id'] = Variable<String>(assessmentId.value);
+    }
+    if (cropUse.present) {
+      map['crop_use'] = Variable<String>(cropUse.value);
+    }
+    if (commercialHarvestStarted.present) {
+      map['commercial_harvest_started'] = Variable<bool>(
+        commercialHarvestStarted.value,
+      );
+    }
+    if (selectedEarsPartOfHarvest.present) {
+      map['selected_ears_part_of_harvest'] = Variable<bool>(
+        selectedEarsPartOfHarvest.value,
+      );
+    }
+    if (openingPermission.present) {
+      map['opening_permission'] = Variable<String>(openingPermission.value);
+    }
+    if (maximumEarsPermitted.present) {
+      map['maximum_ears_permitted'] = Variable<int>(maximumEarsPermitted.value);
+    }
+    if (openingReason.present) {
+      map['opening_reason'] = Variable<String>(openingReason.value);
+    }
+    if (permissionGrantedBy.present) {
+      map['permission_granted_by'] = Variable<String>(
+        permissionGrantedBy.value,
+      );
+    }
+    if (evaluatorPersonId.present) {
+      map['evaluator_person_id'] = Variable<String>(evaluatorPersonId.value);
+    }
+    if (permissionRecordedAt.present) {
+      map['permission_recorded_at'] = Variable<DateTime>(
+        permissionRecordedAt.value,
+      );
+    }
+    if (earDesignationRule.present) {
+      map['ear_designation_rule'] = Variable<String>(earDesignationRule.value);
+    }
+    if (remarks.present) {
+      map['remarks'] = Variable<String>(remarks.value);
+    }
+    if (protocolVersion.present) {
+      map['protocol_version'] = Variable<String>(protocolVersion.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LateSeasonAssessmentSetupsCompanion(')
+          ..write('id: $id, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('syncState: $syncState, ')
+          ..write('serverVersion: $serverVersion, ')
+          ..write('assessmentId: $assessmentId, ')
+          ..write('cropUse: $cropUse, ')
+          ..write('commercialHarvestStarted: $commercialHarvestStarted, ')
+          ..write('selectedEarsPartOfHarvest: $selectedEarsPartOfHarvest, ')
+          ..write('openingPermission: $openingPermission, ')
+          ..write('maximumEarsPermitted: $maximumEarsPermitted, ')
+          ..write('openingReason: $openingReason, ')
+          ..write('permissionGrantedBy: $permissionGrantedBy, ')
+          ..write('evaluatorPersonId: $evaluatorPersonId, ')
+          ..write('permissionRecordedAt: $permissionRecordedAt, ')
+          ..write('earDesignationRule: $earDesignationRule, ')
+          ..write('remarks: $remarks, ')
+          ..write('protocolVersion: $protocolVersion, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $EarOpeningSelectionsTable extends EarOpeningSelections
+    with TableInfo<$EarOpeningSelectionsTable, EarOpeningSelectionRecord> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $EarOpeningSelectionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deviceIdMeta = const VerificationMeta(
+    'deviceId',
+  );
+  @override
+  late final GeneratedColumn<String> deviceId = GeneratedColumn<String>(
+    'device_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _syncStateMeta = const VerificationMeta(
+    'syncState',
+  );
+  @override
+  late final GeneratedColumn<String> syncState = GeneratedColumn<String>(
+    'sync_state',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(DatabaseCodes.localOnly),
+  );
+  static const VerificationMeta _serverVersionMeta = const VerificationMeta(
+    'serverVersion',
+  );
+  @override
+  late final GeneratedColumn<int> serverVersion = GeneratedColumn<int>(
+    'server_version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _assessmentBlockRunIdMeta =
+      const VerificationMeta('assessmentBlockRunId');
+  @override
+  late final GeneratedColumn<String> assessmentBlockRunId =
+      GeneratedColumn<String>(
+        'assessment_block_run_id',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'REFERENCES assessment_block_runs (id)',
+        ),
+      );
+  static const VerificationMeta _stationNumberMeta = const VerificationMeta(
+    'stationNumber',
+  );
+  @override
+  late final GeneratedColumn<int> stationNumber = GeneratedColumn<int>(
+    'station_number',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _plantPositionMeta = const VerificationMeta(
+    'plantPosition',
+  );
+  @override
+  late final GeneratedColumn<int> plantPosition = GeneratedColumn<int>(
+    'plant_position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _selectionOrderMeta = const VerificationMeta(
+    'selectionOrder',
+  );
+  @override
+  late final GeneratedColumn<int> selectionOrder = GeneratedColumn<int>(
+    'selection_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _initiallySelectedMeta = const VerificationMeta(
+    'initiallySelected',
+  );
+  @override
+  late final GeneratedColumn<bool> initiallySelected = GeneratedColumn<bool>(
+    'initially_selected',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("initially_selected" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _selectionStatusMeta = const VerificationMeta(
+    'selectionStatus',
+  );
+  @override
+  late final GeneratedColumn<String> selectionStatus = GeneratedColumn<String>(
+    'selection_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('planned'),
+  );
+  static const VerificationMeta _replacesPlantPositionMeta =
+      const VerificationMeta('replacesPlantPosition');
+  @override
+  late final GeneratedColumn<int> replacesPlantPosition = GeneratedColumn<int>(
+    'replaces_plant_position',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _failureReasonMeta = const VerificationMeta(
+    'failureReason',
+  );
+  @override
+  late final GeneratedColumn<String> failureReason = GeneratedColumn<String>(
+    'failure_reason',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    deviceId,
+    syncState,
+    serverVersion,
+    assessmentBlockRunId,
+    stationNumber,
+    plantPosition,
+    selectionOrder,
+    initiallySelected,
+    selectionStatus,
+    replacesPlantPosition,
+    failureReason,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'ear_opening_selections';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<EarOpeningSelectionRecord> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('device_id')) {
+      context.handle(
+        _deviceIdMeta,
+        deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta),
+      );
+    }
+    if (data.containsKey('sync_state')) {
+      context.handle(
+        _syncStateMeta,
+        syncState.isAcceptableOrUnknown(data['sync_state']!, _syncStateMeta),
+      );
+    }
+    if (data.containsKey('server_version')) {
+      context.handle(
+        _serverVersionMeta,
+        serverVersion.isAcceptableOrUnknown(
+          data['server_version']!,
+          _serverVersionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('assessment_block_run_id')) {
+      context.handle(
+        _assessmentBlockRunIdMeta,
+        assessmentBlockRunId.isAcceptableOrUnknown(
+          data['assessment_block_run_id']!,
+          _assessmentBlockRunIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_assessmentBlockRunIdMeta);
+    }
+    if (data.containsKey('station_number')) {
+      context.handle(
+        _stationNumberMeta,
+        stationNumber.isAcceptableOrUnknown(
+          data['station_number']!,
+          _stationNumberMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_stationNumberMeta);
+    }
+    if (data.containsKey('plant_position')) {
+      context.handle(
+        _plantPositionMeta,
+        plantPosition.isAcceptableOrUnknown(
+          data['plant_position']!,
+          _plantPositionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_plantPositionMeta);
+    }
+    if (data.containsKey('selection_order')) {
+      context.handle(
+        _selectionOrderMeta,
+        selectionOrder.isAcceptableOrUnknown(
+          data['selection_order']!,
+          _selectionOrderMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_selectionOrderMeta);
+    }
+    if (data.containsKey('initially_selected')) {
+      context.handle(
+        _initiallySelectedMeta,
+        initiallySelected.isAcceptableOrUnknown(
+          data['initially_selected']!,
+          _initiallySelectedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('selection_status')) {
+      context.handle(
+        _selectionStatusMeta,
+        selectionStatus.isAcceptableOrUnknown(
+          data['selection_status']!,
+          _selectionStatusMeta,
+        ),
+      );
+    }
+    if (data.containsKey('replaces_plant_position')) {
+      context.handle(
+        _replacesPlantPositionMeta,
+        replacesPlantPosition.isAcceptableOrUnknown(
+          data['replaces_plant_position']!,
+          _replacesPlantPositionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('failure_reason')) {
+      context.handle(
+        _failureReasonMeta,
+        failureReason.isAcceptableOrUnknown(
+          data['failure_reason']!,
+          _failureReasonMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {assessmentBlockRunId, stationNumber, plantPosition},
+    {assessmentBlockRunId, stationNumber, selectionOrder},
+  ];
+  @override
+  EarOpeningSelectionRecord map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return EarOpeningSelectionRecord(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      deviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_id'],
+      ),
+      syncState: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_state'],
+      )!,
+      serverVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}server_version'],
+      )!,
+      assessmentBlockRunId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}assessment_block_run_id'],
+      )!,
+      stationNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}station_number'],
+      )!,
+      plantPosition: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}plant_position'],
+      )!,
+      selectionOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}selection_order'],
+      )!,
+      initiallySelected: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}initially_selected'],
+      )!,
+      selectionStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}selection_status'],
+      )!,
+      replacesPlantPosition: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}replaces_plant_position'],
+      ),
+      failureReason: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}failure_reason'],
+      ),
+    );
+  }
+
+  @override
+  $EarOpeningSelectionsTable createAlias(String alias) {
+    return $EarOpeningSelectionsTable(attachedDatabase, alias);
+  }
+}
+
+class EarOpeningSelectionRecord extends DataClass
+    implements Insertable<EarOpeningSelectionRecord> {
+  final String id;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+  final String? deviceId;
+  final String syncState;
+  final int serverVersion;
+  final String assessmentBlockRunId;
+  final int stationNumber;
+  final int plantPosition;
+  final int selectionOrder;
+  final bool initiallySelected;
+  final String selectionStatus;
+  final int? replacesPlantPosition;
+  final String? failureReason;
+  const EarOpeningSelectionRecord({
+    required this.id,
+    required this.createdAt,
+    required this.updatedAt,
+    this.deletedAt,
+    this.deviceId,
+    required this.syncState,
+    required this.serverVersion,
+    required this.assessmentBlockRunId,
+    required this.stationNumber,
+    required this.plantPosition,
+    required this.selectionOrder,
+    required this.initiallySelected,
+    required this.selectionStatus,
+    this.replacesPlantPosition,
+    this.failureReason,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    if (!nullToAbsent || deviceId != null) {
+      map['device_id'] = Variable<String>(deviceId);
+    }
+    map['sync_state'] = Variable<String>(syncState);
+    map['server_version'] = Variable<int>(serverVersion);
+    map['assessment_block_run_id'] = Variable<String>(assessmentBlockRunId);
+    map['station_number'] = Variable<int>(stationNumber);
+    map['plant_position'] = Variable<int>(plantPosition);
+    map['selection_order'] = Variable<int>(selectionOrder);
+    map['initially_selected'] = Variable<bool>(initiallySelected);
+    map['selection_status'] = Variable<String>(selectionStatus);
+    if (!nullToAbsent || replacesPlantPosition != null) {
+      map['replaces_plant_position'] = Variable<int>(replacesPlantPosition);
+    }
+    if (!nullToAbsent || failureReason != null) {
+      map['failure_reason'] = Variable<String>(failureReason);
+    }
+    return map;
+  }
+
+  EarOpeningSelectionsCompanion toCompanion(bool nullToAbsent) {
+    return EarOpeningSelectionsCompanion(
+      id: Value(id),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      deviceId: deviceId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deviceId),
+      syncState: Value(syncState),
+      serverVersion: Value(serverVersion),
+      assessmentBlockRunId: Value(assessmentBlockRunId),
+      stationNumber: Value(stationNumber),
+      plantPosition: Value(plantPosition),
+      selectionOrder: Value(selectionOrder),
+      initiallySelected: Value(initiallySelected),
+      selectionStatus: Value(selectionStatus),
+      replacesPlantPosition: replacesPlantPosition == null && nullToAbsent
+          ? const Value.absent()
+          : Value(replacesPlantPosition),
+      failureReason: failureReason == null && nullToAbsent
+          ? const Value.absent()
+          : Value(failureReason),
+    );
+  }
+
+  factory EarOpeningSelectionRecord.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return EarOpeningSelectionRecord(
+      id: serializer.fromJson<String>(json['id']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      deviceId: serializer.fromJson<String?>(json['deviceId']),
+      syncState: serializer.fromJson<String>(json['syncState']),
+      serverVersion: serializer.fromJson<int>(json['serverVersion']),
+      assessmentBlockRunId: serializer.fromJson<String>(
+        json['assessmentBlockRunId'],
+      ),
+      stationNumber: serializer.fromJson<int>(json['stationNumber']),
+      plantPosition: serializer.fromJson<int>(json['plantPosition']),
+      selectionOrder: serializer.fromJson<int>(json['selectionOrder']),
+      initiallySelected: serializer.fromJson<bool>(json['initiallySelected']),
+      selectionStatus: serializer.fromJson<String>(json['selectionStatus']),
+      replacesPlantPosition: serializer.fromJson<int?>(
+        json['replacesPlantPosition'],
+      ),
+      failureReason: serializer.fromJson<String?>(json['failureReason']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'deviceId': serializer.toJson<String?>(deviceId),
+      'syncState': serializer.toJson<String>(syncState),
+      'serverVersion': serializer.toJson<int>(serverVersion),
+      'assessmentBlockRunId': serializer.toJson<String>(assessmentBlockRunId),
+      'stationNumber': serializer.toJson<int>(stationNumber),
+      'plantPosition': serializer.toJson<int>(plantPosition),
+      'selectionOrder': serializer.toJson<int>(selectionOrder),
+      'initiallySelected': serializer.toJson<bool>(initiallySelected),
+      'selectionStatus': serializer.toJson<String>(selectionStatus),
+      'replacesPlantPosition': serializer.toJson<int?>(replacesPlantPosition),
+      'failureReason': serializer.toJson<String?>(failureReason),
+    };
+  }
+
+  EarOpeningSelectionRecord copyWith({
+    String? id,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    Value<DateTime?> deletedAt = const Value.absent(),
+    Value<String?> deviceId = const Value.absent(),
+    String? syncState,
+    int? serverVersion,
+    String? assessmentBlockRunId,
+    int? stationNumber,
+    int? plantPosition,
+    int? selectionOrder,
+    bool? initiallySelected,
+    String? selectionStatus,
+    Value<int?> replacesPlantPosition = const Value.absent(),
+    Value<String?> failureReason = const Value.absent(),
+  }) => EarOpeningSelectionRecord(
+    id: id ?? this.id,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    deviceId: deviceId.present ? deviceId.value : this.deviceId,
+    syncState: syncState ?? this.syncState,
+    serverVersion: serverVersion ?? this.serverVersion,
+    assessmentBlockRunId: assessmentBlockRunId ?? this.assessmentBlockRunId,
+    stationNumber: stationNumber ?? this.stationNumber,
+    plantPosition: plantPosition ?? this.plantPosition,
+    selectionOrder: selectionOrder ?? this.selectionOrder,
+    initiallySelected: initiallySelected ?? this.initiallySelected,
+    selectionStatus: selectionStatus ?? this.selectionStatus,
+    replacesPlantPosition: replacesPlantPosition.present
+        ? replacesPlantPosition.value
+        : this.replacesPlantPosition,
+    failureReason: failureReason.present
+        ? failureReason.value
+        : this.failureReason,
+  );
+  EarOpeningSelectionRecord copyWithCompanion(
+    EarOpeningSelectionsCompanion data,
+  ) {
+    return EarOpeningSelectionRecord(
+      id: data.id.present ? data.id.value : this.id,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+      syncState: data.syncState.present ? data.syncState.value : this.syncState,
+      serverVersion: data.serverVersion.present
+          ? data.serverVersion.value
+          : this.serverVersion,
+      assessmentBlockRunId: data.assessmentBlockRunId.present
+          ? data.assessmentBlockRunId.value
+          : this.assessmentBlockRunId,
+      stationNumber: data.stationNumber.present
+          ? data.stationNumber.value
+          : this.stationNumber,
+      plantPosition: data.plantPosition.present
+          ? data.plantPosition.value
+          : this.plantPosition,
+      selectionOrder: data.selectionOrder.present
+          ? data.selectionOrder.value
+          : this.selectionOrder,
+      initiallySelected: data.initiallySelected.present
+          ? data.initiallySelected.value
+          : this.initiallySelected,
+      selectionStatus: data.selectionStatus.present
+          ? data.selectionStatus.value
+          : this.selectionStatus,
+      replacesPlantPosition: data.replacesPlantPosition.present
+          ? data.replacesPlantPosition.value
+          : this.replacesPlantPosition,
+      failureReason: data.failureReason.present
+          ? data.failureReason.value
+          : this.failureReason,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EarOpeningSelectionRecord(')
+          ..write('id: $id, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('syncState: $syncState, ')
+          ..write('serverVersion: $serverVersion, ')
+          ..write('assessmentBlockRunId: $assessmentBlockRunId, ')
+          ..write('stationNumber: $stationNumber, ')
+          ..write('plantPosition: $plantPosition, ')
+          ..write('selectionOrder: $selectionOrder, ')
+          ..write('initiallySelected: $initiallySelected, ')
+          ..write('selectionStatus: $selectionStatus, ')
+          ..write('replacesPlantPosition: $replacesPlantPosition, ')
+          ..write('failureReason: $failureReason')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    deviceId,
+    syncState,
+    serverVersion,
+    assessmentBlockRunId,
+    stationNumber,
+    plantPosition,
+    selectionOrder,
+    initiallySelected,
+    selectionStatus,
+    replacesPlantPosition,
+    failureReason,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is EarOpeningSelectionRecord &&
+          other.id == this.id &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.deviceId == this.deviceId &&
+          other.syncState == this.syncState &&
+          other.serverVersion == this.serverVersion &&
+          other.assessmentBlockRunId == this.assessmentBlockRunId &&
+          other.stationNumber == this.stationNumber &&
+          other.plantPosition == this.plantPosition &&
+          other.selectionOrder == this.selectionOrder &&
+          other.initiallySelected == this.initiallySelected &&
+          other.selectionStatus == this.selectionStatus &&
+          other.replacesPlantPosition == this.replacesPlantPosition &&
+          other.failureReason == this.failureReason);
+}
+
+class EarOpeningSelectionsCompanion
+    extends UpdateCompanion<EarOpeningSelectionRecord> {
+  final Value<String> id;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<String?> deviceId;
+  final Value<String> syncState;
+  final Value<int> serverVersion;
+  final Value<String> assessmentBlockRunId;
+  final Value<int> stationNumber;
+  final Value<int> plantPosition;
+  final Value<int> selectionOrder;
+  final Value<bool> initiallySelected;
+  final Value<String> selectionStatus;
+  final Value<int?> replacesPlantPosition;
+  final Value<String?> failureReason;
+  final Value<int> rowid;
+  const EarOpeningSelectionsCompanion({
+    this.id = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.syncState = const Value.absent(),
+    this.serverVersion = const Value.absent(),
+    this.assessmentBlockRunId = const Value.absent(),
+    this.stationNumber = const Value.absent(),
+    this.plantPosition = const Value.absent(),
+    this.selectionOrder = const Value.absent(),
+    this.initiallySelected = const Value.absent(),
+    this.selectionStatus = const Value.absent(),
+    this.replacesPlantPosition = const Value.absent(),
+    this.failureReason = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  EarOpeningSelectionsCompanion.insert({
+    required String id,
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.syncState = const Value.absent(),
+    this.serverVersion = const Value.absent(),
+    required String assessmentBlockRunId,
+    required int stationNumber,
+    required int plantPosition,
+    required int selectionOrder,
+    this.initiallySelected = const Value.absent(),
+    this.selectionStatus = const Value.absent(),
+    this.replacesPlantPosition = const Value.absent(),
+    this.failureReason = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       assessmentBlockRunId = Value(assessmentBlockRunId),
+       stationNumber = Value(stationNumber),
+       plantPosition = Value(plantPosition),
+       selectionOrder = Value(selectionOrder);
+  static Insertable<EarOpeningSelectionRecord> custom({
+    Expression<String>? id,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<String>? deviceId,
+    Expression<String>? syncState,
+    Expression<int>? serverVersion,
+    Expression<String>? assessmentBlockRunId,
+    Expression<int>? stationNumber,
+    Expression<int>? plantPosition,
+    Expression<int>? selectionOrder,
+    Expression<bool>? initiallySelected,
+    Expression<String>? selectionStatus,
+    Expression<int>? replacesPlantPosition,
+    Expression<String>? failureReason,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (deviceId != null) 'device_id': deviceId,
+      if (syncState != null) 'sync_state': syncState,
+      if (serverVersion != null) 'server_version': serverVersion,
+      if (assessmentBlockRunId != null)
+        'assessment_block_run_id': assessmentBlockRunId,
+      if (stationNumber != null) 'station_number': stationNumber,
+      if (plantPosition != null) 'plant_position': plantPosition,
+      if (selectionOrder != null) 'selection_order': selectionOrder,
+      if (initiallySelected != null) 'initially_selected': initiallySelected,
+      if (selectionStatus != null) 'selection_status': selectionStatus,
+      if (replacesPlantPosition != null)
+        'replaces_plant_position': replacesPlantPosition,
+      if (failureReason != null) 'failure_reason': failureReason,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  EarOpeningSelectionsCompanion copyWith({
+    Value<String>? id,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<String?>? deviceId,
+    Value<String>? syncState,
+    Value<int>? serverVersion,
+    Value<String>? assessmentBlockRunId,
+    Value<int>? stationNumber,
+    Value<int>? plantPosition,
+    Value<int>? selectionOrder,
+    Value<bool>? initiallySelected,
+    Value<String>? selectionStatus,
+    Value<int?>? replacesPlantPosition,
+    Value<String?>? failureReason,
+    Value<int>? rowid,
+  }) {
+    return EarOpeningSelectionsCompanion(
+      id: id ?? this.id,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      deviceId: deviceId ?? this.deviceId,
+      syncState: syncState ?? this.syncState,
+      serverVersion: serverVersion ?? this.serverVersion,
+      assessmentBlockRunId: assessmentBlockRunId ?? this.assessmentBlockRunId,
+      stationNumber: stationNumber ?? this.stationNumber,
+      plantPosition: plantPosition ?? this.plantPosition,
+      selectionOrder: selectionOrder ?? this.selectionOrder,
+      initiallySelected: initiallySelected ?? this.initiallySelected,
+      selectionStatus: selectionStatus ?? this.selectionStatus,
+      replacesPlantPosition:
+          replacesPlantPosition ?? this.replacesPlantPosition,
+      failureReason: failureReason ?? this.failureReason,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (deviceId.present) {
+      map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (syncState.present) {
+      map['sync_state'] = Variable<String>(syncState.value);
+    }
+    if (serverVersion.present) {
+      map['server_version'] = Variable<int>(serverVersion.value);
+    }
+    if (assessmentBlockRunId.present) {
+      map['assessment_block_run_id'] = Variable<String>(
+        assessmentBlockRunId.value,
+      );
+    }
+    if (stationNumber.present) {
+      map['station_number'] = Variable<int>(stationNumber.value);
+    }
+    if (plantPosition.present) {
+      map['plant_position'] = Variable<int>(plantPosition.value);
+    }
+    if (selectionOrder.present) {
+      map['selection_order'] = Variable<int>(selectionOrder.value);
+    }
+    if (initiallySelected.present) {
+      map['initially_selected'] = Variable<bool>(initiallySelected.value);
+    }
+    if (selectionStatus.present) {
+      map['selection_status'] = Variable<String>(selectionStatus.value);
+    }
+    if (replacesPlantPosition.present) {
+      map['replaces_plant_position'] = Variable<int>(
+        replacesPlantPosition.value,
+      );
+    }
+    if (failureReason.present) {
+      map['failure_reason'] = Variable<String>(failureReason.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EarOpeningSelectionsCompanion(')
+          ..write('id: $id, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('syncState: $syncState, ')
+          ..write('serverVersion: $serverVersion, ')
+          ..write('assessmentBlockRunId: $assessmentBlockRunId, ')
+          ..write('stationNumber: $stationNumber, ')
+          ..write('plantPosition: $plantPosition, ')
+          ..write('selectionOrder: $selectionOrder, ')
+          ..write('initiallySelected: $initiallySelected, ')
+          ..write('selectionStatus: $selectionStatus, ')
+          ..write('replacesPlantPosition: $replacesPlantPosition, ')
+          ..write('failureReason: $failureReason, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -21120,6 +23769,31 @@ class $EarObservationsTable extends EarObservations
     requiredDuringInsert: false,
     defaultValue: const Constant(1),
   );
+  static const VerificationMeta _earPresentMeta = const VerificationMeta(
+    'earPresent',
+  );
+  @override
+  late final GeneratedColumn<bool> earPresent = GeneratedColumn<bool>(
+    'ear_present',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("ear_present" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _designatedEarIdentityMeta =
+      const VerificationMeta('designatedEarIdentity');
+  @override
+  late final GeneratedColumn<String> designatedEarIdentity =
+      GeneratedColumn<String>(
+        'designated_ear_identity',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _externallyAssessableMeta =
       const VerificationMeta('externallyAssessable');
   @override
@@ -21134,6 +23808,36 @@ class $EarObservationsTable extends EarObservations
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _exteriorEarTipExaminedMeta =
+      const VerificationMeta('exteriorEarTipExamined');
+  @override
+  late final GeneratedColumn<bool> exteriorEarTipExamined =
+      GeneratedColumn<bool>(
+        'exterior_ear_tip_examined',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("exterior_ear_tip_examined" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
+  static const VerificationMeta _baseShankSilkAxilsExaminedMeta =
+      const VerificationMeta('baseShankSilkAxilsExamined');
+  @override
+  late final GeneratedColumn<bool> baseShankSilkAxilsExamined =
+      GeneratedColumn<bool>(
+        'base_shank_silk_axils_examined',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("base_shank_silk_axils_examined" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
   static const VerificationMeta _externalDamagePresentMeta =
       const VerificationMeta('externalDamagePresent');
   @override
@@ -21218,6 +23922,17 @@ class $EarObservationsTable extends EarObservations
       'CHECK ("frass_present" IN (0, 1))',
     ),
   );
+  static const VerificationMeta _frassFreshnessMeta = const VerificationMeta(
+    'frassFreshness',
+  );
+  @override
+  late final GeneratedColumn<String> frassFreshness = GeneratedColumn<String>(
+    'frass_freshness',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _larvaPresentMeta = const VerificationMeta(
     'larvaPresent',
   );
@@ -21232,6 +23947,63 @@ class $EarObservationsTable extends EarObservations
       'CHECK ("larva_present" IN (0, 1))',
     ),
   );
+  static const VerificationMeta _larvalSizeMeta = const VerificationMeta(
+    'larvalSize',
+  );
+  @override
+  late final GeneratedColumn<String> larvalSize = GeneratedColumn<String>(
+    'larval_size',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _feedingFreshnessMeta = const VerificationMeta(
+    'feedingFreshness',
+  );
+  @override
+  late final GeneratedColumn<String> feedingFreshness = GeneratedColumn<String>(
+    'feeding_freshness',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _moldRotLikeSymptomsMeta =
+      const VerificationMeta('moldRotLikeSymptoms');
+  @override
+  late final GeneratedColumn<bool> moldRotLikeSymptoms = GeneratedColumn<bool>(
+    'mold_rot_like_symptoms',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("mold_rot_like_symptoms" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _causeTagsJsonMeta = const VerificationMeta(
+    'causeTagsJson',
+  );
+  @override
+  late final GeneratedColumn<String> causeTagsJson = GeneratedColumn<String>(
+    'cause_tags_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _externalClassificationMeta =
+      const VerificationMeta('externalClassification');
+  @override
+  late final GeneratedColumn<String> externalClassification =
+      GeneratedColumn<String>(
+        'external_classification',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _openingPermissionMeta = const VerificationMeta(
     'openingPermission',
   );
@@ -21258,6 +24030,20 @@ class $EarObservationsTable extends EarObservations
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _huskIntactBeforeOpeningMeta =
+      const VerificationMeta('huskIntactBeforeOpening');
+  @override
+  late final GeneratedColumn<bool> huskIntactBeforeOpening =
+      GeneratedColumn<bool>(
+        'husk_intact_before_opening',
+        aliasedName,
+        true,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("husk_intact_before_opening" IN (0, 1))',
+        ),
+      );
   static const VerificationMeta _internalDamagePresentMeta =
       const VerificationMeta('internalDamagePresent');
   @override
@@ -21304,6 +24090,45 @@ class $EarObservationsTable extends EarObservations
         type: DriftSqlType.string,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _earTipDamageLengthMmMeta =
+      const VerificationMeta('earTipDamageLengthMm');
+  @override
+  late final GeneratedColumn<double> earTipDamageLengthMm =
+      GeneratedColumn<double>(
+        'ear_tip_damage_length_mm',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _cobDamagePresentMeta = const VerificationMeta(
+    'cobDamagePresent',
+  );
+  @override
+  late final GeneratedColumn<bool> cobDamagePresent = GeneratedColumn<bool>(
+    'cob_damage_present',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("cob_damage_present" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _brokenMissingUnderdevelopedKernelsMeta =
+      const VerificationMeta('brokenMissingUnderdevelopedKernels');
+  @override
+  late final GeneratedColumn<bool> brokenMissingUnderdevelopedKernels =
+      GeneratedColumn<bool>(
+        'broken_missing_underdeveloped_kernels',
+        aliasedName,
+        true,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("broken_missing_underdeveloped_kernels" IN (0, 1))',
+        ),
+      );
   static const VerificationMeta _earRotPresentMeta = const VerificationMeta(
     'earRotPresent',
   );
@@ -21318,12 +24143,33 @@ class $EarObservationsTable extends EarObservations
       'CHECK ("ear_rot_present" IN (0, 1))',
     ),
   );
+  static const VerificationMeta _moldRotKernelsCountedMeta =
+      const VerificationMeta('moldRotKernelsCounted');
+  @override
+  late final GeneratedColumn<int> moldRotKernelsCounted = GeneratedColumn<int>(
+    'mold_rot_kernels_counted',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _earRotSuspectedTypeMeta =
       const VerificationMeta('earRotSuspectedType');
   @override
   late final GeneratedColumn<String> earRotSuspectedType =
       GeneratedColumn<String>(
         'ear_rot_suspected_type',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _internalClassificationMeta =
+      const VerificationMeta('internalClassification');
+  @override
+  late final GeneratedColumn<String> internalClassification =
+      GeneratedColumn<String>(
+        'internal_classification',
         aliasedName,
         true,
         type: DriftSqlType.string,
@@ -21349,22 +24195,38 @@ class $EarObservationsTable extends EarObservations
     serverVersion,
     plantObservationId,
     earSequence,
+    earPresent,
+    designatedEarIdentity,
     externallyAssessable,
+    exteriorEarTipExamined,
+    baseShankSilkAxilsExamined,
     externalDamagePresent,
     activeInfestationPresent,
     silkDamagePresent,
     huskDamagePresent,
     entryHolePresent,
     frassPresent,
+    frassFreshness,
     larvaPresent,
+    larvalSize,
+    feedingFreshness,
+    moldRotLikeSymptoms,
+    causeTagsJson,
+    externalClassification,
     openingPermission,
     opened,
+    huskIntactBeforeOpening,
     internalDamagePresent,
     totalKernelsCounted,
     damagedKernelsCounted,
     kernelCountMethod,
+    earTipDamageLengthMm,
+    cobDamagePresent,
+    brokenMissingUnderdevelopedKernels,
     earRotPresent,
+    moldRotKernelsCounted,
     earRotSuspectedType,
+    internalClassification,
     notes,
   ];
   @override
@@ -21443,12 +24305,45 @@ class $EarObservationsTable extends EarObservations
         ),
       );
     }
+    if (data.containsKey('ear_present')) {
+      context.handle(
+        _earPresentMeta,
+        earPresent.isAcceptableOrUnknown(data['ear_present']!, _earPresentMeta),
+      );
+    }
+    if (data.containsKey('designated_ear_identity')) {
+      context.handle(
+        _designatedEarIdentityMeta,
+        designatedEarIdentity.isAcceptableOrUnknown(
+          data['designated_ear_identity']!,
+          _designatedEarIdentityMeta,
+        ),
+      );
+    }
     if (data.containsKey('externally_assessable')) {
       context.handle(
         _externallyAssessableMeta,
         externallyAssessable.isAcceptableOrUnknown(
           data['externally_assessable']!,
           _externallyAssessableMeta,
+        ),
+      );
+    }
+    if (data.containsKey('exterior_ear_tip_examined')) {
+      context.handle(
+        _exteriorEarTipExaminedMeta,
+        exteriorEarTipExamined.isAcceptableOrUnknown(
+          data['exterior_ear_tip_examined']!,
+          _exteriorEarTipExaminedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('base_shank_silk_axils_examined')) {
+      context.handle(
+        _baseShankSilkAxilsExaminedMeta,
+        baseShankSilkAxilsExamined.isAcceptableOrUnknown(
+          data['base_shank_silk_axils_examined']!,
+          _baseShankSilkAxilsExaminedMeta,
         ),
       );
     }
@@ -21506,12 +24401,63 @@ class $EarObservationsTable extends EarObservations
         ),
       );
     }
+    if (data.containsKey('frass_freshness')) {
+      context.handle(
+        _frassFreshnessMeta,
+        frassFreshness.isAcceptableOrUnknown(
+          data['frass_freshness']!,
+          _frassFreshnessMeta,
+        ),
+      );
+    }
     if (data.containsKey('larva_present')) {
       context.handle(
         _larvaPresentMeta,
         larvaPresent.isAcceptableOrUnknown(
           data['larva_present']!,
           _larvaPresentMeta,
+        ),
+      );
+    }
+    if (data.containsKey('larval_size')) {
+      context.handle(
+        _larvalSizeMeta,
+        larvalSize.isAcceptableOrUnknown(data['larval_size']!, _larvalSizeMeta),
+      );
+    }
+    if (data.containsKey('feeding_freshness')) {
+      context.handle(
+        _feedingFreshnessMeta,
+        feedingFreshness.isAcceptableOrUnknown(
+          data['feeding_freshness']!,
+          _feedingFreshnessMeta,
+        ),
+      );
+    }
+    if (data.containsKey('mold_rot_like_symptoms')) {
+      context.handle(
+        _moldRotLikeSymptomsMeta,
+        moldRotLikeSymptoms.isAcceptableOrUnknown(
+          data['mold_rot_like_symptoms']!,
+          _moldRotLikeSymptomsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('cause_tags_json')) {
+      context.handle(
+        _causeTagsJsonMeta,
+        causeTagsJson.isAcceptableOrUnknown(
+          data['cause_tags_json']!,
+          _causeTagsJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('external_classification')) {
+      context.handle(
+        _externalClassificationMeta,
+        externalClassification.isAcceptableOrUnknown(
+          data['external_classification']!,
+          _externalClassificationMeta,
         ),
       );
     }
@@ -21528,6 +24474,15 @@ class $EarObservationsTable extends EarObservations
       context.handle(
         _openedMeta,
         opened.isAcceptableOrUnknown(data['opened']!, _openedMeta),
+      );
+    }
+    if (data.containsKey('husk_intact_before_opening')) {
+      context.handle(
+        _huskIntactBeforeOpeningMeta,
+        huskIntactBeforeOpening.isAcceptableOrUnknown(
+          data['husk_intact_before_opening']!,
+          _huskIntactBeforeOpeningMeta,
+        ),
       );
     }
     if (data.containsKey('internal_damage_present')) {
@@ -21566,6 +24521,33 @@ class $EarObservationsTable extends EarObservations
         ),
       );
     }
+    if (data.containsKey('ear_tip_damage_length_mm')) {
+      context.handle(
+        _earTipDamageLengthMmMeta,
+        earTipDamageLengthMm.isAcceptableOrUnknown(
+          data['ear_tip_damage_length_mm']!,
+          _earTipDamageLengthMmMeta,
+        ),
+      );
+    }
+    if (data.containsKey('cob_damage_present')) {
+      context.handle(
+        _cobDamagePresentMeta,
+        cobDamagePresent.isAcceptableOrUnknown(
+          data['cob_damage_present']!,
+          _cobDamagePresentMeta,
+        ),
+      );
+    }
+    if (data.containsKey('broken_missing_underdeveloped_kernels')) {
+      context.handle(
+        _brokenMissingUnderdevelopedKernelsMeta,
+        brokenMissingUnderdevelopedKernels.isAcceptableOrUnknown(
+          data['broken_missing_underdeveloped_kernels']!,
+          _brokenMissingUnderdevelopedKernelsMeta,
+        ),
+      );
+    }
     if (data.containsKey('ear_rot_present')) {
       context.handle(
         _earRotPresentMeta,
@@ -21575,12 +24557,30 @@ class $EarObservationsTable extends EarObservations
         ),
       );
     }
+    if (data.containsKey('mold_rot_kernels_counted')) {
+      context.handle(
+        _moldRotKernelsCountedMeta,
+        moldRotKernelsCounted.isAcceptableOrUnknown(
+          data['mold_rot_kernels_counted']!,
+          _moldRotKernelsCountedMeta,
+        ),
+      );
+    }
     if (data.containsKey('ear_rot_suspected_type')) {
       context.handle(
         _earRotSuspectedTypeMeta,
         earRotSuspectedType.isAcceptableOrUnknown(
           data['ear_rot_suspected_type']!,
           _earRotSuspectedTypeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('internal_classification')) {
+      context.handle(
+        _internalClassificationMeta,
+        internalClassification.isAcceptableOrUnknown(
+          data['internal_classification']!,
+          _internalClassificationMeta,
         ),
       );
     }
@@ -21639,9 +24639,25 @@ class $EarObservationsTable extends EarObservations
         DriftSqlType.int,
         data['${effectivePrefix}ear_sequence'],
       )!,
+      earPresent: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}ear_present'],
+      ),
+      designatedEarIdentity: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}designated_ear_identity'],
+      ),
       externallyAssessable: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}externally_assessable'],
+      )!,
+      exteriorEarTipExamined: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}exterior_ear_tip_examined'],
+      )!,
+      baseShankSilkAxilsExamined: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}base_shank_silk_axils_examined'],
       )!,
       externalDamagePresent: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
@@ -21667,9 +24683,33 @@ class $EarObservationsTable extends EarObservations
         DriftSqlType.bool,
         data['${effectivePrefix}frass_present'],
       ),
+      frassFreshness: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}frass_freshness'],
+      ),
       larvaPresent: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}larva_present'],
+      ),
+      larvalSize: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}larval_size'],
+      ),
+      feedingFreshness: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}feeding_freshness'],
+      ),
+      moldRotLikeSymptoms: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}mold_rot_like_symptoms'],
+      ),
+      causeTagsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cause_tags_json'],
+      ),
+      externalClassification: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}external_classification'],
       ),
       openingPermission: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -21679,6 +24719,10 @@ class $EarObservationsTable extends EarObservations
         DriftSqlType.bool,
         data['${effectivePrefix}opened'],
       )!,
+      huskIntactBeforeOpening: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}husk_intact_before_opening'],
+      ),
       internalDamagePresent: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}internal_damage_present'],
@@ -21695,13 +24739,33 @@ class $EarObservationsTable extends EarObservations
         DriftSqlType.string,
         data['${effectivePrefix}kernel_count_method'],
       ),
+      earTipDamageLengthMm: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}ear_tip_damage_length_mm'],
+      ),
+      cobDamagePresent: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}cob_damage_present'],
+      ),
+      brokenMissingUnderdevelopedKernels: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}broken_missing_underdeveloped_kernels'],
+      ),
       earRotPresent: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}ear_rot_present'],
       ),
+      moldRotKernelsCounted: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}mold_rot_kernels_counted'],
+      ),
       earRotSuspectedType: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}ear_rot_suspected_type'],
+      ),
+      internalClassification: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}internal_classification'],
       ),
       notes: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -21727,22 +24791,38 @@ class EarObservationRecord extends DataClass
   final int serverVersion;
   final String plantObservationId;
   final int earSequence;
+  final bool? earPresent;
+  final String? designatedEarIdentity;
   final bool externallyAssessable;
+  final bool exteriorEarTipExamined;
+  final bool baseShankSilkAxilsExamined;
   final bool? externalDamagePresent;
   final bool? activeInfestationPresent;
   final bool? silkDamagePresent;
   final bool? huskDamagePresent;
   final bool? entryHolePresent;
   final bool? frassPresent;
+  final String? frassFreshness;
   final bool? larvaPresent;
+  final String? larvalSize;
+  final String? feedingFreshness;
+  final bool? moldRotLikeSymptoms;
+  final String? causeTagsJson;
+  final String? externalClassification;
   final String openingPermission;
   final bool opened;
+  final bool? huskIntactBeforeOpening;
   final bool? internalDamagePresent;
   final int? totalKernelsCounted;
   final int? damagedKernelsCounted;
   final String? kernelCountMethod;
+  final double? earTipDamageLengthMm;
+  final bool? cobDamagePresent;
+  final bool? brokenMissingUnderdevelopedKernels;
   final bool? earRotPresent;
+  final int? moldRotKernelsCounted;
   final String? earRotSuspectedType;
+  final String? internalClassification;
   final String? notes;
   const EarObservationRecord({
     required this.id,
@@ -21754,22 +24834,38 @@ class EarObservationRecord extends DataClass
     required this.serverVersion,
     required this.plantObservationId,
     required this.earSequence,
+    this.earPresent,
+    this.designatedEarIdentity,
     required this.externallyAssessable,
+    required this.exteriorEarTipExamined,
+    required this.baseShankSilkAxilsExamined,
     this.externalDamagePresent,
     this.activeInfestationPresent,
     this.silkDamagePresent,
     this.huskDamagePresent,
     this.entryHolePresent,
     this.frassPresent,
+    this.frassFreshness,
     this.larvaPresent,
+    this.larvalSize,
+    this.feedingFreshness,
+    this.moldRotLikeSymptoms,
+    this.causeTagsJson,
+    this.externalClassification,
     required this.openingPermission,
     required this.opened,
+    this.huskIntactBeforeOpening,
     this.internalDamagePresent,
     this.totalKernelsCounted,
     this.damagedKernelsCounted,
     this.kernelCountMethod,
+    this.earTipDamageLengthMm,
+    this.cobDamagePresent,
+    this.brokenMissingUnderdevelopedKernels,
     this.earRotPresent,
+    this.moldRotKernelsCounted,
     this.earRotSuspectedType,
+    this.internalClassification,
     this.notes,
   });
   @override
@@ -21788,7 +24884,17 @@ class EarObservationRecord extends DataClass
     map['server_version'] = Variable<int>(serverVersion);
     map['plant_observation_id'] = Variable<String>(plantObservationId);
     map['ear_sequence'] = Variable<int>(earSequence);
+    if (!nullToAbsent || earPresent != null) {
+      map['ear_present'] = Variable<bool>(earPresent);
+    }
+    if (!nullToAbsent || designatedEarIdentity != null) {
+      map['designated_ear_identity'] = Variable<String>(designatedEarIdentity);
+    }
     map['externally_assessable'] = Variable<bool>(externallyAssessable);
+    map['exterior_ear_tip_examined'] = Variable<bool>(exteriorEarTipExamined);
+    map['base_shank_silk_axils_examined'] = Variable<bool>(
+      baseShankSilkAxilsExamined,
+    );
     if (!nullToAbsent || externalDamagePresent != null) {
       map['external_damage_present'] = Variable<bool>(externalDamagePresent);
     }
@@ -21809,11 +24915,34 @@ class EarObservationRecord extends DataClass
     if (!nullToAbsent || frassPresent != null) {
       map['frass_present'] = Variable<bool>(frassPresent);
     }
+    if (!nullToAbsent || frassFreshness != null) {
+      map['frass_freshness'] = Variable<String>(frassFreshness);
+    }
     if (!nullToAbsent || larvaPresent != null) {
       map['larva_present'] = Variable<bool>(larvaPresent);
     }
+    if (!nullToAbsent || larvalSize != null) {
+      map['larval_size'] = Variable<String>(larvalSize);
+    }
+    if (!nullToAbsent || feedingFreshness != null) {
+      map['feeding_freshness'] = Variable<String>(feedingFreshness);
+    }
+    if (!nullToAbsent || moldRotLikeSymptoms != null) {
+      map['mold_rot_like_symptoms'] = Variable<bool>(moldRotLikeSymptoms);
+    }
+    if (!nullToAbsent || causeTagsJson != null) {
+      map['cause_tags_json'] = Variable<String>(causeTagsJson);
+    }
+    if (!nullToAbsent || externalClassification != null) {
+      map['external_classification'] = Variable<String>(externalClassification);
+    }
     map['opening_permission'] = Variable<String>(openingPermission);
     map['opened'] = Variable<bool>(opened);
+    if (!nullToAbsent || huskIntactBeforeOpening != null) {
+      map['husk_intact_before_opening'] = Variable<bool>(
+        huskIntactBeforeOpening,
+      );
+    }
     if (!nullToAbsent || internalDamagePresent != null) {
       map['internal_damage_present'] = Variable<bool>(internalDamagePresent);
     }
@@ -21826,11 +24955,28 @@ class EarObservationRecord extends DataClass
     if (!nullToAbsent || kernelCountMethod != null) {
       map['kernel_count_method'] = Variable<String>(kernelCountMethod);
     }
+    if (!nullToAbsent || earTipDamageLengthMm != null) {
+      map['ear_tip_damage_length_mm'] = Variable<double>(earTipDamageLengthMm);
+    }
+    if (!nullToAbsent || cobDamagePresent != null) {
+      map['cob_damage_present'] = Variable<bool>(cobDamagePresent);
+    }
+    if (!nullToAbsent || brokenMissingUnderdevelopedKernels != null) {
+      map['broken_missing_underdeveloped_kernels'] = Variable<bool>(
+        brokenMissingUnderdevelopedKernels,
+      );
+    }
     if (!nullToAbsent || earRotPresent != null) {
       map['ear_rot_present'] = Variable<bool>(earRotPresent);
     }
+    if (!nullToAbsent || moldRotKernelsCounted != null) {
+      map['mold_rot_kernels_counted'] = Variable<int>(moldRotKernelsCounted);
+    }
     if (!nullToAbsent || earRotSuspectedType != null) {
       map['ear_rot_suspected_type'] = Variable<String>(earRotSuspectedType);
+    }
+    if (!nullToAbsent || internalClassification != null) {
+      map['internal_classification'] = Variable<String>(internalClassification);
     }
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
@@ -21853,7 +24999,15 @@ class EarObservationRecord extends DataClass
       serverVersion: Value(serverVersion),
       plantObservationId: Value(plantObservationId),
       earSequence: Value(earSequence),
+      earPresent: earPresent == null && nullToAbsent
+          ? const Value.absent()
+          : Value(earPresent),
+      designatedEarIdentity: designatedEarIdentity == null && nullToAbsent
+          ? const Value.absent()
+          : Value(designatedEarIdentity),
       externallyAssessable: Value(externallyAssessable),
+      exteriorEarTipExamined: Value(exteriorEarTipExamined),
+      baseShankSilkAxilsExamined: Value(baseShankSilkAxilsExamined),
       externalDamagePresent: externalDamagePresent == null && nullToAbsent
           ? const Value.absent()
           : Value(externalDamagePresent),
@@ -21872,11 +25026,32 @@ class EarObservationRecord extends DataClass
       frassPresent: frassPresent == null && nullToAbsent
           ? const Value.absent()
           : Value(frassPresent),
+      frassFreshness: frassFreshness == null && nullToAbsent
+          ? const Value.absent()
+          : Value(frassFreshness),
       larvaPresent: larvaPresent == null && nullToAbsent
           ? const Value.absent()
           : Value(larvaPresent),
+      larvalSize: larvalSize == null && nullToAbsent
+          ? const Value.absent()
+          : Value(larvalSize),
+      feedingFreshness: feedingFreshness == null && nullToAbsent
+          ? const Value.absent()
+          : Value(feedingFreshness),
+      moldRotLikeSymptoms: moldRotLikeSymptoms == null && nullToAbsent
+          ? const Value.absent()
+          : Value(moldRotLikeSymptoms),
+      causeTagsJson: causeTagsJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(causeTagsJson),
+      externalClassification: externalClassification == null && nullToAbsent
+          ? const Value.absent()
+          : Value(externalClassification),
       openingPermission: Value(openingPermission),
       opened: Value(opened),
+      huskIntactBeforeOpening: huskIntactBeforeOpening == null && nullToAbsent
+          ? const Value.absent()
+          : Value(huskIntactBeforeOpening),
       internalDamagePresent: internalDamagePresent == null && nullToAbsent
           ? const Value.absent()
           : Value(internalDamagePresent),
@@ -21889,12 +25064,28 @@ class EarObservationRecord extends DataClass
       kernelCountMethod: kernelCountMethod == null && nullToAbsent
           ? const Value.absent()
           : Value(kernelCountMethod),
+      earTipDamageLengthMm: earTipDamageLengthMm == null && nullToAbsent
+          ? const Value.absent()
+          : Value(earTipDamageLengthMm),
+      cobDamagePresent: cobDamagePresent == null && nullToAbsent
+          ? const Value.absent()
+          : Value(cobDamagePresent),
+      brokenMissingUnderdevelopedKernels:
+          brokenMissingUnderdevelopedKernels == null && nullToAbsent
+          ? const Value.absent()
+          : Value(brokenMissingUnderdevelopedKernels),
       earRotPresent: earRotPresent == null && nullToAbsent
           ? const Value.absent()
           : Value(earRotPresent),
+      moldRotKernelsCounted: moldRotKernelsCounted == null && nullToAbsent
+          ? const Value.absent()
+          : Value(moldRotKernelsCounted),
       earRotSuspectedType: earRotSuspectedType == null && nullToAbsent
           ? const Value.absent()
           : Value(earRotSuspectedType),
+      internalClassification: internalClassification == null && nullToAbsent
+          ? const Value.absent()
+          : Value(internalClassification),
       notes: notes == null && nullToAbsent
           ? const Value.absent()
           : Value(notes),
@@ -21918,8 +25109,18 @@ class EarObservationRecord extends DataClass
         json['plantObservationId'],
       ),
       earSequence: serializer.fromJson<int>(json['earSequence']),
+      earPresent: serializer.fromJson<bool?>(json['earPresent']),
+      designatedEarIdentity: serializer.fromJson<String?>(
+        json['designatedEarIdentity'],
+      ),
       externallyAssessable: serializer.fromJson<bool>(
         json['externallyAssessable'],
+      ),
+      exteriorEarTipExamined: serializer.fromJson<bool>(
+        json['exteriorEarTipExamined'],
+      ),
+      baseShankSilkAxilsExamined: serializer.fromJson<bool>(
+        json['baseShankSilkAxilsExamined'],
       ),
       externalDamagePresent: serializer.fromJson<bool?>(
         json['externalDamagePresent'],
@@ -21931,9 +25132,22 @@ class EarObservationRecord extends DataClass
       huskDamagePresent: serializer.fromJson<bool?>(json['huskDamagePresent']),
       entryHolePresent: serializer.fromJson<bool?>(json['entryHolePresent']),
       frassPresent: serializer.fromJson<bool?>(json['frassPresent']),
+      frassFreshness: serializer.fromJson<String?>(json['frassFreshness']),
       larvaPresent: serializer.fromJson<bool?>(json['larvaPresent']),
+      larvalSize: serializer.fromJson<String?>(json['larvalSize']),
+      feedingFreshness: serializer.fromJson<String?>(json['feedingFreshness']),
+      moldRotLikeSymptoms: serializer.fromJson<bool?>(
+        json['moldRotLikeSymptoms'],
+      ),
+      causeTagsJson: serializer.fromJson<String?>(json['causeTagsJson']),
+      externalClassification: serializer.fromJson<String?>(
+        json['externalClassification'],
+      ),
       openingPermission: serializer.fromJson<String>(json['openingPermission']),
       opened: serializer.fromJson<bool>(json['opened']),
+      huskIntactBeforeOpening: serializer.fromJson<bool?>(
+        json['huskIntactBeforeOpening'],
+      ),
       internalDamagePresent: serializer.fromJson<bool?>(
         json['internalDamagePresent'],
       ),
@@ -21946,9 +25160,22 @@ class EarObservationRecord extends DataClass
       kernelCountMethod: serializer.fromJson<String?>(
         json['kernelCountMethod'],
       ),
+      earTipDamageLengthMm: serializer.fromJson<double?>(
+        json['earTipDamageLengthMm'],
+      ),
+      cobDamagePresent: serializer.fromJson<bool?>(json['cobDamagePresent']),
+      brokenMissingUnderdevelopedKernels: serializer.fromJson<bool?>(
+        json['brokenMissingUnderdevelopedKernels'],
+      ),
       earRotPresent: serializer.fromJson<bool?>(json['earRotPresent']),
+      moldRotKernelsCounted: serializer.fromJson<int?>(
+        json['moldRotKernelsCounted'],
+      ),
       earRotSuspectedType: serializer.fromJson<String?>(
         json['earRotSuspectedType'],
+      ),
+      internalClassification: serializer.fromJson<String?>(
+        json['internalClassification'],
       ),
       notes: serializer.fromJson<String?>(json['notes']),
     );
@@ -21966,7 +25193,15 @@ class EarObservationRecord extends DataClass
       'serverVersion': serializer.toJson<int>(serverVersion),
       'plantObservationId': serializer.toJson<String>(plantObservationId),
       'earSequence': serializer.toJson<int>(earSequence),
+      'earPresent': serializer.toJson<bool?>(earPresent),
+      'designatedEarIdentity': serializer.toJson<String?>(
+        designatedEarIdentity,
+      ),
       'externallyAssessable': serializer.toJson<bool>(externallyAssessable),
+      'exteriorEarTipExamined': serializer.toJson<bool>(exteriorEarTipExamined),
+      'baseShankSilkAxilsExamined': serializer.toJson<bool>(
+        baseShankSilkAxilsExamined,
+      ),
       'externalDamagePresent': serializer.toJson<bool?>(externalDamagePresent),
       'activeInfestationPresent': serializer.toJson<bool?>(
         activeInfestationPresent,
@@ -21975,15 +25210,35 @@ class EarObservationRecord extends DataClass
       'huskDamagePresent': serializer.toJson<bool?>(huskDamagePresent),
       'entryHolePresent': serializer.toJson<bool?>(entryHolePresent),
       'frassPresent': serializer.toJson<bool?>(frassPresent),
+      'frassFreshness': serializer.toJson<String?>(frassFreshness),
       'larvaPresent': serializer.toJson<bool?>(larvaPresent),
+      'larvalSize': serializer.toJson<String?>(larvalSize),
+      'feedingFreshness': serializer.toJson<String?>(feedingFreshness),
+      'moldRotLikeSymptoms': serializer.toJson<bool?>(moldRotLikeSymptoms),
+      'causeTagsJson': serializer.toJson<String?>(causeTagsJson),
+      'externalClassification': serializer.toJson<String?>(
+        externalClassification,
+      ),
       'openingPermission': serializer.toJson<String>(openingPermission),
       'opened': serializer.toJson<bool>(opened),
+      'huskIntactBeforeOpening': serializer.toJson<bool?>(
+        huskIntactBeforeOpening,
+      ),
       'internalDamagePresent': serializer.toJson<bool?>(internalDamagePresent),
       'totalKernelsCounted': serializer.toJson<int?>(totalKernelsCounted),
       'damagedKernelsCounted': serializer.toJson<int?>(damagedKernelsCounted),
       'kernelCountMethod': serializer.toJson<String?>(kernelCountMethod),
+      'earTipDamageLengthMm': serializer.toJson<double?>(earTipDamageLengthMm),
+      'cobDamagePresent': serializer.toJson<bool?>(cobDamagePresent),
+      'brokenMissingUnderdevelopedKernels': serializer.toJson<bool?>(
+        brokenMissingUnderdevelopedKernels,
+      ),
       'earRotPresent': serializer.toJson<bool?>(earRotPresent),
+      'moldRotKernelsCounted': serializer.toJson<int?>(moldRotKernelsCounted),
       'earRotSuspectedType': serializer.toJson<String?>(earRotSuspectedType),
+      'internalClassification': serializer.toJson<String?>(
+        internalClassification,
+      ),
       'notes': serializer.toJson<String?>(notes),
     };
   }
@@ -21998,22 +25253,38 @@ class EarObservationRecord extends DataClass
     int? serverVersion,
     String? plantObservationId,
     int? earSequence,
+    Value<bool?> earPresent = const Value.absent(),
+    Value<String?> designatedEarIdentity = const Value.absent(),
     bool? externallyAssessable,
+    bool? exteriorEarTipExamined,
+    bool? baseShankSilkAxilsExamined,
     Value<bool?> externalDamagePresent = const Value.absent(),
     Value<bool?> activeInfestationPresent = const Value.absent(),
     Value<bool?> silkDamagePresent = const Value.absent(),
     Value<bool?> huskDamagePresent = const Value.absent(),
     Value<bool?> entryHolePresent = const Value.absent(),
     Value<bool?> frassPresent = const Value.absent(),
+    Value<String?> frassFreshness = const Value.absent(),
     Value<bool?> larvaPresent = const Value.absent(),
+    Value<String?> larvalSize = const Value.absent(),
+    Value<String?> feedingFreshness = const Value.absent(),
+    Value<bool?> moldRotLikeSymptoms = const Value.absent(),
+    Value<String?> causeTagsJson = const Value.absent(),
+    Value<String?> externalClassification = const Value.absent(),
     String? openingPermission,
     bool? opened,
+    Value<bool?> huskIntactBeforeOpening = const Value.absent(),
     Value<bool?> internalDamagePresent = const Value.absent(),
     Value<int?> totalKernelsCounted = const Value.absent(),
     Value<int?> damagedKernelsCounted = const Value.absent(),
     Value<String?> kernelCountMethod = const Value.absent(),
+    Value<double?> earTipDamageLengthMm = const Value.absent(),
+    Value<bool?> cobDamagePresent = const Value.absent(),
+    Value<bool?> brokenMissingUnderdevelopedKernels = const Value.absent(),
     Value<bool?> earRotPresent = const Value.absent(),
+    Value<int?> moldRotKernelsCounted = const Value.absent(),
     Value<String?> earRotSuspectedType = const Value.absent(),
+    Value<String?> internalClassification = const Value.absent(),
     Value<String?> notes = const Value.absent(),
   }) => EarObservationRecord(
     id: id ?? this.id,
@@ -22025,7 +25296,15 @@ class EarObservationRecord extends DataClass
     serverVersion: serverVersion ?? this.serverVersion,
     plantObservationId: plantObservationId ?? this.plantObservationId,
     earSequence: earSequence ?? this.earSequence,
+    earPresent: earPresent.present ? earPresent.value : this.earPresent,
+    designatedEarIdentity: designatedEarIdentity.present
+        ? designatedEarIdentity.value
+        : this.designatedEarIdentity,
     externallyAssessable: externallyAssessable ?? this.externallyAssessable,
+    exteriorEarTipExamined:
+        exteriorEarTipExamined ?? this.exteriorEarTipExamined,
+    baseShankSilkAxilsExamined:
+        baseShankSilkAxilsExamined ?? this.baseShankSilkAxilsExamined,
     externalDamagePresent: externalDamagePresent.present
         ? externalDamagePresent.value
         : this.externalDamagePresent,
@@ -22042,9 +25321,28 @@ class EarObservationRecord extends DataClass
         ? entryHolePresent.value
         : this.entryHolePresent,
     frassPresent: frassPresent.present ? frassPresent.value : this.frassPresent,
+    frassFreshness: frassFreshness.present
+        ? frassFreshness.value
+        : this.frassFreshness,
     larvaPresent: larvaPresent.present ? larvaPresent.value : this.larvaPresent,
+    larvalSize: larvalSize.present ? larvalSize.value : this.larvalSize,
+    feedingFreshness: feedingFreshness.present
+        ? feedingFreshness.value
+        : this.feedingFreshness,
+    moldRotLikeSymptoms: moldRotLikeSymptoms.present
+        ? moldRotLikeSymptoms.value
+        : this.moldRotLikeSymptoms,
+    causeTagsJson: causeTagsJson.present
+        ? causeTagsJson.value
+        : this.causeTagsJson,
+    externalClassification: externalClassification.present
+        ? externalClassification.value
+        : this.externalClassification,
     openingPermission: openingPermission ?? this.openingPermission,
     opened: opened ?? this.opened,
+    huskIntactBeforeOpening: huskIntactBeforeOpening.present
+        ? huskIntactBeforeOpening.value
+        : this.huskIntactBeforeOpening,
     internalDamagePresent: internalDamagePresent.present
         ? internalDamagePresent.value
         : this.internalDamagePresent,
@@ -22057,12 +25355,28 @@ class EarObservationRecord extends DataClass
     kernelCountMethod: kernelCountMethod.present
         ? kernelCountMethod.value
         : this.kernelCountMethod,
+    earTipDamageLengthMm: earTipDamageLengthMm.present
+        ? earTipDamageLengthMm.value
+        : this.earTipDamageLengthMm,
+    cobDamagePresent: cobDamagePresent.present
+        ? cobDamagePresent.value
+        : this.cobDamagePresent,
+    brokenMissingUnderdevelopedKernels:
+        brokenMissingUnderdevelopedKernels.present
+        ? brokenMissingUnderdevelopedKernels.value
+        : this.brokenMissingUnderdevelopedKernels,
     earRotPresent: earRotPresent.present
         ? earRotPresent.value
         : this.earRotPresent,
+    moldRotKernelsCounted: moldRotKernelsCounted.present
+        ? moldRotKernelsCounted.value
+        : this.moldRotKernelsCounted,
     earRotSuspectedType: earRotSuspectedType.present
         ? earRotSuspectedType.value
         : this.earRotSuspectedType,
+    internalClassification: internalClassification.present
+        ? internalClassification.value
+        : this.internalClassification,
     notes: notes.present ? notes.value : this.notes,
   );
   EarObservationRecord copyWithCompanion(EarObservationsCompanion data) {
@@ -22082,9 +25396,21 @@ class EarObservationRecord extends DataClass
       earSequence: data.earSequence.present
           ? data.earSequence.value
           : this.earSequence,
+      earPresent: data.earPresent.present
+          ? data.earPresent.value
+          : this.earPresent,
+      designatedEarIdentity: data.designatedEarIdentity.present
+          ? data.designatedEarIdentity.value
+          : this.designatedEarIdentity,
       externallyAssessable: data.externallyAssessable.present
           ? data.externallyAssessable.value
           : this.externallyAssessable,
+      exteriorEarTipExamined: data.exteriorEarTipExamined.present
+          ? data.exteriorEarTipExamined.value
+          : this.exteriorEarTipExamined,
+      baseShankSilkAxilsExamined: data.baseShankSilkAxilsExamined.present
+          ? data.baseShankSilkAxilsExamined.value
+          : this.baseShankSilkAxilsExamined,
       externalDamagePresent: data.externalDamagePresent.present
           ? data.externalDamagePresent.value
           : this.externalDamagePresent,
@@ -22103,13 +25429,34 @@ class EarObservationRecord extends DataClass
       frassPresent: data.frassPresent.present
           ? data.frassPresent.value
           : this.frassPresent,
+      frassFreshness: data.frassFreshness.present
+          ? data.frassFreshness.value
+          : this.frassFreshness,
       larvaPresent: data.larvaPresent.present
           ? data.larvaPresent.value
           : this.larvaPresent,
+      larvalSize: data.larvalSize.present
+          ? data.larvalSize.value
+          : this.larvalSize,
+      feedingFreshness: data.feedingFreshness.present
+          ? data.feedingFreshness.value
+          : this.feedingFreshness,
+      moldRotLikeSymptoms: data.moldRotLikeSymptoms.present
+          ? data.moldRotLikeSymptoms.value
+          : this.moldRotLikeSymptoms,
+      causeTagsJson: data.causeTagsJson.present
+          ? data.causeTagsJson.value
+          : this.causeTagsJson,
+      externalClassification: data.externalClassification.present
+          ? data.externalClassification.value
+          : this.externalClassification,
       openingPermission: data.openingPermission.present
           ? data.openingPermission.value
           : this.openingPermission,
       opened: data.opened.present ? data.opened.value : this.opened,
+      huskIntactBeforeOpening: data.huskIntactBeforeOpening.present
+          ? data.huskIntactBeforeOpening.value
+          : this.huskIntactBeforeOpening,
       internalDamagePresent: data.internalDamagePresent.present
           ? data.internalDamagePresent.value
           : this.internalDamagePresent,
@@ -22122,12 +25469,28 @@ class EarObservationRecord extends DataClass
       kernelCountMethod: data.kernelCountMethod.present
           ? data.kernelCountMethod.value
           : this.kernelCountMethod,
+      earTipDamageLengthMm: data.earTipDamageLengthMm.present
+          ? data.earTipDamageLengthMm.value
+          : this.earTipDamageLengthMm,
+      cobDamagePresent: data.cobDamagePresent.present
+          ? data.cobDamagePresent.value
+          : this.cobDamagePresent,
+      brokenMissingUnderdevelopedKernels:
+          data.brokenMissingUnderdevelopedKernels.present
+          ? data.brokenMissingUnderdevelopedKernels.value
+          : this.brokenMissingUnderdevelopedKernels,
       earRotPresent: data.earRotPresent.present
           ? data.earRotPresent.value
           : this.earRotPresent,
+      moldRotKernelsCounted: data.moldRotKernelsCounted.present
+          ? data.moldRotKernelsCounted.value
+          : this.moldRotKernelsCounted,
       earRotSuspectedType: data.earRotSuspectedType.present
           ? data.earRotSuspectedType.value
           : this.earRotSuspectedType,
+      internalClassification: data.internalClassification.present
+          ? data.internalClassification.value
+          : this.internalClassification,
       notes: data.notes.present ? data.notes.value : this.notes,
     );
   }
@@ -22144,22 +25507,40 @@ class EarObservationRecord extends DataClass
           ..write('serverVersion: $serverVersion, ')
           ..write('plantObservationId: $plantObservationId, ')
           ..write('earSequence: $earSequence, ')
+          ..write('earPresent: $earPresent, ')
+          ..write('designatedEarIdentity: $designatedEarIdentity, ')
           ..write('externallyAssessable: $externallyAssessable, ')
+          ..write('exteriorEarTipExamined: $exteriorEarTipExamined, ')
+          ..write('baseShankSilkAxilsExamined: $baseShankSilkAxilsExamined, ')
           ..write('externalDamagePresent: $externalDamagePresent, ')
           ..write('activeInfestationPresent: $activeInfestationPresent, ')
           ..write('silkDamagePresent: $silkDamagePresent, ')
           ..write('huskDamagePresent: $huskDamagePresent, ')
           ..write('entryHolePresent: $entryHolePresent, ')
           ..write('frassPresent: $frassPresent, ')
+          ..write('frassFreshness: $frassFreshness, ')
           ..write('larvaPresent: $larvaPresent, ')
+          ..write('larvalSize: $larvalSize, ')
+          ..write('feedingFreshness: $feedingFreshness, ')
+          ..write('moldRotLikeSymptoms: $moldRotLikeSymptoms, ')
+          ..write('causeTagsJson: $causeTagsJson, ')
+          ..write('externalClassification: $externalClassification, ')
           ..write('openingPermission: $openingPermission, ')
           ..write('opened: $opened, ')
+          ..write('huskIntactBeforeOpening: $huskIntactBeforeOpening, ')
           ..write('internalDamagePresent: $internalDamagePresent, ')
           ..write('totalKernelsCounted: $totalKernelsCounted, ')
           ..write('damagedKernelsCounted: $damagedKernelsCounted, ')
           ..write('kernelCountMethod: $kernelCountMethod, ')
+          ..write('earTipDamageLengthMm: $earTipDamageLengthMm, ')
+          ..write('cobDamagePresent: $cobDamagePresent, ')
+          ..write(
+            'brokenMissingUnderdevelopedKernels: $brokenMissingUnderdevelopedKernels, ',
+          )
           ..write('earRotPresent: $earRotPresent, ')
+          ..write('moldRotKernelsCounted: $moldRotKernelsCounted, ')
           ..write('earRotSuspectedType: $earRotSuspectedType, ')
+          ..write('internalClassification: $internalClassification, ')
           ..write('notes: $notes')
           ..write(')'))
         .toString();
@@ -22176,22 +25557,38 @@ class EarObservationRecord extends DataClass
     serverVersion,
     plantObservationId,
     earSequence,
+    earPresent,
+    designatedEarIdentity,
     externallyAssessable,
+    exteriorEarTipExamined,
+    baseShankSilkAxilsExamined,
     externalDamagePresent,
     activeInfestationPresent,
     silkDamagePresent,
     huskDamagePresent,
     entryHolePresent,
     frassPresent,
+    frassFreshness,
     larvaPresent,
+    larvalSize,
+    feedingFreshness,
+    moldRotLikeSymptoms,
+    causeTagsJson,
+    externalClassification,
     openingPermission,
     opened,
+    huskIntactBeforeOpening,
     internalDamagePresent,
     totalKernelsCounted,
     damagedKernelsCounted,
     kernelCountMethod,
+    earTipDamageLengthMm,
+    cobDamagePresent,
+    brokenMissingUnderdevelopedKernels,
     earRotPresent,
+    moldRotKernelsCounted,
     earRotSuspectedType,
+    internalClassification,
     notes,
   ]);
   @override
@@ -22207,22 +25604,39 @@ class EarObservationRecord extends DataClass
           other.serverVersion == this.serverVersion &&
           other.plantObservationId == this.plantObservationId &&
           other.earSequence == this.earSequence &&
+          other.earPresent == this.earPresent &&
+          other.designatedEarIdentity == this.designatedEarIdentity &&
           other.externallyAssessable == this.externallyAssessable &&
+          other.exteriorEarTipExamined == this.exteriorEarTipExamined &&
+          other.baseShankSilkAxilsExamined == this.baseShankSilkAxilsExamined &&
           other.externalDamagePresent == this.externalDamagePresent &&
           other.activeInfestationPresent == this.activeInfestationPresent &&
           other.silkDamagePresent == this.silkDamagePresent &&
           other.huskDamagePresent == this.huskDamagePresent &&
           other.entryHolePresent == this.entryHolePresent &&
           other.frassPresent == this.frassPresent &&
+          other.frassFreshness == this.frassFreshness &&
           other.larvaPresent == this.larvaPresent &&
+          other.larvalSize == this.larvalSize &&
+          other.feedingFreshness == this.feedingFreshness &&
+          other.moldRotLikeSymptoms == this.moldRotLikeSymptoms &&
+          other.causeTagsJson == this.causeTagsJson &&
+          other.externalClassification == this.externalClassification &&
           other.openingPermission == this.openingPermission &&
           other.opened == this.opened &&
+          other.huskIntactBeforeOpening == this.huskIntactBeforeOpening &&
           other.internalDamagePresent == this.internalDamagePresent &&
           other.totalKernelsCounted == this.totalKernelsCounted &&
           other.damagedKernelsCounted == this.damagedKernelsCounted &&
           other.kernelCountMethod == this.kernelCountMethod &&
+          other.earTipDamageLengthMm == this.earTipDamageLengthMm &&
+          other.cobDamagePresent == this.cobDamagePresent &&
+          other.brokenMissingUnderdevelopedKernels ==
+              this.brokenMissingUnderdevelopedKernels &&
           other.earRotPresent == this.earRotPresent &&
+          other.moldRotKernelsCounted == this.moldRotKernelsCounted &&
           other.earRotSuspectedType == this.earRotSuspectedType &&
+          other.internalClassification == this.internalClassification &&
           other.notes == this.notes);
 }
 
@@ -22236,22 +25650,38 @@ class EarObservationsCompanion extends UpdateCompanion<EarObservationRecord> {
   final Value<int> serverVersion;
   final Value<String> plantObservationId;
   final Value<int> earSequence;
+  final Value<bool?> earPresent;
+  final Value<String?> designatedEarIdentity;
   final Value<bool> externallyAssessable;
+  final Value<bool> exteriorEarTipExamined;
+  final Value<bool> baseShankSilkAxilsExamined;
   final Value<bool?> externalDamagePresent;
   final Value<bool?> activeInfestationPresent;
   final Value<bool?> silkDamagePresent;
   final Value<bool?> huskDamagePresent;
   final Value<bool?> entryHolePresent;
   final Value<bool?> frassPresent;
+  final Value<String?> frassFreshness;
   final Value<bool?> larvaPresent;
+  final Value<String?> larvalSize;
+  final Value<String?> feedingFreshness;
+  final Value<bool?> moldRotLikeSymptoms;
+  final Value<String?> causeTagsJson;
+  final Value<String?> externalClassification;
   final Value<String> openingPermission;
   final Value<bool> opened;
+  final Value<bool?> huskIntactBeforeOpening;
   final Value<bool?> internalDamagePresent;
   final Value<int?> totalKernelsCounted;
   final Value<int?> damagedKernelsCounted;
   final Value<String?> kernelCountMethod;
+  final Value<double?> earTipDamageLengthMm;
+  final Value<bool?> cobDamagePresent;
+  final Value<bool?> brokenMissingUnderdevelopedKernels;
   final Value<bool?> earRotPresent;
+  final Value<int?> moldRotKernelsCounted;
   final Value<String?> earRotSuspectedType;
+  final Value<String?> internalClassification;
   final Value<String?> notes;
   final Value<int> rowid;
   const EarObservationsCompanion({
@@ -22264,22 +25694,38 @@ class EarObservationsCompanion extends UpdateCompanion<EarObservationRecord> {
     this.serverVersion = const Value.absent(),
     this.plantObservationId = const Value.absent(),
     this.earSequence = const Value.absent(),
+    this.earPresent = const Value.absent(),
+    this.designatedEarIdentity = const Value.absent(),
     this.externallyAssessable = const Value.absent(),
+    this.exteriorEarTipExamined = const Value.absent(),
+    this.baseShankSilkAxilsExamined = const Value.absent(),
     this.externalDamagePresent = const Value.absent(),
     this.activeInfestationPresent = const Value.absent(),
     this.silkDamagePresent = const Value.absent(),
     this.huskDamagePresent = const Value.absent(),
     this.entryHolePresent = const Value.absent(),
     this.frassPresent = const Value.absent(),
+    this.frassFreshness = const Value.absent(),
     this.larvaPresent = const Value.absent(),
+    this.larvalSize = const Value.absent(),
+    this.feedingFreshness = const Value.absent(),
+    this.moldRotLikeSymptoms = const Value.absent(),
+    this.causeTagsJson = const Value.absent(),
+    this.externalClassification = const Value.absent(),
     this.openingPermission = const Value.absent(),
     this.opened = const Value.absent(),
+    this.huskIntactBeforeOpening = const Value.absent(),
     this.internalDamagePresent = const Value.absent(),
     this.totalKernelsCounted = const Value.absent(),
     this.damagedKernelsCounted = const Value.absent(),
     this.kernelCountMethod = const Value.absent(),
+    this.earTipDamageLengthMm = const Value.absent(),
+    this.cobDamagePresent = const Value.absent(),
+    this.brokenMissingUnderdevelopedKernels = const Value.absent(),
     this.earRotPresent = const Value.absent(),
+    this.moldRotKernelsCounted = const Value.absent(),
     this.earRotSuspectedType = const Value.absent(),
+    this.internalClassification = const Value.absent(),
     this.notes = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -22293,22 +25739,38 @@ class EarObservationsCompanion extends UpdateCompanion<EarObservationRecord> {
     this.serverVersion = const Value.absent(),
     required String plantObservationId,
     this.earSequence = const Value.absent(),
+    this.earPresent = const Value.absent(),
+    this.designatedEarIdentity = const Value.absent(),
     this.externallyAssessable = const Value.absent(),
+    this.exteriorEarTipExamined = const Value.absent(),
+    this.baseShankSilkAxilsExamined = const Value.absent(),
     this.externalDamagePresent = const Value.absent(),
     this.activeInfestationPresent = const Value.absent(),
     this.silkDamagePresent = const Value.absent(),
     this.huskDamagePresent = const Value.absent(),
     this.entryHolePresent = const Value.absent(),
     this.frassPresent = const Value.absent(),
+    this.frassFreshness = const Value.absent(),
     this.larvaPresent = const Value.absent(),
+    this.larvalSize = const Value.absent(),
+    this.feedingFreshness = const Value.absent(),
+    this.moldRotLikeSymptoms = const Value.absent(),
+    this.causeTagsJson = const Value.absent(),
+    this.externalClassification = const Value.absent(),
     this.openingPermission = const Value.absent(),
     this.opened = const Value.absent(),
+    this.huskIntactBeforeOpening = const Value.absent(),
     this.internalDamagePresent = const Value.absent(),
     this.totalKernelsCounted = const Value.absent(),
     this.damagedKernelsCounted = const Value.absent(),
     this.kernelCountMethod = const Value.absent(),
+    this.earTipDamageLengthMm = const Value.absent(),
+    this.cobDamagePresent = const Value.absent(),
+    this.brokenMissingUnderdevelopedKernels = const Value.absent(),
     this.earRotPresent = const Value.absent(),
+    this.moldRotKernelsCounted = const Value.absent(),
     this.earRotSuspectedType = const Value.absent(),
+    this.internalClassification = const Value.absent(),
     this.notes = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -22323,22 +25785,38 @@ class EarObservationsCompanion extends UpdateCompanion<EarObservationRecord> {
     Expression<int>? serverVersion,
     Expression<String>? plantObservationId,
     Expression<int>? earSequence,
+    Expression<bool>? earPresent,
+    Expression<String>? designatedEarIdentity,
     Expression<bool>? externallyAssessable,
+    Expression<bool>? exteriorEarTipExamined,
+    Expression<bool>? baseShankSilkAxilsExamined,
     Expression<bool>? externalDamagePresent,
     Expression<bool>? activeInfestationPresent,
     Expression<bool>? silkDamagePresent,
     Expression<bool>? huskDamagePresent,
     Expression<bool>? entryHolePresent,
     Expression<bool>? frassPresent,
+    Expression<String>? frassFreshness,
     Expression<bool>? larvaPresent,
+    Expression<String>? larvalSize,
+    Expression<String>? feedingFreshness,
+    Expression<bool>? moldRotLikeSymptoms,
+    Expression<String>? causeTagsJson,
+    Expression<String>? externalClassification,
     Expression<String>? openingPermission,
     Expression<bool>? opened,
+    Expression<bool>? huskIntactBeforeOpening,
     Expression<bool>? internalDamagePresent,
     Expression<int>? totalKernelsCounted,
     Expression<int>? damagedKernelsCounted,
     Expression<String>? kernelCountMethod,
+    Expression<double>? earTipDamageLengthMm,
+    Expression<bool>? cobDamagePresent,
+    Expression<bool>? brokenMissingUnderdevelopedKernels,
     Expression<bool>? earRotPresent,
+    Expression<int>? moldRotKernelsCounted,
     Expression<String>? earRotSuspectedType,
+    Expression<String>? internalClassification,
     Expression<String>? notes,
     Expression<int>? rowid,
   }) {
@@ -22353,8 +25831,15 @@ class EarObservationsCompanion extends UpdateCompanion<EarObservationRecord> {
       if (plantObservationId != null)
         'plant_observation_id': plantObservationId,
       if (earSequence != null) 'ear_sequence': earSequence,
+      if (earPresent != null) 'ear_present': earPresent,
+      if (designatedEarIdentity != null)
+        'designated_ear_identity': designatedEarIdentity,
       if (externallyAssessable != null)
         'externally_assessable': externallyAssessable,
+      if (exteriorEarTipExamined != null)
+        'exterior_ear_tip_examined': exteriorEarTipExamined,
+      if (baseShankSilkAxilsExamined != null)
+        'base_shank_silk_axils_examined': baseShankSilkAxilsExamined,
       if (externalDamagePresent != null)
         'external_damage_present': externalDamagePresent,
       if (activeInfestationPresent != null)
@@ -22363,9 +25848,19 @@ class EarObservationsCompanion extends UpdateCompanion<EarObservationRecord> {
       if (huskDamagePresent != null) 'husk_damage_present': huskDamagePresent,
       if (entryHolePresent != null) 'entry_hole_present': entryHolePresent,
       if (frassPresent != null) 'frass_present': frassPresent,
+      if (frassFreshness != null) 'frass_freshness': frassFreshness,
       if (larvaPresent != null) 'larva_present': larvaPresent,
+      if (larvalSize != null) 'larval_size': larvalSize,
+      if (feedingFreshness != null) 'feeding_freshness': feedingFreshness,
+      if (moldRotLikeSymptoms != null)
+        'mold_rot_like_symptoms': moldRotLikeSymptoms,
+      if (causeTagsJson != null) 'cause_tags_json': causeTagsJson,
+      if (externalClassification != null)
+        'external_classification': externalClassification,
       if (openingPermission != null) 'opening_permission': openingPermission,
       if (opened != null) 'opened': opened,
+      if (huskIntactBeforeOpening != null)
+        'husk_intact_before_opening': huskIntactBeforeOpening,
       if (internalDamagePresent != null)
         'internal_damage_present': internalDamagePresent,
       if (totalKernelsCounted != null)
@@ -22373,9 +25868,19 @@ class EarObservationsCompanion extends UpdateCompanion<EarObservationRecord> {
       if (damagedKernelsCounted != null)
         'damaged_kernels_counted': damagedKernelsCounted,
       if (kernelCountMethod != null) 'kernel_count_method': kernelCountMethod,
+      if (earTipDamageLengthMm != null)
+        'ear_tip_damage_length_mm': earTipDamageLengthMm,
+      if (cobDamagePresent != null) 'cob_damage_present': cobDamagePresent,
+      if (brokenMissingUnderdevelopedKernels != null)
+        'broken_missing_underdeveloped_kernels':
+            brokenMissingUnderdevelopedKernels,
       if (earRotPresent != null) 'ear_rot_present': earRotPresent,
+      if (moldRotKernelsCounted != null)
+        'mold_rot_kernels_counted': moldRotKernelsCounted,
       if (earRotSuspectedType != null)
         'ear_rot_suspected_type': earRotSuspectedType,
+      if (internalClassification != null)
+        'internal_classification': internalClassification,
       if (notes != null) 'notes': notes,
       if (rowid != null) 'rowid': rowid,
     });
@@ -22391,22 +25896,38 @@ class EarObservationsCompanion extends UpdateCompanion<EarObservationRecord> {
     Value<int>? serverVersion,
     Value<String>? plantObservationId,
     Value<int>? earSequence,
+    Value<bool?>? earPresent,
+    Value<String?>? designatedEarIdentity,
     Value<bool>? externallyAssessable,
+    Value<bool>? exteriorEarTipExamined,
+    Value<bool>? baseShankSilkAxilsExamined,
     Value<bool?>? externalDamagePresent,
     Value<bool?>? activeInfestationPresent,
     Value<bool?>? silkDamagePresent,
     Value<bool?>? huskDamagePresent,
     Value<bool?>? entryHolePresent,
     Value<bool?>? frassPresent,
+    Value<String?>? frassFreshness,
     Value<bool?>? larvaPresent,
+    Value<String?>? larvalSize,
+    Value<String?>? feedingFreshness,
+    Value<bool?>? moldRotLikeSymptoms,
+    Value<String?>? causeTagsJson,
+    Value<String?>? externalClassification,
     Value<String>? openingPermission,
     Value<bool>? opened,
+    Value<bool?>? huskIntactBeforeOpening,
     Value<bool?>? internalDamagePresent,
     Value<int?>? totalKernelsCounted,
     Value<int?>? damagedKernelsCounted,
     Value<String?>? kernelCountMethod,
+    Value<double?>? earTipDamageLengthMm,
+    Value<bool?>? cobDamagePresent,
+    Value<bool?>? brokenMissingUnderdevelopedKernels,
     Value<bool?>? earRotPresent,
+    Value<int?>? moldRotKernelsCounted,
     Value<String?>? earRotSuspectedType,
+    Value<String?>? internalClassification,
     Value<String?>? notes,
     Value<int>? rowid,
   }) {
@@ -22420,7 +25941,14 @@ class EarObservationsCompanion extends UpdateCompanion<EarObservationRecord> {
       serverVersion: serverVersion ?? this.serverVersion,
       plantObservationId: plantObservationId ?? this.plantObservationId,
       earSequence: earSequence ?? this.earSequence,
+      earPresent: earPresent ?? this.earPresent,
+      designatedEarIdentity:
+          designatedEarIdentity ?? this.designatedEarIdentity,
       externallyAssessable: externallyAssessable ?? this.externallyAssessable,
+      exteriorEarTipExamined:
+          exteriorEarTipExamined ?? this.exteriorEarTipExamined,
+      baseShankSilkAxilsExamined:
+          baseShankSilkAxilsExamined ?? this.baseShankSilkAxilsExamined,
       externalDamagePresent:
           externalDamagePresent ?? this.externalDamagePresent,
       activeInfestationPresent:
@@ -22429,17 +25957,35 @@ class EarObservationsCompanion extends UpdateCompanion<EarObservationRecord> {
       huskDamagePresent: huskDamagePresent ?? this.huskDamagePresent,
       entryHolePresent: entryHolePresent ?? this.entryHolePresent,
       frassPresent: frassPresent ?? this.frassPresent,
+      frassFreshness: frassFreshness ?? this.frassFreshness,
       larvaPresent: larvaPresent ?? this.larvaPresent,
+      larvalSize: larvalSize ?? this.larvalSize,
+      feedingFreshness: feedingFreshness ?? this.feedingFreshness,
+      moldRotLikeSymptoms: moldRotLikeSymptoms ?? this.moldRotLikeSymptoms,
+      causeTagsJson: causeTagsJson ?? this.causeTagsJson,
+      externalClassification:
+          externalClassification ?? this.externalClassification,
       openingPermission: openingPermission ?? this.openingPermission,
       opened: opened ?? this.opened,
+      huskIntactBeforeOpening:
+          huskIntactBeforeOpening ?? this.huskIntactBeforeOpening,
       internalDamagePresent:
           internalDamagePresent ?? this.internalDamagePresent,
       totalKernelsCounted: totalKernelsCounted ?? this.totalKernelsCounted,
       damagedKernelsCounted:
           damagedKernelsCounted ?? this.damagedKernelsCounted,
       kernelCountMethod: kernelCountMethod ?? this.kernelCountMethod,
+      earTipDamageLengthMm: earTipDamageLengthMm ?? this.earTipDamageLengthMm,
+      cobDamagePresent: cobDamagePresent ?? this.cobDamagePresent,
+      brokenMissingUnderdevelopedKernels:
+          brokenMissingUnderdevelopedKernels ??
+          this.brokenMissingUnderdevelopedKernels,
       earRotPresent: earRotPresent ?? this.earRotPresent,
+      moldRotKernelsCounted:
+          moldRotKernelsCounted ?? this.moldRotKernelsCounted,
       earRotSuspectedType: earRotSuspectedType ?? this.earRotSuspectedType,
+      internalClassification:
+          internalClassification ?? this.internalClassification,
       notes: notes ?? this.notes,
       rowid: rowid ?? this.rowid,
     );
@@ -22475,8 +26021,26 @@ class EarObservationsCompanion extends UpdateCompanion<EarObservationRecord> {
     if (earSequence.present) {
       map['ear_sequence'] = Variable<int>(earSequence.value);
     }
+    if (earPresent.present) {
+      map['ear_present'] = Variable<bool>(earPresent.value);
+    }
+    if (designatedEarIdentity.present) {
+      map['designated_ear_identity'] = Variable<String>(
+        designatedEarIdentity.value,
+      );
+    }
     if (externallyAssessable.present) {
       map['externally_assessable'] = Variable<bool>(externallyAssessable.value);
+    }
+    if (exteriorEarTipExamined.present) {
+      map['exterior_ear_tip_examined'] = Variable<bool>(
+        exteriorEarTipExamined.value,
+      );
+    }
+    if (baseShankSilkAxilsExamined.present) {
+      map['base_shank_silk_axils_examined'] = Variable<bool>(
+        baseShankSilkAxilsExamined.value,
+      );
     }
     if (externalDamagePresent.present) {
       map['external_damage_present'] = Variable<bool>(
@@ -22500,14 +26064,39 @@ class EarObservationsCompanion extends UpdateCompanion<EarObservationRecord> {
     if (frassPresent.present) {
       map['frass_present'] = Variable<bool>(frassPresent.value);
     }
+    if (frassFreshness.present) {
+      map['frass_freshness'] = Variable<String>(frassFreshness.value);
+    }
     if (larvaPresent.present) {
       map['larva_present'] = Variable<bool>(larvaPresent.value);
+    }
+    if (larvalSize.present) {
+      map['larval_size'] = Variable<String>(larvalSize.value);
+    }
+    if (feedingFreshness.present) {
+      map['feeding_freshness'] = Variable<String>(feedingFreshness.value);
+    }
+    if (moldRotLikeSymptoms.present) {
+      map['mold_rot_like_symptoms'] = Variable<bool>(moldRotLikeSymptoms.value);
+    }
+    if (causeTagsJson.present) {
+      map['cause_tags_json'] = Variable<String>(causeTagsJson.value);
+    }
+    if (externalClassification.present) {
+      map['external_classification'] = Variable<String>(
+        externalClassification.value,
+      );
     }
     if (openingPermission.present) {
       map['opening_permission'] = Variable<String>(openingPermission.value);
     }
     if (opened.present) {
       map['opened'] = Variable<bool>(opened.value);
+    }
+    if (huskIntactBeforeOpening.present) {
+      map['husk_intact_before_opening'] = Variable<bool>(
+        huskIntactBeforeOpening.value,
+      );
     }
     if (internalDamagePresent.present) {
       map['internal_damage_present'] = Variable<bool>(
@@ -22525,12 +26114,35 @@ class EarObservationsCompanion extends UpdateCompanion<EarObservationRecord> {
     if (kernelCountMethod.present) {
       map['kernel_count_method'] = Variable<String>(kernelCountMethod.value);
     }
+    if (earTipDamageLengthMm.present) {
+      map['ear_tip_damage_length_mm'] = Variable<double>(
+        earTipDamageLengthMm.value,
+      );
+    }
+    if (cobDamagePresent.present) {
+      map['cob_damage_present'] = Variable<bool>(cobDamagePresent.value);
+    }
+    if (brokenMissingUnderdevelopedKernels.present) {
+      map['broken_missing_underdeveloped_kernels'] = Variable<bool>(
+        brokenMissingUnderdevelopedKernels.value,
+      );
+    }
     if (earRotPresent.present) {
       map['ear_rot_present'] = Variable<bool>(earRotPresent.value);
+    }
+    if (moldRotKernelsCounted.present) {
+      map['mold_rot_kernels_counted'] = Variable<int>(
+        moldRotKernelsCounted.value,
+      );
     }
     if (earRotSuspectedType.present) {
       map['ear_rot_suspected_type'] = Variable<String>(
         earRotSuspectedType.value,
+      );
+    }
+    if (internalClassification.present) {
+      map['internal_classification'] = Variable<String>(
+        internalClassification.value,
       );
     }
     if (notes.present) {
@@ -22554,22 +26166,40 @@ class EarObservationsCompanion extends UpdateCompanion<EarObservationRecord> {
           ..write('serverVersion: $serverVersion, ')
           ..write('plantObservationId: $plantObservationId, ')
           ..write('earSequence: $earSequence, ')
+          ..write('earPresent: $earPresent, ')
+          ..write('designatedEarIdentity: $designatedEarIdentity, ')
           ..write('externallyAssessable: $externallyAssessable, ')
+          ..write('exteriorEarTipExamined: $exteriorEarTipExamined, ')
+          ..write('baseShankSilkAxilsExamined: $baseShankSilkAxilsExamined, ')
           ..write('externalDamagePresent: $externalDamagePresent, ')
           ..write('activeInfestationPresent: $activeInfestationPresent, ')
           ..write('silkDamagePresent: $silkDamagePresent, ')
           ..write('huskDamagePresent: $huskDamagePresent, ')
           ..write('entryHolePresent: $entryHolePresent, ')
           ..write('frassPresent: $frassPresent, ')
+          ..write('frassFreshness: $frassFreshness, ')
           ..write('larvaPresent: $larvaPresent, ')
+          ..write('larvalSize: $larvalSize, ')
+          ..write('feedingFreshness: $feedingFreshness, ')
+          ..write('moldRotLikeSymptoms: $moldRotLikeSymptoms, ')
+          ..write('causeTagsJson: $causeTagsJson, ')
+          ..write('externalClassification: $externalClassification, ')
           ..write('openingPermission: $openingPermission, ')
           ..write('opened: $opened, ')
+          ..write('huskIntactBeforeOpening: $huskIntactBeforeOpening, ')
           ..write('internalDamagePresent: $internalDamagePresent, ')
           ..write('totalKernelsCounted: $totalKernelsCounted, ')
           ..write('damagedKernelsCounted: $damagedKernelsCounted, ')
           ..write('kernelCountMethod: $kernelCountMethod, ')
+          ..write('earTipDamageLengthMm: $earTipDamageLengthMm, ')
+          ..write('cobDamagePresent: $cobDamagePresent, ')
+          ..write(
+            'brokenMissingUnderdevelopedKernels: $brokenMissingUnderdevelopedKernels, ',
+          )
           ..write('earRotPresent: $earRotPresent, ')
+          ..write('moldRotKernelsCounted: $moldRotKernelsCounted, ')
           ..write('earRotSuspectedType: $earRotSuspectedType, ')
+          ..write('internalClassification: $internalClassification, ')
           ..write('notes: $notes, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -28807,6 +32437,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $VegetativeObservationsTable(this);
   late final $ReproductiveObservationsTable reproductiveObservations =
       $ReproductiveObservationsTable(this);
+  late final $LateSeasonAssessmentSetupsTable lateSeasonAssessmentSetups =
+      $LateSeasonAssessmentSetupsTable(this);
+  late final $EarOpeningSelectionsTable earOpeningSelections =
+      $EarOpeningSelectionsTable(this);
   late final $EarObservationsTable earObservations = $EarObservationsTable(
     this,
   );
@@ -28839,6 +32473,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     veV2StationInspections,
     vegetativeObservations,
     reproductiveObservations,
+    lateSeasonAssessmentSetups,
+    earOpeningSelections,
     earObservations,
     evidenceCaptureSessions,
     evidenceMedia,
@@ -29028,6 +32664,35 @@ final class $$PeopleTableReferences
         );
 
     final cache = $_typedResult.readTableOrNull(_safetyChecksRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<
+    $LateSeasonAssessmentSetupsTable,
+    List<LateSeasonAssessmentSetupRecord>
+  >
+  _lateSeasonAssessmentSetupsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.lateSeasonAssessmentSetups,
+        aliasName:
+            'people__id__late_season_assessment_setups__evaluator_person_id',
+      );
+
+  $$LateSeasonAssessmentSetupsTableProcessedTableManager
+  get lateSeasonAssessmentSetupsRefs {
+    final manager =
+        $$LateSeasonAssessmentSetupsTableTableManager(
+          $_db,
+          $_db.lateSeasonAssessmentSetups,
+        ).filter(
+          (f) => f.evaluatorPersonId.id.sqlEquals($_itemColumn<String>('id')!),
+        );
+
+    final cache = $_typedResult.readTableOrNull(
+      _lateSeasonAssessmentSetupsRefsTable($_db),
+    );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -29299,6 +32964,33 @@ class $$PeopleTableFilterComposer
                 $removeJoinBuilderFromRootComposer,
           ),
     );
+    return f(composer);
+  }
+
+  Expression<bool> lateSeasonAssessmentSetupsRefs(
+    Expression<bool> Function($$LateSeasonAssessmentSetupsTableFilterComposer f)
+    f,
+  ) {
+    final $$LateSeasonAssessmentSetupsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.lateSeasonAssessmentSetups,
+          getReferencedColumn: (t) => t.evaluatorPersonId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$LateSeasonAssessmentSetupsTableFilterComposer(
+                $db: $db,
+                $table: $db.lateSeasonAssessmentSetups,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
     return f(composer);
   }
 
@@ -29635,6 +33327,35 @@ class $$PeopleTableAnnotationComposer
     return f(composer);
   }
 
+  Expression<T> lateSeasonAssessmentSetupsRefs<T extends Object>(
+    Expression<T> Function(
+      $$LateSeasonAssessmentSetupsTableAnnotationComposer a,
+    )
+    f,
+  ) {
+    final $$LateSeasonAssessmentSetupsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.lateSeasonAssessmentSetups,
+          getReferencedColumn: (t) => t.evaluatorPersonId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$LateSeasonAssessmentSetupsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.lateSeasonAssessmentSetups,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
   Expression<T> auditLogsRefs<T extends Object>(
     Expression<T> Function($$AuditLogsTableAnnotationComposer a) f,
   ) {
@@ -29682,6 +33403,7 @@ class $$PeopleTableTableManager
             bool interventionsReportedBy,
             bool assessmentsRefs,
             bool safetyChecksRefs,
+            bool lateSeasonAssessmentSetupsRefs,
             bool auditLogsRefs,
           })
         > {
@@ -29775,6 +33497,7 @@ class $$PeopleTableTableManager
                 interventionsReportedBy = false,
                 assessmentsRefs = false,
                 safetyChecksRefs = false,
+                lateSeasonAssessmentSetupsRefs = false,
                 auditLogsRefs = false,
               }) {
                 return PrefetchHooks(
@@ -29787,6 +33510,8 @@ class $$PeopleTableTableManager
                     if (interventionsReportedBy) db.interventions,
                     if (assessmentsRefs) db.assessments,
                     if (safetyChecksRefs) db.safetyChecks,
+                    if (lateSeasonAssessmentSetupsRefs)
+                      db.lateSeasonAssessmentSetups,
                     if (auditLogsRefs) db.auditLogs,
                   ],
                   addJoins: null,
@@ -29935,6 +33660,27 @@ class $$PeopleTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (lateSeasonAssessmentSetupsRefs)
+                        await $_getPrefetchedData<
+                          PersonRecord,
+                          $PeopleTable,
+                          LateSeasonAssessmentSetupRecord
+                        >(
+                          currentTable: table,
+                          referencedTable: $$PeopleTableReferences
+                              ._lateSeasonAssessmentSetupsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$PeopleTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).lateSeasonAssessmentSetupsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.evaluatorPersonId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                       if (auditLogsRefs)
                         await $_getPrefetchedData<
                           PersonRecord,
@@ -29984,6 +33730,7 @@ typedef $$PeopleTableProcessedTableManager =
         bool interventionsReportedBy,
         bool assessmentsRefs,
         bool safetyChecksRefs,
+        bool lateSeasonAssessmentSetupsRefs,
         bool auditLogsRefs,
       })
     >;
@@ -36406,6 +40153,32 @@ final class $$AssessmentsTableReferences
   }
 
   static MultiTypedResultKey<
+    $LateSeasonAssessmentSetupsTable,
+    List<LateSeasonAssessmentSetupRecord>
+  >
+  _lateSeasonAssessmentSetupsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.lateSeasonAssessmentSetups,
+        aliasName:
+            'assessments__id__late_season_assessment_setups__assessment_id',
+      );
+
+  $$LateSeasonAssessmentSetupsTableProcessedTableManager
+  get lateSeasonAssessmentSetupsRefs {
+    final manager = $$LateSeasonAssessmentSetupsTableTableManager(
+      $_db,
+      $_db.lateSeasonAssessmentSetups,
+    ).filter((f) => f.assessmentId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _lateSeasonAssessmentSetupsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<
     $EvidenceCaptureSessionsTable,
     List<EvidenceCaptureSessionRecord>
   >
@@ -36733,6 +40506,33 @@ class $$AssessmentsTableFilterComposer
                 $removeJoinBuilderFromRootComposer,
           ),
     );
+    return f(composer);
+  }
+
+  Expression<bool> lateSeasonAssessmentSetupsRefs(
+    Expression<bool> Function($$LateSeasonAssessmentSetupsTableFilterComposer f)
+    f,
+  ) {
+    final $$LateSeasonAssessmentSetupsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.lateSeasonAssessmentSetups,
+          getReferencedColumn: (t) => t.assessmentId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$LateSeasonAssessmentSetupsTableFilterComposer(
+                $db: $db,
+                $table: $db.lateSeasonAssessmentSetups,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
     return f(composer);
   }
 
@@ -37287,6 +41087,35 @@ class $$AssessmentsTableAnnotationComposer
     return f(composer);
   }
 
+  Expression<T> lateSeasonAssessmentSetupsRefs<T extends Object>(
+    Expression<T> Function(
+      $$LateSeasonAssessmentSetupsTableAnnotationComposer a,
+    )
+    f,
+  ) {
+    final $$LateSeasonAssessmentSetupsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.lateSeasonAssessmentSetups,
+          getReferencedColumn: (t) => t.assessmentId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$LateSeasonAssessmentSetupsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.lateSeasonAssessmentSetups,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
   Expression<T> evidenceCaptureSessionsRefs<T extends Object>(
     Expression<T> Function($$EvidenceCaptureSessionsTableAnnotationComposer a)
     f,
@@ -37384,6 +41213,7 @@ class $$AssessmentsTableTableManager
             bool evaluatorPersonId,
             bool safetyChecksRefs,
             bool assessmentBlockRunsRefs,
+            bool lateSeasonAssessmentSetupsRefs,
             bool evidenceCaptureSessionsRefs,
             bool evidenceMediaRefs,
             bool metricResultsRefs,
@@ -37551,6 +41381,7 @@ class $$AssessmentsTableTableManager
                 evaluatorPersonId = false,
                 safetyChecksRefs = false,
                 assessmentBlockRunsRefs = false,
+                lateSeasonAssessmentSetupsRefs = false,
                 evidenceCaptureSessionsRefs = false,
                 evidenceMediaRefs = false,
                 metricResultsRefs = false,
@@ -37560,6 +41391,8 @@ class $$AssessmentsTableTableManager
                   explicitlyWatchedTables: [
                     if (safetyChecksRefs) db.safetyChecks,
                     if (assessmentBlockRunsRefs) db.assessmentBlockRuns,
+                    if (lateSeasonAssessmentSetupsRefs)
+                      db.lateSeasonAssessmentSetups,
                     if (evidenceCaptureSessionsRefs) db.evidenceCaptureSessions,
                     if (evidenceMediaRefs) db.evidenceMedia,
                     if (metricResultsRefs) db.metricResults,
@@ -37672,6 +41505,27 @@ class $$AssessmentsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (lateSeasonAssessmentSetupsRefs)
+                        await $_getPrefetchedData<
+                          AssessmentRecord,
+                          $AssessmentsTable,
+                          LateSeasonAssessmentSetupRecord
+                        >(
+                          currentTable: table,
+                          referencedTable: $$AssessmentsTableReferences
+                              ._lateSeasonAssessmentSetupsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$AssessmentsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).lateSeasonAssessmentSetupsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.assessmentId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                       if (evidenceCaptureSessionsRefs)
                         await $_getPrefetchedData<
                           AssessmentRecord,
@@ -37761,6 +41615,7 @@ typedef $$AssessmentsTableProcessedTableManager =
         bool evaluatorPersonId,
         bool safetyChecksRefs,
         bool assessmentBlockRunsRefs,
+        bool lateSeasonAssessmentSetupsRefs,
         bool evidenceCaptureSessionsRefs,
         bool evidenceMediaRefs,
         bool metricResultsRefs,
@@ -38802,6 +42657,37 @@ final class $$AssessmentBlockRunsTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<
+    $EarOpeningSelectionsTable,
+    List<EarOpeningSelectionRecord>
+  >
+  _earOpeningSelectionsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.earOpeningSelections,
+    aliasName:
+        'assessment_block_runs__id__ear_opening_selections__assessment_block_run_id',
+  );
+
+  $$EarOpeningSelectionsTableProcessedTableManager
+  get earOpeningSelectionsRefs {
+    final manager =
+        $$EarOpeningSelectionsTableTableManager(
+          $_db,
+          $_db.earOpeningSelections,
+        ).filter(
+          (f) =>
+              f.assessmentBlockRunId.id.sqlEquals($_itemColumn<String>('id')!),
+        );
+
+    final cache = $_typedResult.readTableOrNull(
+      _earOpeningSelectionsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$AssessmentBlockRunsTableFilterComposer
@@ -38955,6 +42841,31 @@ class $$AssessmentBlockRunsTableFilterComposer
           }) => $$StationsTableFilterComposer(
             $db: $db,
             $table: $db.stations,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> earOpeningSelectionsRefs(
+    Expression<bool> Function($$EarOpeningSelectionsTableFilterComposer f) f,
+  ) {
+    final $$EarOpeningSelectionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.earOpeningSelections,
+      getReferencedColumn: (t) => t.assessmentBlockRunId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$EarOpeningSelectionsTableFilterComposer(
+            $db: $db,
+            $table: $db.earOpeningSelections,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -39244,6 +43155,32 @@ class $$AssessmentBlockRunsTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> earOpeningSelectionsRefs<T extends Object>(
+    Expression<T> Function($$EarOpeningSelectionsTableAnnotationComposer a) f,
+  ) {
+    final $$EarOpeningSelectionsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.earOpeningSelections,
+          getReferencedColumn: (t) => t.assessmentBlockRunId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$EarOpeningSelectionsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.earOpeningSelections,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$AssessmentBlockRunsTableTableManager
@@ -39263,6 +43200,7 @@ class $$AssessmentBlockRunsTableTableManager
             bool assessmentId,
             bool fieldBlockId,
             bool stationsRefs,
+            bool earOpeningSelectionsRefs,
           })
         > {
   $$AssessmentBlockRunsTableTableManager(
@@ -39381,10 +43319,14 @@ class $$AssessmentBlockRunsTableTableManager
                 assessmentId = false,
                 fieldBlockId = false,
                 stationsRefs = false,
+                earOpeningSelectionsRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
-                  explicitlyWatchedTables: [if (stationsRefs) db.stations],
+                  explicitlyWatchedTables: [
+                    if (stationsRefs) db.stations,
+                    if (earOpeningSelectionsRefs) db.earOpeningSelections,
+                  ],
                   addJoins:
                       <
                         T extends TableManagerState<
@@ -39457,6 +43399,27 @@ class $$AssessmentBlockRunsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (earOpeningSelectionsRefs)
+                        await $_getPrefetchedData<
+                          AssessmentBlockRunRecord,
+                          $AssessmentBlockRunsTable,
+                          EarOpeningSelectionRecord
+                        >(
+                          currentTable: table,
+                          referencedTable: $$AssessmentBlockRunsTableReferences
+                              ._earOpeningSelectionsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$AssessmentBlockRunsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).earOpeningSelectionsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.assessmentBlockRunId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -39481,6 +43444,7 @@ typedef $$AssessmentBlockRunsTableProcessedTableManager =
         bool assessmentId,
         bool fieldBlockId,
         bool stationsRefs,
+        bool earOpeningSelectionsRefs,
       })
     >;
 typedef $$StationsTableCreateCompanionBuilder =
@@ -43984,6 +47948,8 @@ typedef $$VegetativeObservationsTableCreateCompanionBuilder =
       Value<int?> daBafsLeafDamageScore,
       Value<bool> damageScoreUncertain,
       Value<String?> damageScoreReason,
+      Value<String?> damageAttribution,
+      Value<String?> damageFreshness,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -44005,6 +47971,8 @@ typedef $$VegetativeObservationsTableUpdateCompanionBuilder =
       Value<int?> daBafsLeafDamageScore,
       Value<bool> damageScoreUncertain,
       Value<String?> damageScoreReason,
+      Value<String?> damageAttribution,
+      Value<String?> damageFreshness,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -44122,6 +48090,16 @@ class $$VegetativeObservationsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get damageAttribution => $composableBuilder(
+    column: $table.damageAttribution,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get damageFreshness => $composableBuilder(
+    column: $table.damageFreshness,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnFilters(column),
@@ -44232,6 +48210,16 @@ class $$VegetativeObservationsTableOrderingComposer
 
   ColumnOrderings<String> get damageScoreReason => $composableBuilder(
     column: $table.damageScoreReason,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get damageAttribution => $composableBuilder(
+    column: $table.damageAttribution,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get damageFreshness => $composableBuilder(
+    column: $table.damageFreshness,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -44346,6 +48334,16 @@ class $$VegetativeObservationsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get damageAttribution => $composableBuilder(
+    column: $table.damageAttribution,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get damageFreshness => $composableBuilder(
+    column: $table.damageFreshness,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
@@ -44434,6 +48432,8 @@ class $$VegetativeObservationsTableTableManager
                 Value<int?> daBafsLeafDamageScore = const Value.absent(),
                 Value<bool> damageScoreUncertain = const Value.absent(),
                 Value<String?> damageScoreReason = const Value.absent(),
+                Value<String?> damageAttribution = const Value.absent(),
+                Value<String?> damageFreshness = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -44453,6 +48453,8 @@ class $$VegetativeObservationsTableTableManager
                 daBafsLeafDamageScore: daBafsLeafDamageScore,
                 damageScoreUncertain: damageScoreUncertain,
                 damageScoreReason: damageScoreReason,
+                damageAttribution: damageAttribution,
+                damageFreshness: damageFreshness,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -44474,6 +48476,8 @@ class $$VegetativeObservationsTableTableManager
                 Value<int?> daBafsLeafDamageScore = const Value.absent(),
                 Value<bool> damageScoreUncertain = const Value.absent(),
                 Value<String?> damageScoreReason = const Value.absent(),
+                Value<String?> damageAttribution = const Value.absent(),
+                Value<String?> damageFreshness = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -44493,6 +48497,8 @@ class $$VegetativeObservationsTableTableManager
                 daBafsLeafDamageScore: daBafsLeafDamageScore,
                 damageScoreUncertain: damageScoreUncertain,
                 damageScoreReason: damageScoreReason,
+                damageAttribution: damageAttribution,
+                damageFreshness: damageFreshness,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -44576,6 +48582,13 @@ typedef $$ReproductiveObservationsTableCreateCompanionBuilder =
       Value<bool> freshFeedingPresent,
       Value<bool> larvaPresent,
       Value<int?> larvaCount,
+      Value<String> larvalSize,
+      Value<bool> frassPresent,
+      Value<bool> earHuskPenetrationVisible,
+      Value<bool?> possibleNonFawEvidence,
+      Value<bool?> uncertainEvidence,
+      Value<String?> classification,
+      Value<String?> causeTagsJson,
       Value<bool> percentInfestedPositive,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -44591,6 +48604,13 @@ typedef $$ReproductiveObservationsTableUpdateCompanionBuilder =
       Value<bool> freshFeedingPresent,
       Value<bool> larvaPresent,
       Value<int?> larvaCount,
+      Value<String> larvalSize,
+      Value<bool> frassPresent,
+      Value<bool> earHuskPenetrationVisible,
+      Value<bool?> possibleNonFawEvidence,
+      Value<bool?> uncertainEvidence,
+      Value<String?> classification,
+      Value<String?> causeTagsJson,
       Value<bool> percentInfestedPositive,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -44672,6 +48692,41 @@ class $$ReproductiveObservationsTableFilterComposer
 
   ColumnFilters<int> get larvaCount => $composableBuilder(
     column: $table.larvaCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get larvalSize => $composableBuilder(
+    column: $table.larvalSize,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get frassPresent => $composableBuilder(
+    column: $table.frassPresent,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get earHuskPenetrationVisible => $composableBuilder(
+    column: $table.earHuskPenetrationVisible,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get possibleNonFawEvidence => $composableBuilder(
+    column: $table.possibleNonFawEvidence,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get uncertainEvidence => $composableBuilder(
+    column: $table.uncertainEvidence,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get classification => $composableBuilder(
+    column: $table.classification,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get causeTagsJson => $composableBuilder(
+    column: $table.causeTagsJson,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -44758,6 +48813,41 @@ class $$ReproductiveObservationsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get larvalSize => $composableBuilder(
+    column: $table.larvalSize,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get frassPresent => $composableBuilder(
+    column: $table.frassPresent,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get earHuskPenetrationVisible => $composableBuilder(
+    column: $table.earHuskPenetrationVisible,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get possibleNonFawEvidence => $composableBuilder(
+    column: $table.possibleNonFawEvidence,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get uncertainEvidence => $composableBuilder(
+    column: $table.uncertainEvidence,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get classification => $composableBuilder(
+    column: $table.classification,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get causeTagsJson => $composableBuilder(
+    column: $table.causeTagsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get percentInfestedPositive => $composableBuilder(
     column: $table.percentInfestedPositive,
     builder: (column) => ColumnOrderings(column),
@@ -44838,6 +48928,41 @@ class $$ReproductiveObservationsTableAnnotationComposer
 
   GeneratedColumn<int> get larvaCount => $composableBuilder(
     column: $table.larvaCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get larvalSize => $composableBuilder(
+    column: $table.larvalSize,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get frassPresent => $composableBuilder(
+    column: $table.frassPresent,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get earHuskPenetrationVisible => $composableBuilder(
+    column: $table.earHuskPenetrationVisible,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get possibleNonFawEvidence => $composableBuilder(
+    column: $table.possibleNonFawEvidence,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get uncertainEvidence => $composableBuilder(
+    column: $table.uncertainEvidence,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get classification => $composableBuilder(
+    column: $table.classification,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get causeTagsJson => $composableBuilder(
+    column: $table.causeTagsJson,
     builder: (column) => column,
   );
 
@@ -44927,6 +49052,13 @@ class $$ReproductiveObservationsTableTableManager
                 Value<bool> freshFeedingPresent = const Value.absent(),
                 Value<bool> larvaPresent = const Value.absent(),
                 Value<int?> larvaCount = const Value.absent(),
+                Value<String> larvalSize = const Value.absent(),
+                Value<bool> frassPresent = const Value.absent(),
+                Value<bool> earHuskPenetrationVisible = const Value.absent(),
+                Value<bool?> possibleNonFawEvidence = const Value.absent(),
+                Value<bool?> uncertainEvidence = const Value.absent(),
+                Value<String?> classification = const Value.absent(),
+                Value<String?> causeTagsJson = const Value.absent(),
                 Value<bool> percentInfestedPositive = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -44940,6 +49072,13 @@ class $$ReproductiveObservationsTableTableManager
                 freshFeedingPresent: freshFeedingPresent,
                 larvaPresent: larvaPresent,
                 larvaCount: larvaCount,
+                larvalSize: larvalSize,
+                frassPresent: frassPresent,
+                earHuskPenetrationVisible: earHuskPenetrationVisible,
+                possibleNonFawEvidence: possibleNonFawEvidence,
+                uncertainEvidence: uncertainEvidence,
+                classification: classification,
+                causeTagsJson: causeTagsJson,
                 percentInfestedPositive: percentInfestedPositive,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -44955,6 +49094,13 @@ class $$ReproductiveObservationsTableTableManager
                 Value<bool> freshFeedingPresent = const Value.absent(),
                 Value<bool> larvaPresent = const Value.absent(),
                 Value<int?> larvaCount = const Value.absent(),
+                Value<String> larvalSize = const Value.absent(),
+                Value<bool> frassPresent = const Value.absent(),
+                Value<bool> earHuskPenetrationVisible = const Value.absent(),
+                Value<bool?> possibleNonFawEvidence = const Value.absent(),
+                Value<bool?> uncertainEvidence = const Value.absent(),
+                Value<String?> classification = const Value.absent(),
+                Value<String?> causeTagsJson = const Value.absent(),
                 Value<bool> percentInfestedPositive = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -44968,6 +49114,13 @@ class $$ReproductiveObservationsTableTableManager
                 freshFeedingPresent: freshFeedingPresent,
                 larvaPresent: larvaPresent,
                 larvaCount: larvaCount,
+                larvalSize: larvalSize,
+                frassPresent: frassPresent,
+                earHuskPenetrationVisible: earHuskPenetrationVisible,
+                possibleNonFawEvidence: possibleNonFawEvidence,
+                uncertainEvidence: uncertainEvidence,
+                classification: classification,
+                causeTagsJson: causeTagsJson,
                 percentInfestedPositive: percentInfestedPositive,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -45045,6 +49198,1297 @@ typedef $$ReproductiveObservationsTableProcessedTableManager =
       ReproductiveObservationRecord,
       PrefetchHooks Function({bool plantObservationId})
     >;
+typedef $$LateSeasonAssessmentSetupsTableCreateCompanionBuilder =
+    LateSeasonAssessmentSetupsCompanion Function({
+      required String id,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<String?> deviceId,
+      Value<String> syncState,
+      Value<int> serverVersion,
+      required String assessmentId,
+      required String cropUse,
+      required bool commercialHarvestStarted,
+      required bool selectedEarsPartOfHarvest,
+      required String openingPermission,
+      Value<int> maximumEarsPermitted,
+      Value<String?> openingReason,
+      Value<String?> permissionGrantedBy,
+      Value<String?> evaluatorPersonId,
+      required DateTime permissionRecordedAt,
+      required String earDesignationRule,
+      Value<String?> remarks,
+      Value<String> protocolVersion,
+      Value<int> rowid,
+    });
+typedef $$LateSeasonAssessmentSetupsTableUpdateCompanionBuilder =
+    LateSeasonAssessmentSetupsCompanion Function({
+      Value<String> id,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<String?> deviceId,
+      Value<String> syncState,
+      Value<int> serverVersion,
+      Value<String> assessmentId,
+      Value<String> cropUse,
+      Value<bool> commercialHarvestStarted,
+      Value<bool> selectedEarsPartOfHarvest,
+      Value<String> openingPermission,
+      Value<int> maximumEarsPermitted,
+      Value<String?> openingReason,
+      Value<String?> permissionGrantedBy,
+      Value<String?> evaluatorPersonId,
+      Value<DateTime> permissionRecordedAt,
+      Value<String> earDesignationRule,
+      Value<String?> remarks,
+      Value<String> protocolVersion,
+      Value<int> rowid,
+    });
+
+final class $$LateSeasonAssessmentSetupsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $LateSeasonAssessmentSetupsTable,
+          LateSeasonAssessmentSetupRecord
+        > {
+  $$LateSeasonAssessmentSetupsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $AssessmentsTable _assessmentIdTable(_$AppDatabase db) =>
+      db.assessments.createAlias(
+        'late_season_assessment_setups__assessment_id__assessments__id',
+      );
+
+  $$AssessmentsTableProcessedTableManager get assessmentId {
+    final $_column = $_itemColumn<String>('assessment_id')!;
+
+    final manager = $$AssessmentsTableTableManager(
+      $_db,
+      $_db.assessments,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_assessmentIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $PeopleTable _evaluatorPersonIdTable(_$AppDatabase db) =>
+      db.people.createAlias(
+        'late_season_assessment_setups__evaluator_person_id__people__id',
+      );
+
+  $$PeopleTableProcessedTableManager? get evaluatorPersonId {
+    final $_column = $_itemColumn<String>('evaluator_person_id');
+    if ($_column == null) return null;
+    final manager = $$PeopleTableTableManager(
+      $_db,
+      $_db.people,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_evaluatorPersonIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$LateSeasonAssessmentSetupsTableFilterComposer
+    extends Composer<_$AppDatabase, $LateSeasonAssessmentSetupsTable> {
+  $$LateSeasonAssessmentSetupsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get syncState => $composableBuilder(
+    column: $table.syncState,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get serverVersion => $composableBuilder(
+    column: $table.serverVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get cropUse => $composableBuilder(
+    column: $table.cropUse,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get commercialHarvestStarted => $composableBuilder(
+    column: $table.commercialHarvestStarted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get selectedEarsPartOfHarvest => $composableBuilder(
+    column: $table.selectedEarsPartOfHarvest,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get openingPermission => $composableBuilder(
+    column: $table.openingPermission,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get maximumEarsPermitted => $composableBuilder(
+    column: $table.maximumEarsPermitted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get openingReason => $composableBuilder(
+    column: $table.openingReason,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get permissionGrantedBy => $composableBuilder(
+    column: $table.permissionGrantedBy,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get permissionRecordedAt => $composableBuilder(
+    column: $table.permissionRecordedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get earDesignationRule => $composableBuilder(
+    column: $table.earDesignationRule,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get remarks => $composableBuilder(
+    column: $table.remarks,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get protocolVersion => $composableBuilder(
+    column: $table.protocolVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$AssessmentsTableFilterComposer get assessmentId {
+    final $$AssessmentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.assessmentId,
+      referencedTable: $db.assessments,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AssessmentsTableFilterComposer(
+            $db: $db,
+            $table: $db.assessments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$PeopleTableFilterComposer get evaluatorPersonId {
+    final $$PeopleTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.evaluatorPersonId,
+      referencedTable: $db.people,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PeopleTableFilterComposer(
+            $db: $db,
+            $table: $db.people,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$LateSeasonAssessmentSetupsTableOrderingComposer
+    extends Composer<_$AppDatabase, $LateSeasonAssessmentSetupsTable> {
+  $$LateSeasonAssessmentSetupsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get syncState => $composableBuilder(
+    column: $table.syncState,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get serverVersion => $composableBuilder(
+    column: $table.serverVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get cropUse => $composableBuilder(
+    column: $table.cropUse,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get commercialHarvestStarted => $composableBuilder(
+    column: $table.commercialHarvestStarted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get selectedEarsPartOfHarvest => $composableBuilder(
+    column: $table.selectedEarsPartOfHarvest,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get openingPermission => $composableBuilder(
+    column: $table.openingPermission,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get maximumEarsPermitted => $composableBuilder(
+    column: $table.maximumEarsPermitted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get openingReason => $composableBuilder(
+    column: $table.openingReason,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get permissionGrantedBy => $composableBuilder(
+    column: $table.permissionGrantedBy,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get permissionRecordedAt => $composableBuilder(
+    column: $table.permissionRecordedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get earDesignationRule => $composableBuilder(
+    column: $table.earDesignationRule,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get remarks => $composableBuilder(
+    column: $table.remarks,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get protocolVersion => $composableBuilder(
+    column: $table.protocolVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$AssessmentsTableOrderingComposer get assessmentId {
+    final $$AssessmentsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.assessmentId,
+      referencedTable: $db.assessments,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AssessmentsTableOrderingComposer(
+            $db: $db,
+            $table: $db.assessments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$PeopleTableOrderingComposer get evaluatorPersonId {
+    final $$PeopleTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.evaluatorPersonId,
+      referencedTable: $db.people,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PeopleTableOrderingComposer(
+            $db: $db,
+            $table: $db.people,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$LateSeasonAssessmentSetupsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LateSeasonAssessmentSetupsTable> {
+  $$LateSeasonAssessmentSetupsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get deviceId =>
+      $composableBuilder(column: $table.deviceId, builder: (column) => column);
+
+  GeneratedColumn<String> get syncState =>
+      $composableBuilder(column: $table.syncState, builder: (column) => column);
+
+  GeneratedColumn<int> get serverVersion => $composableBuilder(
+    column: $table.serverVersion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get cropUse =>
+      $composableBuilder(column: $table.cropUse, builder: (column) => column);
+
+  GeneratedColumn<bool> get commercialHarvestStarted => $composableBuilder(
+    column: $table.commercialHarvestStarted,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get selectedEarsPartOfHarvest => $composableBuilder(
+    column: $table.selectedEarsPartOfHarvest,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get openingPermission => $composableBuilder(
+    column: $table.openingPermission,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get maximumEarsPermitted => $composableBuilder(
+    column: $table.maximumEarsPermitted,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get openingReason => $composableBuilder(
+    column: $table.openingReason,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get permissionGrantedBy => $composableBuilder(
+    column: $table.permissionGrantedBy,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get permissionRecordedAt => $composableBuilder(
+    column: $table.permissionRecordedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get earDesignationRule => $composableBuilder(
+    column: $table.earDesignationRule,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get remarks =>
+      $composableBuilder(column: $table.remarks, builder: (column) => column);
+
+  GeneratedColumn<String> get protocolVersion => $composableBuilder(
+    column: $table.protocolVersion,
+    builder: (column) => column,
+  );
+
+  $$AssessmentsTableAnnotationComposer get assessmentId {
+    final $$AssessmentsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.assessmentId,
+      referencedTable: $db.assessments,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AssessmentsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.assessments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$PeopleTableAnnotationComposer get evaluatorPersonId {
+    final $$PeopleTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.evaluatorPersonId,
+      referencedTable: $db.people,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PeopleTableAnnotationComposer(
+            $db: $db,
+            $table: $db.people,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$LateSeasonAssessmentSetupsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $LateSeasonAssessmentSetupsTable,
+          LateSeasonAssessmentSetupRecord,
+          $$LateSeasonAssessmentSetupsTableFilterComposer,
+          $$LateSeasonAssessmentSetupsTableOrderingComposer,
+          $$LateSeasonAssessmentSetupsTableAnnotationComposer,
+          $$LateSeasonAssessmentSetupsTableCreateCompanionBuilder,
+          $$LateSeasonAssessmentSetupsTableUpdateCompanionBuilder,
+          (
+            LateSeasonAssessmentSetupRecord,
+            $$LateSeasonAssessmentSetupsTableReferences,
+          ),
+          LateSeasonAssessmentSetupRecord,
+          PrefetchHooks Function({bool assessmentId, bool evaluatorPersonId})
+        > {
+  $$LateSeasonAssessmentSetupsTableTableManager(
+    _$AppDatabase db,
+    $LateSeasonAssessmentSetupsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LateSeasonAssessmentSetupsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$LateSeasonAssessmentSetupsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$LateSeasonAssessmentSetupsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<String?> deviceId = const Value.absent(),
+                Value<String> syncState = const Value.absent(),
+                Value<int> serverVersion = const Value.absent(),
+                Value<String> assessmentId = const Value.absent(),
+                Value<String> cropUse = const Value.absent(),
+                Value<bool> commercialHarvestStarted = const Value.absent(),
+                Value<bool> selectedEarsPartOfHarvest = const Value.absent(),
+                Value<String> openingPermission = const Value.absent(),
+                Value<int> maximumEarsPermitted = const Value.absent(),
+                Value<String?> openingReason = const Value.absent(),
+                Value<String?> permissionGrantedBy = const Value.absent(),
+                Value<String?> evaluatorPersonId = const Value.absent(),
+                Value<DateTime> permissionRecordedAt = const Value.absent(),
+                Value<String> earDesignationRule = const Value.absent(),
+                Value<String?> remarks = const Value.absent(),
+                Value<String> protocolVersion = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LateSeasonAssessmentSetupsCompanion(
+                id: id,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                deviceId: deviceId,
+                syncState: syncState,
+                serverVersion: serverVersion,
+                assessmentId: assessmentId,
+                cropUse: cropUse,
+                commercialHarvestStarted: commercialHarvestStarted,
+                selectedEarsPartOfHarvest: selectedEarsPartOfHarvest,
+                openingPermission: openingPermission,
+                maximumEarsPermitted: maximumEarsPermitted,
+                openingReason: openingReason,
+                permissionGrantedBy: permissionGrantedBy,
+                evaluatorPersonId: evaluatorPersonId,
+                permissionRecordedAt: permissionRecordedAt,
+                earDesignationRule: earDesignationRule,
+                remarks: remarks,
+                protocolVersion: protocolVersion,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<String?> deviceId = const Value.absent(),
+                Value<String> syncState = const Value.absent(),
+                Value<int> serverVersion = const Value.absent(),
+                required String assessmentId,
+                required String cropUse,
+                required bool commercialHarvestStarted,
+                required bool selectedEarsPartOfHarvest,
+                required String openingPermission,
+                Value<int> maximumEarsPermitted = const Value.absent(),
+                Value<String?> openingReason = const Value.absent(),
+                Value<String?> permissionGrantedBy = const Value.absent(),
+                Value<String?> evaluatorPersonId = const Value.absent(),
+                required DateTime permissionRecordedAt,
+                required String earDesignationRule,
+                Value<String?> remarks = const Value.absent(),
+                Value<String> protocolVersion = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LateSeasonAssessmentSetupsCompanion.insert(
+                id: id,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                deviceId: deviceId,
+                syncState: syncState,
+                serverVersion: serverVersion,
+                assessmentId: assessmentId,
+                cropUse: cropUse,
+                commercialHarvestStarted: commercialHarvestStarted,
+                selectedEarsPartOfHarvest: selectedEarsPartOfHarvest,
+                openingPermission: openingPermission,
+                maximumEarsPermitted: maximumEarsPermitted,
+                openingReason: openingReason,
+                permissionGrantedBy: permissionGrantedBy,
+                evaluatorPersonId: evaluatorPersonId,
+                permissionRecordedAt: permissionRecordedAt,
+                earDesignationRule: earDesignationRule,
+                remarks: remarks,
+                protocolVersion: protocolVersion,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$LateSeasonAssessmentSetupsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({assessmentId = false, evaluatorPersonId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (assessmentId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.assessmentId,
+                                referencedTable:
+                                    $$LateSeasonAssessmentSetupsTableReferences
+                                        ._assessmentIdTable(db),
+                                referencedColumn:
+                                    $$LateSeasonAssessmentSetupsTableReferences
+                                        ._assessmentIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+                    if (evaluatorPersonId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.evaluatorPersonId,
+                                referencedTable:
+                                    $$LateSeasonAssessmentSetupsTableReferences
+                                        ._evaluatorPersonIdTable(db),
+                                referencedColumn:
+                                    $$LateSeasonAssessmentSetupsTableReferences
+                                        ._evaluatorPersonIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$LateSeasonAssessmentSetupsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $LateSeasonAssessmentSetupsTable,
+      LateSeasonAssessmentSetupRecord,
+      $$LateSeasonAssessmentSetupsTableFilterComposer,
+      $$LateSeasonAssessmentSetupsTableOrderingComposer,
+      $$LateSeasonAssessmentSetupsTableAnnotationComposer,
+      $$LateSeasonAssessmentSetupsTableCreateCompanionBuilder,
+      $$LateSeasonAssessmentSetupsTableUpdateCompanionBuilder,
+      (
+        LateSeasonAssessmentSetupRecord,
+        $$LateSeasonAssessmentSetupsTableReferences,
+      ),
+      LateSeasonAssessmentSetupRecord,
+      PrefetchHooks Function({bool assessmentId, bool evaluatorPersonId})
+    >;
+typedef $$EarOpeningSelectionsTableCreateCompanionBuilder =
+    EarOpeningSelectionsCompanion Function({
+      required String id,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<String?> deviceId,
+      Value<String> syncState,
+      Value<int> serverVersion,
+      required String assessmentBlockRunId,
+      required int stationNumber,
+      required int plantPosition,
+      required int selectionOrder,
+      Value<bool> initiallySelected,
+      Value<String> selectionStatus,
+      Value<int?> replacesPlantPosition,
+      Value<String?> failureReason,
+      Value<int> rowid,
+    });
+typedef $$EarOpeningSelectionsTableUpdateCompanionBuilder =
+    EarOpeningSelectionsCompanion Function({
+      Value<String> id,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<String?> deviceId,
+      Value<String> syncState,
+      Value<int> serverVersion,
+      Value<String> assessmentBlockRunId,
+      Value<int> stationNumber,
+      Value<int> plantPosition,
+      Value<int> selectionOrder,
+      Value<bool> initiallySelected,
+      Value<String> selectionStatus,
+      Value<int?> replacesPlantPosition,
+      Value<String?> failureReason,
+      Value<int> rowid,
+    });
+
+final class $$EarOpeningSelectionsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $EarOpeningSelectionsTable,
+          EarOpeningSelectionRecord
+        > {
+  $$EarOpeningSelectionsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $AssessmentBlockRunsTable _assessmentBlockRunIdTable(
+    _$AppDatabase db,
+  ) => db.assessmentBlockRuns.createAlias(
+    'ear_opening_selections__assessment_block_run_id__assessment_block_runs__id',
+  );
+
+  $$AssessmentBlockRunsTableProcessedTableManager get assessmentBlockRunId {
+    final $_column = $_itemColumn<String>('assessment_block_run_id')!;
+
+    final manager = $$AssessmentBlockRunsTableTableManager(
+      $_db,
+      $_db.assessmentBlockRuns,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(
+      _assessmentBlockRunIdTable($_db),
+    );
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$EarOpeningSelectionsTableFilterComposer
+    extends Composer<_$AppDatabase, $EarOpeningSelectionsTable> {
+  $$EarOpeningSelectionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get syncState => $composableBuilder(
+    column: $table.syncState,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get serverVersion => $composableBuilder(
+    column: $table.serverVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get stationNumber => $composableBuilder(
+    column: $table.stationNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get plantPosition => $composableBuilder(
+    column: $table.plantPosition,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get selectionOrder => $composableBuilder(
+    column: $table.selectionOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get initiallySelected => $composableBuilder(
+    column: $table.initiallySelected,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get selectionStatus => $composableBuilder(
+    column: $table.selectionStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get replacesPlantPosition => $composableBuilder(
+    column: $table.replacesPlantPosition,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get failureReason => $composableBuilder(
+    column: $table.failureReason,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$AssessmentBlockRunsTableFilterComposer get assessmentBlockRunId {
+    final $$AssessmentBlockRunsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.assessmentBlockRunId,
+      referencedTable: $db.assessmentBlockRuns,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AssessmentBlockRunsTableFilterComposer(
+            $db: $db,
+            $table: $db.assessmentBlockRuns,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$EarOpeningSelectionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $EarOpeningSelectionsTable> {
+  $$EarOpeningSelectionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get syncState => $composableBuilder(
+    column: $table.syncState,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get serverVersion => $composableBuilder(
+    column: $table.serverVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get stationNumber => $composableBuilder(
+    column: $table.stationNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get plantPosition => $composableBuilder(
+    column: $table.plantPosition,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get selectionOrder => $composableBuilder(
+    column: $table.selectionOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get initiallySelected => $composableBuilder(
+    column: $table.initiallySelected,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get selectionStatus => $composableBuilder(
+    column: $table.selectionStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get replacesPlantPosition => $composableBuilder(
+    column: $table.replacesPlantPosition,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get failureReason => $composableBuilder(
+    column: $table.failureReason,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$AssessmentBlockRunsTableOrderingComposer get assessmentBlockRunId {
+    final $$AssessmentBlockRunsTableOrderingComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.assessmentBlockRunId,
+          referencedTable: $db.assessmentBlockRuns,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$AssessmentBlockRunsTableOrderingComposer(
+                $db: $db,
+                $table: $db.assessmentBlockRuns,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+}
+
+class $$EarOpeningSelectionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $EarOpeningSelectionsTable> {
+  $$EarOpeningSelectionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get deviceId =>
+      $composableBuilder(column: $table.deviceId, builder: (column) => column);
+
+  GeneratedColumn<String> get syncState =>
+      $composableBuilder(column: $table.syncState, builder: (column) => column);
+
+  GeneratedColumn<int> get serverVersion => $composableBuilder(
+    column: $table.serverVersion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get stationNumber => $composableBuilder(
+    column: $table.stationNumber,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get plantPosition => $composableBuilder(
+    column: $table.plantPosition,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get selectionOrder => $composableBuilder(
+    column: $table.selectionOrder,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get initiallySelected => $composableBuilder(
+    column: $table.initiallySelected,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get selectionStatus => $composableBuilder(
+    column: $table.selectionStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get replacesPlantPosition => $composableBuilder(
+    column: $table.replacesPlantPosition,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get failureReason => $composableBuilder(
+    column: $table.failureReason,
+    builder: (column) => column,
+  );
+
+  $$AssessmentBlockRunsTableAnnotationComposer get assessmentBlockRunId {
+    final $$AssessmentBlockRunsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.assessmentBlockRunId,
+          referencedTable: $db.assessmentBlockRuns,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$AssessmentBlockRunsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.assessmentBlockRuns,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+}
+
+class $$EarOpeningSelectionsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $EarOpeningSelectionsTable,
+          EarOpeningSelectionRecord,
+          $$EarOpeningSelectionsTableFilterComposer,
+          $$EarOpeningSelectionsTableOrderingComposer,
+          $$EarOpeningSelectionsTableAnnotationComposer,
+          $$EarOpeningSelectionsTableCreateCompanionBuilder,
+          $$EarOpeningSelectionsTableUpdateCompanionBuilder,
+          (EarOpeningSelectionRecord, $$EarOpeningSelectionsTableReferences),
+          EarOpeningSelectionRecord,
+          PrefetchHooks Function({bool assessmentBlockRunId})
+        > {
+  $$EarOpeningSelectionsTableTableManager(
+    _$AppDatabase db,
+    $EarOpeningSelectionsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$EarOpeningSelectionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$EarOpeningSelectionsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$EarOpeningSelectionsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<String?> deviceId = const Value.absent(),
+                Value<String> syncState = const Value.absent(),
+                Value<int> serverVersion = const Value.absent(),
+                Value<String> assessmentBlockRunId = const Value.absent(),
+                Value<int> stationNumber = const Value.absent(),
+                Value<int> plantPosition = const Value.absent(),
+                Value<int> selectionOrder = const Value.absent(),
+                Value<bool> initiallySelected = const Value.absent(),
+                Value<String> selectionStatus = const Value.absent(),
+                Value<int?> replacesPlantPosition = const Value.absent(),
+                Value<String?> failureReason = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => EarOpeningSelectionsCompanion(
+                id: id,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                deviceId: deviceId,
+                syncState: syncState,
+                serverVersion: serverVersion,
+                assessmentBlockRunId: assessmentBlockRunId,
+                stationNumber: stationNumber,
+                plantPosition: plantPosition,
+                selectionOrder: selectionOrder,
+                initiallySelected: initiallySelected,
+                selectionStatus: selectionStatus,
+                replacesPlantPosition: replacesPlantPosition,
+                failureReason: failureReason,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<String?> deviceId = const Value.absent(),
+                Value<String> syncState = const Value.absent(),
+                Value<int> serverVersion = const Value.absent(),
+                required String assessmentBlockRunId,
+                required int stationNumber,
+                required int plantPosition,
+                required int selectionOrder,
+                Value<bool> initiallySelected = const Value.absent(),
+                Value<String> selectionStatus = const Value.absent(),
+                Value<int?> replacesPlantPosition = const Value.absent(),
+                Value<String?> failureReason = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => EarOpeningSelectionsCompanion.insert(
+                id: id,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                deviceId: deviceId,
+                syncState: syncState,
+                serverVersion: serverVersion,
+                assessmentBlockRunId: assessmentBlockRunId,
+                stationNumber: stationNumber,
+                plantPosition: plantPosition,
+                selectionOrder: selectionOrder,
+                initiallySelected: initiallySelected,
+                selectionStatus: selectionStatus,
+                replacesPlantPosition: replacesPlantPosition,
+                failureReason: failureReason,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$EarOpeningSelectionsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({assessmentBlockRunId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (assessmentBlockRunId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.assessmentBlockRunId,
+                                referencedTable:
+                                    $$EarOpeningSelectionsTableReferences
+                                        ._assessmentBlockRunIdTable(db),
+                                referencedColumn:
+                                    $$EarOpeningSelectionsTableReferences
+                                        ._assessmentBlockRunIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$EarOpeningSelectionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $EarOpeningSelectionsTable,
+      EarOpeningSelectionRecord,
+      $$EarOpeningSelectionsTableFilterComposer,
+      $$EarOpeningSelectionsTableOrderingComposer,
+      $$EarOpeningSelectionsTableAnnotationComposer,
+      $$EarOpeningSelectionsTableCreateCompanionBuilder,
+      $$EarOpeningSelectionsTableUpdateCompanionBuilder,
+      (EarOpeningSelectionRecord, $$EarOpeningSelectionsTableReferences),
+      EarOpeningSelectionRecord,
+      PrefetchHooks Function({bool assessmentBlockRunId})
+    >;
 typedef $$EarObservationsTableCreateCompanionBuilder =
     EarObservationsCompanion Function({
       required String id,
@@ -45056,22 +50500,38 @@ typedef $$EarObservationsTableCreateCompanionBuilder =
       Value<int> serverVersion,
       required String plantObservationId,
       Value<int> earSequence,
+      Value<bool?> earPresent,
+      Value<String?> designatedEarIdentity,
       Value<bool> externallyAssessable,
+      Value<bool> exteriorEarTipExamined,
+      Value<bool> baseShankSilkAxilsExamined,
       Value<bool?> externalDamagePresent,
       Value<bool?> activeInfestationPresent,
       Value<bool?> silkDamagePresent,
       Value<bool?> huskDamagePresent,
       Value<bool?> entryHolePresent,
       Value<bool?> frassPresent,
+      Value<String?> frassFreshness,
       Value<bool?> larvaPresent,
+      Value<String?> larvalSize,
+      Value<String?> feedingFreshness,
+      Value<bool?> moldRotLikeSymptoms,
+      Value<String?> causeTagsJson,
+      Value<String?> externalClassification,
       Value<String> openingPermission,
       Value<bool> opened,
+      Value<bool?> huskIntactBeforeOpening,
       Value<bool?> internalDamagePresent,
       Value<int?> totalKernelsCounted,
       Value<int?> damagedKernelsCounted,
       Value<String?> kernelCountMethod,
+      Value<double?> earTipDamageLengthMm,
+      Value<bool?> cobDamagePresent,
+      Value<bool?> brokenMissingUnderdevelopedKernels,
       Value<bool?> earRotPresent,
+      Value<int?> moldRotKernelsCounted,
       Value<String?> earRotSuspectedType,
+      Value<String?> internalClassification,
       Value<String?> notes,
       Value<int> rowid,
     });
@@ -45086,22 +50546,38 @@ typedef $$EarObservationsTableUpdateCompanionBuilder =
       Value<int> serverVersion,
       Value<String> plantObservationId,
       Value<int> earSequence,
+      Value<bool?> earPresent,
+      Value<String?> designatedEarIdentity,
       Value<bool> externallyAssessable,
+      Value<bool> exteriorEarTipExamined,
+      Value<bool> baseShankSilkAxilsExamined,
       Value<bool?> externalDamagePresent,
       Value<bool?> activeInfestationPresent,
       Value<bool?> silkDamagePresent,
       Value<bool?> huskDamagePresent,
       Value<bool?> entryHolePresent,
       Value<bool?> frassPresent,
+      Value<String?> frassFreshness,
       Value<bool?> larvaPresent,
+      Value<String?> larvalSize,
+      Value<String?> feedingFreshness,
+      Value<bool?> moldRotLikeSymptoms,
+      Value<String?> causeTagsJson,
+      Value<String?> externalClassification,
       Value<String> openingPermission,
       Value<bool> opened,
+      Value<bool?> huskIntactBeforeOpening,
       Value<bool?> internalDamagePresent,
       Value<int?> totalKernelsCounted,
       Value<int?> damagedKernelsCounted,
       Value<String?> kernelCountMethod,
+      Value<double?> earTipDamageLengthMm,
+      Value<bool?> cobDamagePresent,
+      Value<bool?> brokenMissingUnderdevelopedKernels,
       Value<bool?> earRotPresent,
+      Value<int?> moldRotKernelsCounted,
       Value<String?> earRotSuspectedType,
+      Value<String?> internalClassification,
       Value<String?> notes,
       Value<int> rowid,
     });
@@ -45206,8 +50682,28 @@ class $$EarObservationsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<bool> get earPresent => $composableBuilder(
+    column: $table.earPresent,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get designatedEarIdentity => $composableBuilder(
+    column: $table.designatedEarIdentity,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<bool> get externallyAssessable => $composableBuilder(
     column: $table.externallyAssessable,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get exteriorEarTipExamined => $composableBuilder(
+    column: $table.exteriorEarTipExamined,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get baseShankSilkAxilsExamined => $composableBuilder(
+    column: $table.baseShankSilkAxilsExamined,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -45241,8 +50737,38 @@ class $$EarObservationsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get frassFreshness => $composableBuilder(
+    column: $table.frassFreshness,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<bool> get larvaPresent => $composableBuilder(
     column: $table.larvaPresent,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get larvalSize => $composableBuilder(
+    column: $table.larvalSize,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get feedingFreshness => $composableBuilder(
+    column: $table.feedingFreshness,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get moldRotLikeSymptoms => $composableBuilder(
+    column: $table.moldRotLikeSymptoms,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get causeTagsJson => $composableBuilder(
+    column: $table.causeTagsJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get externalClassification => $composableBuilder(
+    column: $table.externalClassification,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -45253,6 +50779,11 @@ class $$EarObservationsTableFilterComposer
 
   ColumnFilters<bool> get opened => $composableBuilder(
     column: $table.opened,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get huskIntactBeforeOpening => $composableBuilder(
+    column: $table.huskIntactBeforeOpening,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -45276,13 +50807,39 @@ class $$EarObservationsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<double> get earTipDamageLengthMm => $composableBuilder(
+    column: $table.earTipDamageLengthMm,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get cobDamagePresent => $composableBuilder(
+    column: $table.cobDamagePresent,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get brokenMissingUnderdevelopedKernels =>
+      $composableBuilder(
+        column: $table.brokenMissingUnderdevelopedKernels,
+        builder: (column) => ColumnFilters(column),
+      );
+
   ColumnFilters<bool> get earRotPresent => $composableBuilder(
     column: $table.earRotPresent,
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<int> get moldRotKernelsCounted => $composableBuilder(
+    column: $table.moldRotKernelsCounted,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get earRotSuspectedType => $composableBuilder(
     column: $table.earRotSuspectedType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get internalClassification => $composableBuilder(
+    column: $table.internalClassification,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -45389,8 +50946,28 @@ class $$EarObservationsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get earPresent => $composableBuilder(
+    column: $table.earPresent,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get designatedEarIdentity => $composableBuilder(
+    column: $table.designatedEarIdentity,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get externallyAssessable => $composableBuilder(
     column: $table.externallyAssessable,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get exteriorEarTipExamined => $composableBuilder(
+    column: $table.exteriorEarTipExamined,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get baseShankSilkAxilsExamined => $composableBuilder(
+    column: $table.baseShankSilkAxilsExamined,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -45424,8 +51001,38 @@ class $$EarObservationsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get frassFreshness => $composableBuilder(
+    column: $table.frassFreshness,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get larvaPresent => $composableBuilder(
     column: $table.larvaPresent,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get larvalSize => $composableBuilder(
+    column: $table.larvalSize,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get feedingFreshness => $composableBuilder(
+    column: $table.feedingFreshness,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get moldRotLikeSymptoms => $composableBuilder(
+    column: $table.moldRotLikeSymptoms,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get causeTagsJson => $composableBuilder(
+    column: $table.causeTagsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get externalClassification => $composableBuilder(
+    column: $table.externalClassification,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -45436,6 +51043,11 @@ class $$EarObservationsTableOrderingComposer
 
   ColumnOrderings<bool> get opened => $composableBuilder(
     column: $table.opened,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get huskIntactBeforeOpening => $composableBuilder(
+    column: $table.huskIntactBeforeOpening,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -45459,13 +51071,39 @@ class $$EarObservationsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<double> get earTipDamageLengthMm => $composableBuilder(
+    column: $table.earTipDamageLengthMm,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get cobDamagePresent => $composableBuilder(
+    column: $table.cobDamagePresent,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get brokenMissingUnderdevelopedKernels =>
+      $composableBuilder(
+        column: $table.brokenMissingUnderdevelopedKernels,
+        builder: (column) => ColumnOrderings(column),
+      );
+
   ColumnOrderings<bool> get earRotPresent => $composableBuilder(
     column: $table.earRotPresent,
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get moldRotKernelsCounted => $composableBuilder(
+    column: $table.moldRotKernelsCounted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get earRotSuspectedType => $composableBuilder(
     column: $table.earRotSuspectedType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get internalClassification => $composableBuilder(
+    column: $table.internalClassification,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -45535,8 +51173,28 @@ class $$EarObservationsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<bool> get earPresent => $composableBuilder(
+    column: $table.earPresent,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get designatedEarIdentity => $composableBuilder(
+    column: $table.designatedEarIdentity,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<bool> get externallyAssessable => $composableBuilder(
     column: $table.externallyAssessable,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get exteriorEarTipExamined => $composableBuilder(
+    column: $table.exteriorEarTipExamined,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get baseShankSilkAxilsExamined => $composableBuilder(
+    column: $table.baseShankSilkAxilsExamined,
     builder: (column) => column,
   );
 
@@ -45570,8 +51228,38 @@ class $$EarObservationsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get frassFreshness => $composableBuilder(
+    column: $table.frassFreshness,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<bool> get larvaPresent => $composableBuilder(
     column: $table.larvaPresent,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get larvalSize => $composableBuilder(
+    column: $table.larvalSize,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get feedingFreshness => $composableBuilder(
+    column: $table.feedingFreshness,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get moldRotLikeSymptoms => $composableBuilder(
+    column: $table.moldRotLikeSymptoms,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get causeTagsJson => $composableBuilder(
+    column: $table.causeTagsJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get externalClassification => $composableBuilder(
+    column: $table.externalClassification,
     builder: (column) => column,
   );
 
@@ -45582,6 +51270,11 @@ class $$EarObservationsTableAnnotationComposer
 
   GeneratedColumn<bool> get opened =>
       $composableBuilder(column: $table.opened, builder: (column) => column);
+
+  GeneratedColumn<bool> get huskIntactBeforeOpening => $composableBuilder(
+    column: $table.huskIntactBeforeOpening,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<bool> get internalDamagePresent => $composableBuilder(
     column: $table.internalDamagePresent,
@@ -45603,13 +51296,39 @@ class $$EarObservationsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<double> get earTipDamageLengthMm => $composableBuilder(
+    column: $table.earTipDamageLengthMm,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get cobDamagePresent => $composableBuilder(
+    column: $table.cobDamagePresent,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get brokenMissingUnderdevelopedKernels =>
+      $composableBuilder(
+        column: $table.brokenMissingUnderdevelopedKernels,
+        builder: (column) => column,
+      );
+
   GeneratedColumn<bool> get earRotPresent => $composableBuilder(
     column: $table.earRotPresent,
     builder: (column) => column,
   );
 
+  GeneratedColumn<int> get moldRotKernelsCounted => $composableBuilder(
+    column: $table.moldRotKernelsCounted,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get earRotSuspectedType => $composableBuilder(
     column: $table.earRotSuspectedType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get internalClassification => $composableBuilder(
+    column: $table.internalClassification,
     builder: (column) => column,
   );
 
@@ -45708,22 +51427,39 @@ class $$EarObservationsTableTableManager
                 Value<int> serverVersion = const Value.absent(),
                 Value<String> plantObservationId = const Value.absent(),
                 Value<int> earSequence = const Value.absent(),
+                Value<bool?> earPresent = const Value.absent(),
+                Value<String?> designatedEarIdentity = const Value.absent(),
                 Value<bool> externallyAssessable = const Value.absent(),
+                Value<bool> exteriorEarTipExamined = const Value.absent(),
+                Value<bool> baseShankSilkAxilsExamined = const Value.absent(),
                 Value<bool?> externalDamagePresent = const Value.absent(),
                 Value<bool?> activeInfestationPresent = const Value.absent(),
                 Value<bool?> silkDamagePresent = const Value.absent(),
                 Value<bool?> huskDamagePresent = const Value.absent(),
                 Value<bool?> entryHolePresent = const Value.absent(),
                 Value<bool?> frassPresent = const Value.absent(),
+                Value<String?> frassFreshness = const Value.absent(),
                 Value<bool?> larvaPresent = const Value.absent(),
+                Value<String?> larvalSize = const Value.absent(),
+                Value<String?> feedingFreshness = const Value.absent(),
+                Value<bool?> moldRotLikeSymptoms = const Value.absent(),
+                Value<String?> causeTagsJson = const Value.absent(),
+                Value<String?> externalClassification = const Value.absent(),
                 Value<String> openingPermission = const Value.absent(),
                 Value<bool> opened = const Value.absent(),
+                Value<bool?> huskIntactBeforeOpening = const Value.absent(),
                 Value<bool?> internalDamagePresent = const Value.absent(),
                 Value<int?> totalKernelsCounted = const Value.absent(),
                 Value<int?> damagedKernelsCounted = const Value.absent(),
                 Value<String?> kernelCountMethod = const Value.absent(),
+                Value<double?> earTipDamageLengthMm = const Value.absent(),
+                Value<bool?> cobDamagePresent = const Value.absent(),
+                Value<bool?> brokenMissingUnderdevelopedKernels =
+                    const Value.absent(),
                 Value<bool?> earRotPresent = const Value.absent(),
+                Value<int?> moldRotKernelsCounted = const Value.absent(),
                 Value<String?> earRotSuspectedType = const Value.absent(),
+                Value<String?> internalClassification = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => EarObservationsCompanion(
@@ -45736,22 +51472,39 @@ class $$EarObservationsTableTableManager
                 serverVersion: serverVersion,
                 plantObservationId: plantObservationId,
                 earSequence: earSequence,
+                earPresent: earPresent,
+                designatedEarIdentity: designatedEarIdentity,
                 externallyAssessable: externallyAssessable,
+                exteriorEarTipExamined: exteriorEarTipExamined,
+                baseShankSilkAxilsExamined: baseShankSilkAxilsExamined,
                 externalDamagePresent: externalDamagePresent,
                 activeInfestationPresent: activeInfestationPresent,
                 silkDamagePresent: silkDamagePresent,
                 huskDamagePresent: huskDamagePresent,
                 entryHolePresent: entryHolePresent,
                 frassPresent: frassPresent,
+                frassFreshness: frassFreshness,
                 larvaPresent: larvaPresent,
+                larvalSize: larvalSize,
+                feedingFreshness: feedingFreshness,
+                moldRotLikeSymptoms: moldRotLikeSymptoms,
+                causeTagsJson: causeTagsJson,
+                externalClassification: externalClassification,
                 openingPermission: openingPermission,
                 opened: opened,
+                huskIntactBeforeOpening: huskIntactBeforeOpening,
                 internalDamagePresent: internalDamagePresent,
                 totalKernelsCounted: totalKernelsCounted,
                 damagedKernelsCounted: damagedKernelsCounted,
                 kernelCountMethod: kernelCountMethod,
+                earTipDamageLengthMm: earTipDamageLengthMm,
+                cobDamagePresent: cobDamagePresent,
+                brokenMissingUnderdevelopedKernels:
+                    brokenMissingUnderdevelopedKernels,
                 earRotPresent: earRotPresent,
+                moldRotKernelsCounted: moldRotKernelsCounted,
                 earRotSuspectedType: earRotSuspectedType,
+                internalClassification: internalClassification,
                 notes: notes,
                 rowid: rowid,
               ),
@@ -45766,22 +51519,39 @@ class $$EarObservationsTableTableManager
                 Value<int> serverVersion = const Value.absent(),
                 required String plantObservationId,
                 Value<int> earSequence = const Value.absent(),
+                Value<bool?> earPresent = const Value.absent(),
+                Value<String?> designatedEarIdentity = const Value.absent(),
                 Value<bool> externallyAssessable = const Value.absent(),
+                Value<bool> exteriorEarTipExamined = const Value.absent(),
+                Value<bool> baseShankSilkAxilsExamined = const Value.absent(),
                 Value<bool?> externalDamagePresent = const Value.absent(),
                 Value<bool?> activeInfestationPresent = const Value.absent(),
                 Value<bool?> silkDamagePresent = const Value.absent(),
                 Value<bool?> huskDamagePresent = const Value.absent(),
                 Value<bool?> entryHolePresent = const Value.absent(),
                 Value<bool?> frassPresent = const Value.absent(),
+                Value<String?> frassFreshness = const Value.absent(),
                 Value<bool?> larvaPresent = const Value.absent(),
+                Value<String?> larvalSize = const Value.absent(),
+                Value<String?> feedingFreshness = const Value.absent(),
+                Value<bool?> moldRotLikeSymptoms = const Value.absent(),
+                Value<String?> causeTagsJson = const Value.absent(),
+                Value<String?> externalClassification = const Value.absent(),
                 Value<String> openingPermission = const Value.absent(),
                 Value<bool> opened = const Value.absent(),
+                Value<bool?> huskIntactBeforeOpening = const Value.absent(),
                 Value<bool?> internalDamagePresent = const Value.absent(),
                 Value<int?> totalKernelsCounted = const Value.absent(),
                 Value<int?> damagedKernelsCounted = const Value.absent(),
                 Value<String?> kernelCountMethod = const Value.absent(),
+                Value<double?> earTipDamageLengthMm = const Value.absent(),
+                Value<bool?> cobDamagePresent = const Value.absent(),
+                Value<bool?> brokenMissingUnderdevelopedKernels =
+                    const Value.absent(),
                 Value<bool?> earRotPresent = const Value.absent(),
+                Value<int?> moldRotKernelsCounted = const Value.absent(),
                 Value<String?> earRotSuspectedType = const Value.absent(),
+                Value<String?> internalClassification = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => EarObservationsCompanion.insert(
@@ -45794,22 +51564,39 @@ class $$EarObservationsTableTableManager
                 serverVersion: serverVersion,
                 plantObservationId: plantObservationId,
                 earSequence: earSequence,
+                earPresent: earPresent,
+                designatedEarIdentity: designatedEarIdentity,
                 externallyAssessable: externallyAssessable,
+                exteriorEarTipExamined: exteriorEarTipExamined,
+                baseShankSilkAxilsExamined: baseShankSilkAxilsExamined,
                 externalDamagePresent: externalDamagePresent,
                 activeInfestationPresent: activeInfestationPresent,
                 silkDamagePresent: silkDamagePresent,
                 huskDamagePresent: huskDamagePresent,
                 entryHolePresent: entryHolePresent,
                 frassPresent: frassPresent,
+                frassFreshness: frassFreshness,
                 larvaPresent: larvaPresent,
+                larvalSize: larvalSize,
+                feedingFreshness: feedingFreshness,
+                moldRotLikeSymptoms: moldRotLikeSymptoms,
+                causeTagsJson: causeTagsJson,
+                externalClassification: externalClassification,
                 openingPermission: openingPermission,
                 opened: opened,
+                huskIntactBeforeOpening: huskIntactBeforeOpening,
                 internalDamagePresent: internalDamagePresent,
                 totalKernelsCounted: totalKernelsCounted,
                 damagedKernelsCounted: damagedKernelsCounted,
                 kernelCountMethod: kernelCountMethod,
+                earTipDamageLengthMm: earTipDamageLengthMm,
+                cobDamagePresent: cobDamagePresent,
+                brokenMissingUnderdevelopedKernels:
+                    brokenMissingUnderdevelopedKernels,
                 earRotPresent: earRotPresent,
+                moldRotKernelsCounted: moldRotKernelsCounted,
                 earRotSuspectedType: earRotSuspectedType,
+                internalClassification: internalClassification,
                 notes: notes,
                 rowid: rowid,
               ),
@@ -50258,6 +56045,14 @@ class $AppDatabaseManager {
         _db,
         _db.reproductiveObservations,
       );
+  $$LateSeasonAssessmentSetupsTableTableManager
+  get lateSeasonAssessmentSetups =>
+      $$LateSeasonAssessmentSetupsTableTableManager(
+        _db,
+        _db.lateSeasonAssessmentSetups,
+      );
+  $$EarOpeningSelectionsTableTableManager get earOpeningSelections =>
+      $$EarOpeningSelectionsTableTableManager(_db, _db.earOpeningSelections);
   $$EarObservationsTableTableManager get earObservations =>
       $$EarObservationsTableTableManager(_db, _db.earObservations);
   $$EvidenceCaptureSessionsTableTableManager get evidenceCaptureSessions =>

@@ -1138,6 +1138,12 @@ class EvidenceCaptureRepository {
             DatabaseCodes.evidenceViewStemBase,
             DatabaseCodes.evidenceViewLarvaDorsal,
             DatabaseCodes.evidenceViewLarvaHead,
+            DatabaseCodes.evidenceViewLeafDamageCloseUp,
+            DatabaseCodes.evidenceViewEarRegionOverview,
+            DatabaseCodes.evidenceViewEarTargetCloseUp,
+            DatabaseCodes.evidenceViewWholeEarBeforeOpening,
+            DatabaseCodes.evidenceViewOpenedEarSideA,
+            DatabaseCodes.evidenceViewOpenedEarSideB,
           }
         : session.scopeType == DatabaseCodes.evidenceScopePlantingUnit
         ? const {
