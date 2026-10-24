@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import '../../localization/app_language.dart';
+import '../../localization/app_text.dart';
 
-import '../../providers/station1_workflow_provider.dart';
+import '../../providers/scouting_workflow_state.dart';
 
 class ResumeAssessmentStep extends StatefulWidget {
   const ResumeAssessmentStep({
@@ -39,7 +41,7 @@ class _ResumeAssessmentStepState extends State<ResumeAssessmentStep> {
       key: const Key('resume_assessment_step'),
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
       children: [
-        const Text(
+        const AppText(
           'RESUME ASSESSMENT',
           style: TextStyle(
             color: Color(0xFF176B3A),
@@ -49,12 +51,12 @@ class _ResumeAssessmentStepState extends State<ResumeAssessmentStep> {
           ),
         ),
         const SizedBox(height: 8),
-        const Text(
+        const AppText(
           'Did conditions change?',
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 10),
-        const Text(
+        const AppText(
           'Check before adding observations. Previous answers and timestamps stay saved.',
           style: TextStyle(height: 1.45),
         ),
@@ -69,16 +71,16 @@ class _ResumeAssessmentStepState extends State<ResumeAssessmentStep> {
             children: [
               RadioListTile(
                 value: ResumeCondition.unchanged,
-                title: Text('No important change'),
+                title: AppText('No important change'),
               ),
               RadioListTile(
                 value: ResumeCondition.rainOrMajorDelay,
-                title: Text('Rain, changed weather, or a major delay'),
+                title: AppText('Rain, changed weather, or a major delay'),
               ),
               RadioListTile(
                 value: ResumeCondition.treatmentOrFieldOperation,
-                title: Text('Treatment or another field operation'),
-                subtitle: Text(
+                title: AppText('Treatment or another field operation'),
+                subtitle: AppText(
                   'A new field-entry safety check will be required.',
                 ),
               ),
@@ -87,7 +89,7 @@ class _ResumeAssessmentStepState extends State<ResumeAssessmentStep> {
         ),
         if (needsDecision) ...[
           const SizedBox(height: 12),
-          const Text(
+          const AppText(
             'Are observations still comparable and safe to continue?',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
@@ -96,8 +98,8 @@ class _ResumeAssessmentStepState extends State<ResumeAssessmentStep> {
             onChanged: (value) => setState(() => _safeToContinue = value),
             child: const Column(
               children: [
-                RadioListTile(value: true, title: Text('Yes, continue')),
-                RadioListTile(value: false, title: Text('No, pause here')),
+                RadioListTile(value: true, title: AppText('Yes, continue')),
+                RadioListTile(value: false, title: AppText('No, pause here')),
               ],
             ),
           ),
@@ -106,8 +108,10 @@ class _ResumeAssessmentStepState extends State<ResumeAssessmentStep> {
         TextField(
           controller: _note,
           maxLines: 3,
-          decoration: const InputDecoration(
-            labelText: 'Condition note (optional)',
+          decoration: InputDecoration(
+            labelText: AppWords.of(
+              context,
+            ).translate('Condition note (optional)'),
             border: OutlineInputBorder(),
           ),
         ),
@@ -122,7 +126,7 @@ class _ResumeAssessmentStepState extends State<ResumeAssessmentStep> {
                     dimension: 22,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('Continue'),
+                : const AppText('Continue'),
           ),
         ),
       ],

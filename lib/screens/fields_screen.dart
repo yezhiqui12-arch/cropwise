@@ -1,8 +1,14 @@
+import '../services/map_view_policy.dart';
 import 'package:flutter/material.dart';
+import '../localization/app_language.dart';
+import '../localization/app_text.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 
 import '../data/repositories/field_repository.dart';
 import '../providers/field_workspace_provider.dart';
+import '../services/polygon_calculator.dart';
 import '../theme/app_colors.dart';
 import 'create_field_screen.dart';
 import 'field_details_screen.dart';
@@ -17,7 +23,7 @@ class FieldsScreen extends StatelessWidget {
     );
     if (created == true && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Field saved offline and selected.')),
+        const SnackBar(content: AppText('Field saved offline and selected.')),
       );
     }
   }
@@ -36,7 +42,7 @@ class FieldsScreen extends StatelessWidget {
     );
     if (updated == true && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Field changes saved offline.')),
+        const SnackBar(content: AppText('Field changes saved offline.')),
       );
     }
   }
@@ -63,18 +69,18 @@ class FieldsScreen extends StatelessWidget {
             ListTile(
               key: const Key('edit_field_details_action'),
               leading: const Icon(Icons.edit_outlined),
-              title: const Text('Edit field details'),
-              subtitle: const Text('Name, area, location, and current crop'),
+              title: const AppText('Edit field details'),
+              subtitle: const AppText('Name, area, location, and current crop'),
               onTap: () => Navigator.pop(sheetContext, 'edit'),
             ),
             ListTile(
               key: const Key('delete_field_action'),
               leading: const Icon(Icons.delete_outline, color: Colors.red),
-              title: const Text(
+              title: const AppText(
                 'Delete field',
                 style: TextStyle(color: Colors.red),
               ),
-              subtitle: const Text('Move to Recently Deleted'),
+              subtitle: const AppText('Move to Recently Deleted'),
               onTap: () => Navigator.pop(sheetContext, 'delete'),
             ),
           ],
@@ -97,8 +103,8 @@ class FieldsScreen extends StatelessWidget {
       context: context,
       builder: (dialogContext) => AlertDialog(
         icon: const Icon(Icons.delete_outline),
-        title: const Text('Delete this field?'),
-        content: const Text(
+        title: const AppText('Delete this field?'),
+        content: const AppText(
           'It will move to Recently Deleted for 30 days. You can restore it '
           'during that time. After 30 days, its stored photographs are removed '
           'and the field cannot be restored.',
@@ -106,12 +112,12 @@ class FieldsScreen extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
+            child: const AppText('Cancel'),
           ),
           FilledButton(
             key: const Key('confirm_delete_field_button'),
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Move to Recently Deleted'),
+            child: const AppText('Move to Recently Deleted'),
           ),
         ],
       ),
@@ -121,9 +127,9 @@ class FieldsScreen extends StatelessWidget {
       workspace.field.id,
     );
     if (!context.mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('${workspace.field.name} deleted.')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: AppText('${workspace.field.name} deleted.')),
+    );
   }
 
   @override
@@ -132,11 +138,11 @@ class FieldsScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Maize Fields'),
+        title: const AppText('My Maize Fields'),
         actions: [
           IconButton(
             key: const Key('open_recently_deleted_fields_button'),
-            tooltip: 'Recently Deleted',
+            tooltip: AppWords.of(context).translate('Recently Deleted'),
             onPressed: () => Navigator.push<void>(
               context,
               MaterialPageRoute(
@@ -147,14 +153,17 @@ class FieldsScreen extends StatelessWidget {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        key: const Key('add_field_fab'),
-        onPressed: () => _openCreateField(context),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add),
-        label: const Text('Add Field'),
-      ),
+      floatingActionButton:
+          !provider.isLoading && provider.workspaces.isNotEmpty
+          ? FloatingActionButton.extended(
+              key: const Key('add_field_fab'),
+              onPressed: () => _openCreateField(context),
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              icon: const Icon(Icons.add),
+              label: const AppText('Add Field'),
+            )
+          : null,
       body: _buildBody(context, provider),
     );
   }
@@ -167,7 +176,7 @@ class FieldsScreen extends StatelessWidget {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Text(
+          child: AppText(
             'The local field database could not be loaded.\n${provider.error}',
             textAlign: TextAlign.center,
           ),
@@ -178,12 +187,18 @@ class FieldsScreen extends StatelessWidget {
       return _EmptyFields(onAdd: () => _openCreateField(context));
     }
 
+    final ordered = [...provider.workspaces]
+      ..sort((a, b) {
+        if (a.field.id == provider.activeFieldId) return -1;
+        if (b.field.id == provider.activeFieldId) return 1;
+        return a.field.name.compareTo(b.field.name);
+      });
     return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-      itemCount: provider.workspaces.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 12),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+      itemCount: ordered.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 10),
       itemBuilder: (context, index) {
-        final workspace = provider.workspaces[index];
+        final workspace = ordered[index];
         final isSelected = workspace.field.id == provider.activeFieldId;
         return _FieldListCard(
           workspace: workspace,
@@ -223,21 +238,24 @@ class _EmptyFields extends StatelessWidget {
               color: AppColors.primary,
             ),
             const SizedBox(height: 16),
-            const Text(
+            const AppText(
               'No maize fields yet',
               style: TextStyle(fontSize: 21, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const Text(
+            const AppText(
               'Register a field to keep its outline, crop cycles, and assessments together on this phone.',
               textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.textSecondary, height: 1.4),
             ),
             const SizedBox(height: 20),
             FilledButton.icon(
+              // Reuse the established add-field key: this button and the FAB
+              // are mutually exclusive across the empty/populated states.
+              key: const Key('add_field_fab'),
               onPressed: onAdd,
               icon: const Icon(Icons.add),
-              label: const Text('Add your first field'),
+              label: const AppText('Add your first field'),
             ),
           ],
         ),
@@ -264,147 +282,138 @@ class _FieldListCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final boundary = workspace.boundary;
-    final spatialState = workspace.spatialState;
-
-    return Card(
+    final areaLabel = boundary == null
+        ? 'Area unavailable'
+        : '${boundary.areaHectares.toStringAsFixed(2)} ha';
+    final radius = BorderRadius.circular(16);
+    return Material(
       key: ValueKey('field_card_${workspace.field.id}'),
       elevation: 0,
-      color: isSelected ? AppColors.primaryLight : Colors.white,
+      color: Colors.white,
+      clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: radius,
         side: BorderSide(
           color: isSelected ? AppColors.primary : AppColors.cardBorder,
-          width: isSelected ? 1.5 : 1,
         ),
       ),
       child: InkWell(
         onTap: onTap,
         onLongPress: onLongPress,
-        borderRadius: BorderRadius.circular(14),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              CircleAvatar(
-                backgroundColor: isSelected
-                    ? AppColors.primary
-                    : AppColors.primaryLight,
-                foregroundColor: isSelected ? Colors.white : AppColors.primary,
-                child: const Icon(Icons.agriculture_outlined),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+        borderRadius: radius,
+        child: isSelected
+            ? _CurrentFieldCardContent(
+                workspace: workspace,
+                areaLabel: areaLabel,
+                location: _locationLabel(workspace),
+              )
+            : SizedBox(
+                height: 104,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final previewWidth = constraints.maxWidth < 340
+                        ? 104.0
+                        : 124.0;
+                    return Row(
                       children: [
+                        SizedBox(
+                          width: previewWidth,
+                          child: _FieldMapPreview(workspace: workspace),
+                        ),
                         Expanded(
-                          child: Text(
-                            workspace.field.name,
-                            style: const TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(12, 12, 8, 10),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        workspace.field.name,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                    ),
+                                    const Icon(
+                                      Icons.chevron_right,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.location_on_outlined,
+                                      size: 14,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                    const SizedBox(width: 3),
+                                    Expanded(
+                                      child: Text(
+                                        _locationLabel(workspace),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: AppColors.textSecondary,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const Spacer(),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        areaLabel,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    TextButton(
+                                      onPressed: onSelect,
+                                      style: TextButton.styleFrom(
+                                        backgroundColor: AppColors.primaryLight,
+                                        foregroundColor: AppColors.primary,
+                                        visualDensity: VisualDensity.compact,
+                                        minimumSize: const Size(0, 30),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                        ),
+                                        tapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                      child: const AppText(
+                                        'Use field',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
                         ),
-                        if (isSelected)
-                          const Icon(
-                            Icons.check_circle,
-                            color: AppColors.primary,
-                          ),
                       ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _locationLabel(workspace),
-                      style: const TextStyle(color: AppColors.textSecondary),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 6,
-                      children: [
-                        _InfoChip(
-                          icon: Icons.straighten,
-                          label: boundary == null
-                              ? 'Area unavailable'
-                              : '${boundary.areaHectares.toStringAsFixed(2)} ha',
-                        ),
-                        _InfoChip(
-                          icon: switch (spatialState) {
-                            FieldSpatialState.approximateOutline =>
-                              Icons.draw_outlined,
-                            FieldSpatialState.entranceLocation =>
-                              Icons.location_on_outlined,
-                            FieldSpatialState.reportedAreaOnly =>
-                              Icons.info_outline,
-                          },
-                          label: switch (spatialState) {
-                            FieldSpatialState.approximateOutline =>
-                              'Approximate outline',
-                            FieldSpatialState.entranceLocation =>
-                              'Entrance GPS recorded',
-                            FieldSpatialState.reportedAreaOnly =>
-                              'Boundary not added',
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        TextButton.icon(
-                          onPressed: onTap,
-                          icon: const Icon(Icons.info_outline, size: 18),
-                          label: const Text('View details'),
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 4,
-                            ),
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                        ),
-                        if (onSelect != null)
-                          TextButton(
-                            onPressed: onSelect,
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                            child: const Text('Use field'),
-                          )
-                        else
-                          const Padding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            child: Text(
-                              'CURRENT',
-                              style: TextStyle(
-                                color: AppColors.primary,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
+                    );
+                  },
                 ),
               ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -417,40 +426,222 @@ class _FieldListCard extends StatelessWidget {
       field.province,
     ].whereType<String>().where((value) => value.trim().isNotEmpty).toList();
     if (parts.isNotEmpty) return parts.join(', ');
-    return field.locationDescription?.trim().isNotEmpty == true
-        ? field.locationDescription!
-        : 'Location not entered';
+    return 'Location not entered';
   }
 }
 
-class _InfoChip extends StatelessWidget {
-  const _InfoChip({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
+class _CurrentFieldCardContent extends StatelessWidget {
+  const _CurrentFieldCardContent({
+    required this.workspace,
+    required this.areaLabel,
+    required this.location,
+  });
+  final FieldWorkspaceRecord workspace;
+  final String areaLabel;
+  final String location;
 
   @override
   Widget build(BuildContext context) {
-    const color = AppColors.primary;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-      decoration: BoxDecoration(
-        color: AppColors.primaryLight,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+    return SizedBox(
+      height: 168,
+      child: Stack(
+        fit: StackFit.expand,
         children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: color,
+          _FieldMapPreview(workspace: workspace),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0x32000000), Color(0xD9001A10)],
+              ),
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.star_rounded, size: 13, color: Colors.white),
+                      SizedBox(width: 4),
+                      AppText(
+                        'CURRENT FIELD',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: .3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  workspace.field.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 21,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.location_on_outlined,
+                      size: 15,
+                      color: Colors.white70,
+                    ),
+                    const SizedBox(width: 3),
+                    Expanded(
+                      child: Text(
+                        location,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Text(
+                      areaLabel,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const Spacer(),
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.chevron_right,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FieldMapPreview extends StatelessWidget {
+  const _FieldMapPreview({required this.workspace});
+  final FieldWorkspaceRecord workspace;
+
+  @override
+  Widget build(BuildContext context) {
+    final boundary = workspace.boundary;
+    final outline = PolygonCalculator.fromGeoJson(
+      boundary?.geometryGeojson ?? '',
+    ).toList(growable: false);
+    final fallback =
+        boundary?.centroidLatitude != null &&
+            boundary?.centroidLongitude != null
+        ? LatLng(boundary!.centroidLatitude!, boundary.centroidLongitude!)
+        : const LatLng(17.7905, 121.4781);
+    final center = outline.isEmpty
+        ? fallback
+        : PolygonCalculator.calculateCenter(outline);
+    final hasMappedLocation =
+        outline.length >= 3 ||
+        (boundary?.centroidLatitude != null &&
+            boundary?.centroidLongitude != null);
+    if (!hasMappedLocation) {
+      return Container(
+        color: AppColors.primaryLight,
+        alignment: Alignment.center,
+        child: const Icon(
+          Icons.map_outlined,
+          color: AppColors.primary,
+          size: 34,
+        ),
+      );
+    }
+    return IgnorePointer(
+      child: FlutterMap(
+        key: ValueKey(
+          'field-list-map-${workspace.field.id}-${boundary?.id}-'
+          '${boundary?.geometryGeojson.hashCode}',
+        ),
+        options: MapOptions(
+          minZoom: MapViewPolicy.minZoom,
+          maxZoom: MapViewPolicy.maxZoom,
+          initialCenter: MapViewPolicy.initialCenter(center),
+          initialZoom: outline.isEmpty ? 15 : 17,
+          initialCameraFit: outline.length >= 3
+              ? CameraFit.bounds(
+                  bounds: LatLngBounds.fromPoints(outline),
+                  padding: const EdgeInsets.all(18),
+                  maxZoom: 18,
+                )
+              : null,
+          interactionOptions: const InteractionOptions(
+            flags: InteractiveFlag.none,
+          ),
+          backgroundColor: const Color(0xFFE7EFE8),
+        ),
+        children: [
+          TileLayer(
+            tileUpdateTransformer: TileUpdateTransformers.debounce(
+              const Duration(milliseconds: 160),
+            ),
+            panBuffer: 0,
+            keepBuffer: 3,
+            urlTemplate:
+                'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+            userAgentPackageName: 'com.wormwise.app.wormwise',
+            maxNativeZoom: 18,
+          ),
+          if (outline.length >= 3)
+            PolygonLayer(
+              polygons: [
+                Polygon(
+                  points: outline,
+                  color: const Color(0x2419C85A),
+                  borderColor: const Color(0xAA8DFF63),
+                  borderStrokeWidth: 7,
+                ),
+                Polygon(
+                  points: outline,
+                  color: Colors.transparent,
+                  borderColor: const Color(0xFF064D2B),
+                  borderStrokeWidth: 3,
+                  pattern: StrokePattern.dashed(segments: const [9, 6]),
+                ),
+              ],
+            ),
         ],
       ),
     );

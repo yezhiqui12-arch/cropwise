@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../localization/app_text.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -76,7 +77,7 @@ class _EmptyWorkspaceCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 14),
-          const Text(
+          const AppText(
             'Set up your first maize field',
             textAlign: TextAlign.center,
             style: TextStyle(
@@ -86,7 +87,7 @@ class _EmptyWorkspaceCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
+          const AppText(
             'Field details are saved on this phone and keep outlines, crop cycles, and assessments together.',
             textAlign: TextAlign.center,
             style: TextStyle(color: AppColors.textSecondary, height: 1.4),
@@ -98,7 +99,7 @@ class _EmptyWorkspaceCard extends StatelessWidget {
               key: const Key('home_add_first_field_button'),
               onPressed: onAdd,
               icon: const Icon(Icons.add),
-              label: const Text('Add your first field'),
+              label: const AppText('Add your first field'),
             ),
           ),
         ],
@@ -222,7 +223,7 @@ class _WorkspaceCard extends StatelessWidget {
                           ),
                           const Expanded(
                             child: _MetaItem(
-                              icon: Icons.eco,
+                              icon: Icons.agriculture_outlined,
                               label: 'GROWTH STAGE',
                               value: 'Not assessed',
                             ),
@@ -271,7 +272,7 @@ class _WorkspaceCard extends StatelessWidget {
                       ),
                       backgroundColor: Colors.white,
                     ),
-                    child: const Text(
+                    child: const AppText(
                       'Change Field',
                       style: TextStyle(
                         fontSize: 16,
@@ -296,9 +297,7 @@ class _WorkspaceCard extends StatelessWidget {
       field.province,
     ].whereType<String>().where((value) => value.trim().isNotEmpty).toList();
     if (parts.isNotEmpty) return parts.join(', ');
-    return field.locationDescription?.trim().isNotEmpty == true
-        ? field.locationDescription
-        : 'Location not entered';
+    return 'Location not entered';
   }
 
   String _cropAgeLabel(DateTime? plantingDate) {
@@ -320,7 +319,7 @@ class _ActiveBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
         border: Border.all(color: const Color(0xFF8BCB82)),
       ),
-      child: const Text(
+      child: const AppText(
         'ACTIVE WORKSPACE',
         style: TextStyle(
           color: Colors.white,

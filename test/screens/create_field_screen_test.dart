@@ -2,6 +2,8 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wormwise/data/local/app_database.dart';
+import 'package:wormwise/data/repositories/field_repository.dart';
+import 'package:wormwise/data/repositories/people_repository.dart';
 import 'package:wormwise/main.dart';
 
 void main() {
@@ -173,17 +175,7 @@ void main() {
         findsOneWidget,
       );
 
-      // Open intended use choice
-      final intendedUseChoice = find.byKey(
-        const Key('field_intended_use_choice'),
-      );
-      expect(intendedUseChoice, findsOneWidget);
-      await tester.tap(intendedUseChoice);
-      await tester.pumpAndSettle();
-
-      // Select 'Dry grain'
-      await tester.tap(find.text('Dry grain'));
-      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('field_intended_use_choice')), findsNothing);
 
       // Verify the variety text field STILL contains the selected variety!
       expect(
@@ -205,4 +197,46 @@ void main() {
       await tester.pump(const Duration(milliseconds: 1));
     },
   );
+
+  testWidgets('Map tab field card renders without overflow on narrow screens', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final database = AppDatabase(NativeDatabase.memory());
+    final evaluator = await PeopleRepository(
+      database,
+    ).findOrCreateEvaluator('Tester');
+    await FieldRepository(database).createFieldWithBoundaryAndCycle(
+      name: 'hehw',
+      geometryGeojson:
+          '{"type":"Polygon","coordinates":[[[120.0,14.0],[120.01,14.0],[120.01,14.01],[120.0,14.01],[120.0,14.0]]]}',
+      areaHectares: 0.967,
+      boundarySourceMethod: 'draw',
+      boundaryConfirmationStatus: 'user_confirmed',
+      ownerPersonId: evaluator.id,
+      actorPersonId: evaluator.id,
+    );
+
+    await tester.pumpWidget(WormWiseApp(database: database));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('bottom_nav_map')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('manage_boundary_button')), findsOneWidget);
+    expect(find.text('Manage boundary'), findsOneWidget);
+    expect(find.text('Field details'), findsOneWidget);
+    expect(find.text('BOUNDARY SAVED'), findsOneWidget);
+    expect(find.text('0.967 ha calculated outline'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await database.close();
+    await tester.pump(const Duration(milliseconds: 1));
+  });
 }

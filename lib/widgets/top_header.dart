@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../localization/app_language.dart';
+import '../screens/notifications_screen.dart';
+import '../services/wormwise_notification_service.dart';
 import '../theme/app_colors.dart';
 
 class TopHeader extends StatelessWidget implements PreferredSizeWidget {
-  const TopHeader({super.key});
+  const TopHeader({super.key, required this.onOpenAssess});
+  final VoidCallback onOpenAssess;
 
   @override
   Size get preferredSize => const Size.fromHeight(64);
@@ -14,71 +19,63 @@ class TopHeader extends StatelessWidget implements PreferredSizeWidget {
       elevation: 1,
       scrolledUnderElevation: 2,
       shadowColor: Colors.black.withValues(alpha: 0.08),
-      leading: IconButton(
-        key: const Key('home_menu_button'),
-        icon: const Icon(Icons.menu, color: AppColors.textPrimary, size: 28),
-        onPressed: () => Scaffold.of(context).openDrawer(),
-      ),
-      titleSpacing: 0,
-      title: Row(
-        children: [
-          // Logo Icon
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: AppColors.primaryLight,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(Icons.eco, color: AppColors.primary, size: 20),
-          ),
-          const SizedBox(width: 8),
-          const Text(
-            'Home',
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
+      titleSpacing: 20,
+      title: Text(
+        AppWords.of(context).home,
+        style: const TextStyle(
+          color: AppColors.textPrimary,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
       ),
       actions: [
-        // WormWise currently stores its core field records locally.
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(
-            color: const Color(0xFF005312),
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: AppColors.primary),
-          ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
+        Consumer<WormWiseNotificationService>(
+          builder: (context, notifications, _) => Stack(
+            clipBehavior: Clip.none,
             children: [
-              Icon(Icons.phone_android, color: Colors.white, size: 14),
-              SizedBox(width: 4),
-              Text(
-                'LOCAL',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.5,
+              IconButton(
+                key: const Key('home_notifications_button'),
+                tooltip: AppWords.of(context).notifications,
+                onPressed: () => Navigator.push<void>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        NotificationsScreen(onOpenAssess: onOpenAssess),
+                  ),
+                ),
+                icon: const Icon(
+                  Icons.notifications_outlined,
+                  color: AppColors.textPrimary,
+                  size: 27,
                 ),
               ),
+              if (notifications.unreadCount > 0)
+                Positioned(
+                  right: 3,
+                  top: 3,
+                  child: Container(
+                    constraints: const BoxConstraints(minWidth: 18),
+                    height: 18,
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    alignment: Alignment.center,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFC62828),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      notifications.unreadCount > 9
+                          ? '9+'
+                          : '${notifications.unreadCount}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
-        ),
-        const SizedBox(width: 8),
-
-        // User Avatar Button
-        Container(
-          width: 36,
-          height: 36,
-          decoration: const BoxDecoration(
-            color: AppColors.primary,
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(Icons.person, color: Colors.white, size: 20),
         ),
         const SizedBox(width: 12),
       ],

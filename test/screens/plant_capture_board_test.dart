@@ -2,11 +2,44 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:wormwise/data/local/app_database.dart';
 import 'package:wormwise/data/local/database_codes.dart';
 import 'package:wormwise/data/repositories/evidence_capture_repository.dart';
 import 'package:wormwise/screens/station1/plant_capture_board_step.dart';
 import 'package:wormwise/services/station_evidence_policy.dart';
+import 'package:wormwise/services/scouting_route_generator.dart';
+import 'package:wormwise/services/phone_location_service.dart';
+import 'package:wormwise/widgets/offline_scouting_route_map.dart';
+
+final _testBoundary = <LatLng>[
+  const LatLng(17.0000, 121.0000),
+  const LatLng(17.0000, 121.0100),
+  const LatLng(17.0100, 121.0100),
+  const LatLng(17.0100, 121.0000),
+];
+
+ScoutingRoutePlan _testPlan() => ScoutingRouteGenerator.generate(
+  draft: ScoutingRoutePlan(
+    assessmentId: 'assessment-1',
+    blockRunId: 'run-1',
+    blockId: 'block-1',
+    boundaryVersionId: 'boundary-1',
+    pattern: DatabaseCodes.patternW,
+    status: ScoutingRouteStatus.draft,
+    preparation: const RoutePreparationData(
+      entrance: LatLng(17.0002, 121.0002),
+      rowBearingDegrees: 0,
+      obstaclesReviewed: true,
+      wCrossingConfirmed: true,
+    ),
+    updatedAt: DateTime.utc(2026, 8, 14),
+  ),
+  boundary: _testBoundary,
+);
+
+Future<Stream<PhoneLocationReading>> _noLocation() async =>
+    const Stream<PhoneLocationReading>.empty();
 
 EvidenceCaptureBundle _mockPlantBundle({
   required int position,
@@ -69,6 +102,71 @@ EvidenceCaptureBundle _mockPlantBundle({
 }
 
 void main() {
+  testWidgets('expanded capture map centers on field and user from header', (
+    tester,
+  ) async {
+    Future<Stream<PhoneLocationReading>> watchLocation() async => Stream.value(
+      PhoneLocationReading(
+        latitude: 17.005,
+        longitude: 121.005,
+        accuracyMeters: 8,
+        capturedAt: DateTime.utc(2026, 8, 14),
+      ),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: PlantCaptureBoardStep(
+            boundary: _testBoundary,
+            plan: _testPlan(),
+            watchLocation: watchLocation,
+            selectedPosition: 1,
+            capturedPlantCount: 0,
+            stationBundles: const [],
+            isSaving: false,
+            resolveFile: (path) async => File(path),
+            onSelectPlant: (_) {},
+            onCapture: (_, _) async => null,
+            onInspect: (_) async => null,
+            onAccept: (_) async => true,
+            onRetake: (_) async => null,
+            onRemove: (_) async {},
+            onManualFallback: (_, _, _, _) async => true,
+            onCompleteStationCapture: () {},
+            onCannotAssess: (_, _) async {},
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('open_plant_position_map')));
+    await tester.pump();
+    await tester.pump();
+
+    final fieldButton = find.byKey(
+      const Key('center_expanded_plant_map_on_field'),
+    );
+    final userButton = find.byKey(
+      const Key('center_expanded_plant_map_on_user'),
+    );
+    expect(fieldButton, findsOneWidget);
+    expect(userButton, findsOneWidget);
+    final map = find.byType(OfflineScoutingRouteMap).last;
+    await tester.tap(fieldButton);
+    await tester.pump();
+    expect(
+      tester.widget<OfflineScoutingRouteMap>(map).recenterFieldRevision,
+      1,
+    );
+    await tester.tap(userButton);
+    await tester.pump();
+    expect(
+      tester.widget<OfflineScoutingRouteMap>(map).recenterLocationRevision,
+      1,
+    );
+    expect(find.textContaining('sampling path'), findsNothing);
+  });
+
   testWidgets('PlantCaptureBoardStep displays 10 plant tiles and progresses', (
     WidgetTester tester,
   ) async {
@@ -82,6 +180,9 @@ void main() {
           body: StatefulBuilder(
             builder: (context, setState) {
               return PlantCaptureBoardStep(
+                boundary: _testBoundary,
+                plan: _testPlan(),
+                watchLocation: _noLocation,
                 blockNumber: 1,
                 stationNumber: 1,
                 evidencePolicy:
@@ -202,6 +303,9 @@ void main() {
             body: StatefulBuilder(
               builder: (context, setState) {
                 return PlantCaptureBoardStep(
+                  boundary: _testBoundary,
+                  plan: _testPlan(),
+                  watchLocation: _noLocation,
                   blockNumber: 1,
                   stationNumber: 1,
                   isVeV2: true,
@@ -248,6 +352,56 @@ void main() {
 
       expect(find.text('Capture Seedling 2'), findsOneWidget);
       expect(find.text('Add Seedling'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'PlantCaptureBoardStep header does not overflow at 360px width with 200% text scale',
+    (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(360, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MediaQuery(
+            data: const MediaQueryData(
+              size: Size(360, 800),
+              textScaler: TextScaler.linear(2),
+            ),
+            child: Scaffold(
+              body: PlantCaptureBoardStep(
+                boundary: _testBoundary,
+                plan: _testPlan(),
+                watchLocation: _noLocation,
+                blockNumber: 1,
+                stationNumber: 2,
+                isVeV2: true,
+                selectedPosition: 1,
+                capturedPlantCount: 0,
+                stationBundles: const [],
+                isSaving: false,
+                resolveFile: (path) async => File(path),
+                onSelectPlant: (_) {},
+                onCapture: (_, _) async => null,
+                onInspect: (_) async => null,
+                onAccept: (_) async => true,
+                onRetake: (_) async => null,
+                onRemove: (_) async {},
+                onManualFallback: (_, _, _, _) async => true,
+                onCompleteStationCapture: () {},
+                onCannotAssess: (_, _) async {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Capture Seedlings 1–10'), findsOneWidget);
+      expect(find.text('Skip to the next station'), findsNothing);
+      expect(tester.takeException(), isNull);
     },
   );
 }

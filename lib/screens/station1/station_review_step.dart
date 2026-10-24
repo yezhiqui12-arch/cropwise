@@ -1,4 +1,7 @@
+import '../../models/automatic_screening.dart';
 import 'dart:io';
+import '../../localization/app_language.dart';
+import '../../localization/app_text.dart';
 
 import 'package:flutter/material.dart';
 
@@ -8,6 +11,8 @@ import '../../data/repositories/evidence_capture_repository.dart';
 import '../../data/repositories/station1_workflow_repository.dart';
 import '../../services/evidence_capture_coordinator.dart';
 import '../../services/station_evidence_policy.dart';
+import '../../theme/app_colors.dart';
+import 'field_workflow_components.dart';
 import 'station_review_components.dart';
 
 class StationReviewStep extends StatelessWidget {
@@ -29,11 +34,13 @@ class StationReviewStep extends StatelessWidget {
     this.evidenceThumbnailBuilder,
     this.onOpenEvidence,
     this.pilotWorkloadMetrics = PilotWorkloadMetrics.empty,
+    this.growthStage = 'v3_v6',
   });
 
   final Station1Snapshot snapshot;
   final int blockNumber;
   final int stationNumber;
+  final String growthStage;
   final StationEvidencePolicy evidencePolicy;
   final bool isSaving;
   final ValueChanged<int> onEdit;
@@ -73,18 +80,6 @@ class StationReviewStep extends StatelessWidget {
           item.plant.sequenceNumber,
     ];
     final stationReady = manualComplete && unresolvedEvidence.isEmpty;
-    final capturedPositions = {
-      for (final bundle in evidenceBundles)
-        if (bundle.session.scopeType == DatabaseCodes.evidenceScopePlant &&
-            bundle.session.plantPosition != null &&
-            bundle.session.completedAt != null &&
-            bundle.isViewSatisfied(DatabaseCodes.evidenceViewWhorlOverview))
-          bundle.session.plantPosition!,
-    };
-    final captureComplete = List<int>.generate(
-      10,
-      (index) => index + 1,
-    ).every(capturedPositions.contains);
     final attentionPositions =
         <int>{...pendingPositions, ...unresolvedEvidence}.toList()
           ..sort((a, b) {
@@ -112,260 +107,302 @@ class StationReviewStep extends StatelessWidget {
           review: evidenceReviews[position],
         ),
     };
+    final screeningMode = snapshot.plants.any(
+      (p) => AutomaticScreening.parse(p.plant.wholePlantContextNote) != null,
+    );
+    final healthyCount = snapshot.plants
+        .where(
+          (p) =>
+              (p.plant.plantStatus ==
+              (screeningMode
+                  ? AutomaticScreening.negativeStatus
+                  : DatabaseCodes.plantNegative)),
+        )
+        .length;
+    final infestedCount = snapshot.plants
+        .where(
+          (p) =>
+              (p.plant.plantStatus ==
+              (screeningMode
+                  ? AutomaticScreening.positiveStatus
+                  : DatabaseCodes.plantCurrentPositive)),
+        )
+        .length;
+    final notAssessableCount = snapshot.plants
+        .where((p) => !p.plant.assessable)
+        .length;
+    final davisScores = snapshot.plants
+        .map((p) => p.vegetativeOrNull?.daBafsLeafDamageScore)
+        .where((s) => s != null && s > 0)
+        .cast<int>()
+        .toList();
+    final avgDavisGrade = davisScores.isNotEmpty
+        ? davisScores.reduce((a, b) => a + b) / davisScores.length
+        : null;
+    final larvaeCount = snapshot.plants
+        .where(
+          (p) =>
+              p.vegetativeOrNull?.larvaVisible == true ||
+              p.reproductive?.larvaPresent == true,
+        )
+        .length;
+    final frassCount = snapshot.plants
+        .where(
+          (p) =>
+              p.vegetativeOrNull?.freshFrass == true ||
+              p.reproductive?.frassPresent == true,
+        )
+        .length;
+    final whorlDamageCount = snapshot.plants
+        .where(
+          (p) =>
+              p.vegetativeOrNull?.whorlFeedingSign == true ||
+              p.vegetativeOrNull?.smallFreshWindowpanes == true ||
+              (p.vegetativeOrNull?.daBafsLeafDamageScore != null &&
+                  p.vegetativeOrNull!.daBafsLeafDamageScore! > 1),
+        )
+        .length;
+    final cutSeedlingCount = snapshot.plants
+        .where(
+          (p) =>
+              p.vegetativeOrNull?.cuttingOrTearing == true ||
+              p.plant.notAssessableReason?.toLowerCase().contains('cut') ==
+                  true ||
+              p.plant.evaluatorNotes?.toLowerCase().contains('cut') == true,
+        )
+        .length;
+    final emptySpotCount = snapshot.plants
+        .where(
+          (p) =>
+              p.plant.notAssessableReason == DatabaseCodes.veOccupancyEmpty ||
+              p.plant.notAssessableReason?.toLowerCase().contains('empty') ==
+                  true,
+        )
+        .length;
+
     final nextPosition = attentionPositions.firstOrNull;
-    return Column(
+
+    return FieldWorkflowShell(
+      scrollKey: const Key('station_review_step'),
+      bottomBar: StationReviewBottomBar(
+        message: stationReady
+            ? 'All required observations and evidence reviews are complete.'
+            : 'Review observations or complete station.',
+        actionLabel: stationReady
+            ? 'Complete Station $stationNumber'
+            : 'Complete Station $stationNumber',
+        actionKey: const Key('confirm_station_review_button'),
+        isSaving: isSaving,
+        onPressed: onConfirm,
+      ),
       children: [
-        Expanded(
-          child: ListView(
-            key: const Key('station_review_step'),
-            padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
-            children: [
-              StationReviewHeader(
-                stationNumber: stationNumber,
-                confirmedCount: snapshot.plants.length,
-                itemLabel: 'plants',
-                needsAttentionCount: attentionPositions.length,
-              ),
-              const SizedBox(height: 14),
-              StationReviewStatusStrip(
-                states: states,
-                itemLabel: 'Plant',
-                onSelected: onEdit,
-              ),
-              const SizedBox(height: 14),
-              if (onCompleteTestStation != null)
-                ExpansionTile(
-                  key: const Key('test_data_station_bypass_card'),
-                  tilePadding: const EdgeInsets.symmetric(horizontal: 2),
-                  title: const Text('TEST DATA shortcut'),
-                  childrenPadding: const EdgeInsets.only(bottom: 12),
-                  children: [
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(minHeight: 56),
-                      child: FilledButton.icon(
-                        key: const Key(
-                          'complete_test_station_from_review_button',
-                        ),
-                        onPressed: isSaving ? null : onCompleteTestStation,
-                        icon: const Icon(Icons.science_outlined),
-                        label: Text('Complete test Station $stationNumber'),
-                      ),
-                    ),
-                  ],
-                ),
-              const _AnalysisUnavailableBanner(),
-              const SizedBox(height: 14),
-              if (attentionPositions.isNotEmpty) ...[
-                const _ReviewSectionLabel('NEEDS ATTENTION'),
-                for (final position in attentionPositions)
-                  if (savedByPosition[position] == null)
-                    _PendingPlantReviewCard(
-                      position: position,
-                      evidence: _bundleForPlant(evidenceBundles, position),
-                      evidenceReview: evidenceReviews[position],
-                      resolveEvidenceFile: resolveEvidenceFile,
-                      evidenceThumbnailBuilder: evidenceThumbnailBuilder,
-                      onOpenEvidence: onOpenEvidence,
-                      onEdit: onEdit,
-                      onMarkInsufficient: onMarkInsufficient,
+        StationReviewHeader(
+          blockNumber: blockNumber,
+          stageLabel: growthStageLabel(growthStage),
+          stationNumber: stationNumber,
+          confirmedCount: snapshot.plants.length,
+          itemLabel: 'plants',
+          needsAttentionCount: 0,
+          healthyCount: healthyCount,
+          infestedCount: infestedCount,
+        ),
+        const WorkflowSectionHeader(
+          title: 'Agronomic summary',
+          subtitle: 'Observations recorded at this station.',
+        ),
+        StationAgronomicThreatCard(
+          screeningMode: screeningMode,
+          growthStage: growthStage,
+          totalPlants: screeningMode
+              ? snapshot.plants
+                    .where(
+                      (p) =>
+                          AutomaticScreening.parse(
+                            p.plant.wholePlantContextNote,
+                          )?.available ==
+                          true,
                     )
-                  else
-                    _PlantReviewCard(
-                      item: savedByPosition[position]!,
-                      evidencePolicy: evidencePolicy,
-                      evidence: _bundleForPlant(evidenceBundles, position),
-                      evidenceReview: evidenceReviews[position],
-                      resolveEvidenceFile: resolveEvidenceFile,
-                      evidenceThumbnailBuilder: evidenceThumbnailBuilder,
-                      onOpenEvidence: onOpenEvidence,
-                      onEdit: onEdit,
-                      onMarkInsufficient: onMarkInsufficient,
-                    ),
-              ],
-              if (readyPositions.isNotEmpty)
-                ExpansionTile(
-                  key: const Key('confirmed_plants_section'),
-                  tilePadding: const EdgeInsets.symmetric(horizontal: 2),
-                  title: Text('Confirmed plants · ${readyPositions.length}'),
-                  subtitle: const Text('Open to review or correct'),
-                  children: [
-                    for (final position in readyPositions)
-                      _PlantReviewCard(
-                        item: savedByPosition[position]!,
-                        evidencePolicy: evidencePolicy,
-                        evidence: _bundleForPlant(evidenceBundles, position),
-                        evidenceReview: evidenceReviews[position],
-                        resolveEvidenceFile: resolveEvidenceFile,
-                        evidenceThumbnailBuilder: evidenceThumbnailBuilder,
-                        onOpenEvidence: onOpenEvidence,
-                        onEdit: onEdit,
-                        onMarkInsufficient: onMarkInsufficient,
-                      ),
-                  ],
-                ),
-              ExpansionTile(
-                key: const Key('station_review_details'),
-                tilePadding: const EdgeInsets.symmetric(horizontal: 2),
-                title: const Text('Station details'),
-                subtitle: const Text('Location, context photo and workload'),
-                childrenPadding: const EdgeInsets.only(bottom: 8),
+                    .length
+              : 10,
+          infestedCount: infestedCount,
+          healthyCount: healthyCount,
+          notAssessableCount: notAssessableCount,
+          avgDavisGrade: avgDavisGrade,
+          larvaeCount: larvaeCount,
+          frassCount: frassCount,
+          whorlDamageCount: whorlDamageCount,
+          cutSeedlingCount: cutSeedlingCount,
+          emptySpotCount: emptySpotCount,
+        ),
+        const SizedBox(height: 14),
+        const WorkflowSectionHeader(
+          title: 'Plant assessments',
+          subtitle: 'Tap any plant to inspect observations or photos.',
+        ),
+        for (var position = 1; position <= 10; position++)
+          _buildCompactPlantTile(
+            context: context,
+            position: position,
+            item: savedByPosition[position],
+            evidence: _bundleForPlant(evidenceBundles, position),
+            resolveEvidenceFile: resolveEvidenceFile,
+            onEdit: onEdit,
+          ),
+        const SizedBox(height: 14),
+        StationDetailsFooterStrip(
+          gpsAccuracyM: station.gpsAccuracyM,
+          notLocatedReason: station.notLocatedReason,
+          durationLabel: pilotWorkloadMetrics.acceptedImageCount > 0
+              ? '${pilotWorkloadMetrics.acceptedImageCount} photos · ${pilotWorkloadMetrics.manualFallbackCount} fallbacks'
+              : null,
+        ),
+        if (onCompleteTestStation != null) ...[
+          const SizedBox(height: 12),
+          Card(
+            key: const Key('test_data_station_bypass_card'),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      station.latitude == null
-                          ? 'GPS unavailable: ${_reasonLabel(station.notLocatedReason)}'
-                          : 'GPS saved · accuracy ${station.gpsAccuracyM!.toStringAsFixed(1)} m',
+                  AppText(
+                    'TEST DATA SHORTCUT',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.severeSeverityRing,
                     ),
                   ),
-                  if (resolveEvidenceFile != null) ...[
-                    const SizedBox(height: 12),
-                    _ReviewEvidence(
-                      label: 'Station context',
-                      bundle: _bundleForScope(
-                        evidenceBundles,
-                        DatabaseCodes.evidenceScopeStationContext,
-                      ),
-                      resolveEvidenceFile: resolveEvidenceFile!,
-                      thumbnailBuilder: evidenceThumbnailBuilder,
-                      onOpenEvidence: onOpenEvidence,
+                  const SizedBox(height: 8),
+                  FilledButton(
+                    key: const Key('complete_test_station_from_review_button'),
+                    onPressed: isSaving ? null : onCompleteTestStation,
+                    child: AppText(
+                      'Bypass Station $stationNumber with test data',
                     ),
-                  ],
-                  const SizedBox(height: 12),
-                  _PilotWorkloadCard(metrics: pilotWorkloadMetrics),
+                  ),
                 ],
-              ),
-            ],
-          ),
-        ),
-        if (onCompleteWithoutManualConfirmation != null && !stationReady)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 8, 18, 0),
-            child: SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                key: const Key('complete_without_manual_confirmation_button'),
-                onPressed: !captureComplete || isSaving
-                    ? null
-                    : () => _confirmUnreviewedCompletion(context),
-                child: const Text('Complete without manual confirmation'),
               ),
             ),
           ),
-        StationReviewBottomBar(
-          message: stationReady
-              ? 'All 10 plants are confirmed.'
-              : '${attentionPositions.length} plants still need attention.',
-          actionLabel: stationReady
-              ? 'Complete Station $stationNumber'
-              : 'Review Plant $nextPosition',
-          actionKey: stationReady
-              ? const Key('confirm_station_review_button')
-              : const Key('review_next_plant_button'),
-          isSaving: isSaving,
-          onPressed: stationReady ? onConfirm : () => onEdit(nextPosition!),
-        ),
+        ],
       ],
     );
   }
 
-  Future<void> _confirmUnreviewedCompletion(BuildContext context) async {
-    final accepted = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Leave observations unconfirmed?'),
-        content: const Text(
-          'Photos will be saved, but WormWise has no image model yet. No findings will be created for these plants.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            key: const Key('confirm_unreviewed_station_button'),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Complete station'),
-          ),
-        ],
-      ),
+  Widget _buildCompactPlantTile({
+    required BuildContext context,
+    required int position,
+    required Station1PlantRecord? item,
+    required EvidenceCaptureBundle? evidence,
+    required Future<File> Function(String localUri)? resolveEvidenceFile,
+    required ValueChanged<int> onEdit,
+  }) {
+    if (item == null) {
+      return CompactPlantAuditTile(
+        position: position,
+        statusLabel: 'Not recorded',
+        statusColor: const Color(0xFF7A4A00),
+        statusBgColor: const Color(0xFFFFEBC4),
+        symptomsSummary: 'Tap to record observation',
+        isUnassessed: true,
+        onTap: () => onEdit(position),
+      );
+    }
+    final plant = item.plant;
+    if (!plant.assessable) {
+      return CompactPlantAuditTile(
+        position: position,
+        statusLabel: 'Not assessable',
+        statusColor: const Color(0xFF5A5A5A),
+        statusBgColor: const Color(0xFFE8EAEB),
+        symptomsSummary: plant.notAssessableReason ?? 'Cannot assess',
+        onTap: () => onEdit(position),
+      );
+    }
+
+    final screen = AutomaticScreening.parse(plant.wholePlantContextNote);
+    final isInfested =
+        screen?.positive ??
+        (plant.plantStatus == DatabaseCodes.plantCurrentPositive);
+    final isOldDamage = plant.plantStatus == DatabaseCodes.plantOldDamageOnly;
+    final isNonFaw = plant.plantStatus == DatabaseCodes.plantPossibleNonFaw;
+
+    final String statusLabel;
+    final Color statusColor;
+    final Color statusBgColor;
+
+    if (isInfested) {
+      statusLabel = screen?.label ?? 'FAW Infested';
+      statusColor = AppColors.severeSeverityRing;
+      statusBgColor = AppColors.severeSeverityBg;
+    } else if (isOldDamage) {
+      statusLabel = 'Old damage';
+      statusColor = const Color(0xFFB57400);
+      statusBgColor = const Color(0xFFFFF3D6);
+    } else if (isNonFaw) {
+      statusLabel = 'Non-FAW sign';
+      statusColor = const Color(0xFF24547A);
+      statusBgColor = const Color(0xFFE3EDF7);
+    } else {
+      statusLabel = screen?.label ?? 'Clean';
+      statusColor = AppColors.highContrastGreen;
+      statusBgColor = const Color(0xFFDDF1E2);
+    }
+
+    final symptoms = <String>[
+      if (item.vegetative.larvaVisible)
+        'Larva visible (${item.vegetative.larvalSize})',
+      if (item.vegetative.freshFrass) 'Fresh frass',
+      if (item.vegetative.whorlFeedingSign) 'Whorl feeding',
+      if (item.vegetative.daBafsLeafDamageScore != null &&
+          item.vegetative.daBafsLeafDamageScore! > 1)
+        'Davis Grade ${item.vegetative.daBafsLeafDamageScore}',
+      if (item.vegetative.smallFreshWindowpanes) 'Windowpanes',
+      if (item.vegetative.scraping) 'Scraping',
+      if (item.vegetative.cuttingOrTearing) 'Cutting/Tearing',
+    ];
+
+    final summary = screen != null
+        ? screen.label
+        : symptoms.isNotEmpty
+        ? symptoms.join(' · ')
+        : 'Healthy · No signs of fall armyworm';
+
+    final readyMedia = evidence?.media
+        .where(
+          (m) =>
+              m.deletedAt == null &&
+              (m.storageState == DatabaseCodes.evidenceStorageReady ||
+                  m.storageState == DatabaseCodes.evidenceStorageStaged),
+        )
+        .firstOrNull;
+
+    if (readyMedia != null && resolveEvidenceFile != null) {
+      return FutureBuilder<File>(
+        future: resolveEvidenceFile(readyMedia.localUri),
+        builder: (context, snapshot) {
+          return CompactPlantAuditTile(
+            position: position,
+            statusLabel: statusLabel,
+            statusColor: statusColor,
+            statusBgColor: statusBgColor,
+            symptomsSummary: summary,
+            thumbnailFile: snapshot.data,
+            onTap: () => onEdit(position),
+          );
+        },
+      );
+    }
+
+    return CompactPlantAuditTile(
+      position: position,
+      statusLabel: statusLabel,
+      statusColor: statusColor,
+      statusBgColor: statusBgColor,
+      symptomsSummary: summary,
+      onTap: () => onEdit(position),
     );
-    if (accepted == true) onCompleteWithoutManualConfirmation?.call();
   }
-}
-
-class _AnalysisUnavailableBanner extends StatelessWidget {
-  const _AnalysisUnavailableBanner();
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      key: const Key('analysis_unavailable_banner'),
-      elevation: 0,
-      color: const Color(0xFFFFF5D9),
-      child: ListTile(
-        leading: const Icon(Icons.info_outline),
-        title: const Text(
-          'Image analysis is not available yet',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: const Text(
-          'Manual confirmation is optional. Unreviewed photos do not become findings.',
-        ),
-        trailing: IconButton(
-          key: const Key('analysis_unavailable_help'),
-          tooltip: 'About unconfirmed photos',
-          onPressed: () => showModalBottomSheet<void>(
-            context: context,
-            builder: (context) => const SafeArea(
-              child: Padding(
-                padding: EdgeInsets.all(20),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'About unconfirmed photos',
-                      style: TextStyle(
-                        fontSize: 21,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 12),
-                    Text(
-                      'WormWise does not yet have a validated image model. You may complete the station without manual confirmation, but those photos remain unreviewed and create no plant findings or FAW diagnosis.',
-                      style: TextStyle(height: 1.45),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          icon: const Icon(Icons.help_outline),
-        ),
-      ),
-    );
-  }
-}
-
-class _ReviewSectionLabel extends StatelessWidget {
-  const _ReviewSectionLabel(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(2, 12, 2, 8),
-    child: Text(
-      text,
-      style: const TextStyle(
-        color: Color(0xFF176B3A),
-        fontSize: 12,
-        fontWeight: FontWeight.bold,
-        letterSpacing: 0.5,
-      ),
-    ),
-  );
 }
 
 class _PendingPlantReviewCard extends StatelessWidget {
@@ -408,7 +445,7 @@ class _PendingPlantReviewCard extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: Text(
+                  child: AppText(
                     'Plant $position',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
@@ -434,7 +471,7 @@ class _PendingPlantReviewCard extends StatelessWidget {
                 ) ==
                 'Not reviewed') ...[
               const SizedBox(height: 4),
-              const Text(
+              const AppText(
                 'Needs confirmation',
                 style: TextStyle(fontSize: 12, color: Colors.black54),
               ),
@@ -457,7 +494,7 @@ class _PendingPlantReviewCard extends StatelessWidget {
                 key: Key('mark_plant_${position}_insufficient'),
                 onPressed: () => onMarkInsufficient!(position),
                 icon: const Icon(Icons.report_outlined),
-                label: const Text('Mark evidence insufficient'),
+                label: const AppText('Mark evidence insufficient'),
               ),
               const SizedBox(height: 8),
             ],
@@ -467,7 +504,7 @@ class _PendingPlantReviewCard extends StatelessWidget {
                 key: Key('manual_confirm_plant_${position}_button'),
                 onPressed: () => onEdit(position),
                 icon: const Icon(Icons.fact_check_outlined),
-                label: Text('Review Plant $position'),
+                label: AppText('Review Plant $position'),
               ),
             ),
           ],
@@ -584,7 +621,7 @@ class _PlantReviewCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Text(
+                      AppText(
                         'Plant ${plant.sequenceNumber}',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
@@ -641,16 +678,6 @@ class _PlantReviewCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  if (_evidenceStateLabel(
-                        evidence: evidence,
-                        review: evidenceReview,
-                        assessable: plant.assessable,
-                      ) ==
-                      'Not reviewed')
-                    const Text(
-                      'Needs confirmation',
-                      style: TextStyle(fontSize: 12, color: Colors.black54),
-                    ),
                   if (plant.assessable)
                     if (raw.isNotEmpty)
                       Wrap(
@@ -662,12 +689,12 @@ class _PlantReviewCard extends StatelessWidget {
                         ],
                       )
                     else
-                      const Text(
+                      const AppText(
                         'No feeding signs observed',
                         style: TextStyle(fontSize: 12, color: Colors.black54),
                       )
                   else
-                    Text(
+                    AppText(
                       'Not assessable: ${plant.notAssessableReason ?? "unspecified"}',
                       style: const TextStyle(
                         fontSize: 12,
@@ -688,7 +715,9 @@ class _PlantReviewCard extends StatelessWidget {
                 if (plant.assessable && onMarkInsufficient != null)
                   IconButton(
                     key: Key('mark_plant_${plant.sequenceNumber}_insufficient'),
-                    tooltip: 'Mark evidence insufficient',
+                    tooltip: AppWords.of(
+                      context,
+                    ).translate('Mark evidence insufficient'),
                     onPressed: () => onMarkInsufficient!(plant.sequenceNumber),
                     icon: const Icon(Icons.report_outlined),
                   ),
@@ -986,36 +1015,36 @@ class _PilotWorkloadCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            const AppText(
               'Station 1 pilot workload',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 6),
-            Text(
+            AppText(
               '${metrics.acceptedImageCount} accepted images · '
               '${metrics.retakeCount} retakes · '
               '${metrics.manualFallbackCount} manual fallbacks',
               style: const TextStyle(height: 1.35),
             ),
-            Text(
+            AppText(
               '${metrics.manualFormUseCount} of 10 plant manual forms saved',
               style: const TextStyle(height: 1.35),
             ),
-            Text(
+            AppText(
               '${metrics.guidedTapCount} guided capture taps recorded',
               style: const TextStyle(height: 1.35),
             ),
-            Text(
+            AppText(
               'Private evidence storage: ${storageMib.toStringAsFixed(2)} MiB',
               style: const TextStyle(height: 1.35),
             ),
             const SizedBox(height: 6),
-            const Text(
+            const AppText(
               'Active screen time per plant:',
               style: TextStyle(fontWeight: FontWeight.w600),
             ),
             if (metrics.activeTimeByPlant.isEmpty)
-              const Text('Recorded when each plant is saved.')
+              const AppText('Recorded when each plant is saved.')
             else
               Wrap(
                 spacing: 10,
@@ -1024,11 +1053,11 @@ class _PilotWorkloadCard extends StatelessWidget {
                   for (final entry
                       in metrics.activeTimeByPlant.entries.toList()
                         ..sort((a, b) => a.key.compareTo(b.key)))
-                    Text('P${entry.key}: ${_formatDuration(entry.value)}'),
+                    AppText('P${entry.key}: ${_formatDuration(entry.value)}'),
                 ],
               ),
             const SizedBox(height: 6),
-            const Text(
+            const AppText(
               'Pilot measurement only. It does not define an image requirement for Stations 2–5.',
               style: TextStyle(fontSize: 12, height: 1.35),
             ),

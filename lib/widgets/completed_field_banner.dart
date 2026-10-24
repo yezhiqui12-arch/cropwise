@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../localization/app_text.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/field_workspace_provider.dart';
@@ -104,7 +105,7 @@ class CompletedFieldBanner extends StatelessWidget {
                         size: 16,
                       ),
                       SizedBox(width: 4),
-                      Text(
+                      AppText(
                         'Assessment Complete',
                         style: TextStyle(
                           color: Colors.white,

@@ -1,4 +1,5 @@
 import 'dart:io';
+import '../../localization/app_text.dart';
 
 import 'package:flutter/material.dart';
 
@@ -71,7 +72,7 @@ class _StationContextEvidenceStepState
       key: const Key('station_context_evidence_step'),
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 30),
       children: [
-        Text(
+        AppText(
           'BLOCK ${widget.blockNumber} · STATION ${widget.stationNumber}',
           style: const TextStyle(
             color: Color(0xFF176B3A),
@@ -81,7 +82,7 @@ class _StationContextEvidenceStepState
           ),
         ),
         const SizedBox(height: 8),
-        const Text(
+        const AppText(
           'Take station photo',
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         ),
@@ -116,7 +117,7 @@ class _StationContextEvidenceStepState
           child: FilledButton(
             key: const Key('continue_after_station_context'),
             onPressed: satisfied && !widget.isSaving ? widget.onContinue : null,
-            child: const Text('Continue'),
+            child: const AppText('Continue'),
           ),
         ),
       ],

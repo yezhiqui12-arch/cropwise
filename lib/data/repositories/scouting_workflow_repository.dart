@@ -1,7 +1,10 @@
+import '../../services/scouting_sampling_protocol.dart';
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
 
+import '../../services/assessment_area_policy.dart';
+import '../../services/field_block_partition_service.dart';
 import '../local/app_database.dart';
 import '../local/database_codes.dart';
 import '../local/local_id.dart';
@@ -12,6 +15,26 @@ class PilotBlockRequiredException implements Exception {
   const PilotBlockRequiredException(this.areaHectares);
 
   final double areaHectares;
+
+  int get requiredBlockCount =>
+      AssessmentAreaPolicy.requiredBlockCount(areaHectares);
+
+  @override
+  String toString() =>
+      'This ${areaHectares.toStringAsFixed(2)} ha field requires '
+      '$requiredBlockCount confirmed assessment blocks.';
+}
+
+class AssessmentAreaExceedsLimitException implements Exception {
+  const AssessmentAreaExceedsLimitException(this.areaHectares);
+
+  final double areaHectares;
+
+  @override
+  String toString() =>
+      'The confirmed outline is ${areaHectares.toStringAsFixed(2)} ha. '
+      'Formal assessment currently supports up to '
+      '${AssessmentAreaPolicy.maxAssessmentAreaHectares.toStringAsFixed(0)} ha.';
 }
 
 class IncompleteBlockDefinitionsException implements Exception {
@@ -58,6 +81,8 @@ class StationSnapshot {
     required this.plants,
     required this.reviewedAt,
     required this.reviewIsCurrent,
+    this.manualConfirmationDeferred = false,
+    this.requiredPlantCount = 10,
   });
 
   final PreparedScoutingRun prepared;
@@ -66,13 +91,15 @@ class StationSnapshot {
   final List<StationPlantRecord> plants;
   final DateTime? reviewedAt;
   final bool reviewIsCurrent;
+  final bool manualConfirmationDeferred;
+  final int requiredPlantCount;
 
   int get nextMissingPlantPosition {
     final saved = plants.map((item) => item.plant.sequenceNumber).toSet();
-    for (var position = 1; position <= 10; position++) {
+    for (var position = 1; position <= requiredPlantCount; position++) {
       if (!saved.contains(position)) return position;
     }
-    return 10;
+    return requiredPlantCount;
   }
 }
 
@@ -96,7 +123,7 @@ class BlockProgressSnapshot {
 }
 
 // Compatibility names keep the completed Station 1 implementation and tests
-// source-compatible while the workflow is generalized to five stations.
+// source-compatible with the shared plant workflow.
 typedef PreparedStation1Run = PreparedScoutingRun;
 typedef Station1PlantRecord = StationPlantRecord;
 typedef Station1Snapshot = StationSnapshot;
@@ -200,10 +227,15 @@ class ScoutingWorkflowRepository {
   ) async {
     _validatePreparationGate(assessment, boundary);
 
+    if (!AssessmentAreaPolicy.isWithinAssessmentLimit(boundary.areaHectares)) {
+      throw AssessmentAreaExceedsLimitException(boundary.areaHectares);
+    }
+
     return database.transaction(() async {
       var blocks = await _blocksForAssessment(assessment);
       if (blocks.isEmpty) {
-        if (boundary.areaHectares > 1) {
+        if (AssessmentAreaPolicy.requiredBlockCount(boundary.areaHectares) >
+            1) {
           throw PilotBlockRequiredException(boundary.areaHectares);
         }
         blocks = [await _createWholeFieldBlock(assessment, boundary)];
@@ -252,11 +284,116 @@ class ScoutingWorkflowRepository {
     return prepared.single;
   }
 
+  Future<List<FieldBlockRecord>> blockDefinitionsForAssessment(
+    String assessmentId,
+  ) async {
+    final assessment = await assessmentById(assessmentId);
+    return _blocksForAssessment(assessment);
+  }
+
+  Future<List<FieldBlockRecord>> generateProposedBlocks(
+    AssessmentRecord assessment,
+    BoundaryRecord boundary, {
+    int candidateIndex = 0,
+  }) async {
+    _validatePreparationGate(assessment, boundary);
+    if (!AssessmentAreaPolicy.isWithinAssessmentLimit(boundary.areaHectares)) {
+      throw AssessmentAreaExceedsLimitException(boundary.areaHectares);
+    }
+    final existing = await _blocksForAssessment(assessment);
+    if (existing.any((block) => !block.isProvisional)) {
+      throw const IncompleteBlockDefinitionsException(
+        'Confirmed assessment blocks already exist and will not be replaced automatically.',
+      );
+    }
+    final plan = const FieldBlockPartitionService().partition(
+      boundaryGeoJson: boundary.geometryGeojson,
+      expectedAreaHectares: boundary.areaHectares,
+      candidateIndex: candidateIndex,
+    );
+    return database.transaction(() async {
+      for (final block in existing) {
+        await (database.delete(
+          database.fieldBlocks,
+        )..where((row) => row.id.equals(block.id))).go();
+      }
+      for (final proposed in plan.blocks) {
+        final id = LocalId.generate();
+        await database
+            .into(database.fieldBlocks)
+            .insert(
+              FieldBlocksCompanion.insert(
+                id: id,
+                cropCycleId: assessment.cropCycleId,
+                boundaryVersionId: assessment.boundaryVersionId,
+                blockNumber: proposed.blockNumber,
+                geometryGeojson: proposed.geometryGeoJson,
+                areaHectares: proposed.areaHectares,
+                separationReason: Value(
+                  'automatic_proposal:${plan.algorithmVersion}:'
+                  '${plan.orientationDegrees.toStringAsFixed(0)}deg',
+                ),
+                isProvisional: const Value(true),
+              ),
+            );
+        await _mutations.record(
+          entityType: 'field_blocks',
+          entityId: id,
+          action: 'propose',
+          actorPersonId: assessment.evaluatorPersonId,
+          after: {
+            'block_number': proposed.blockNumber,
+            'area_hectares': proposed.areaHectares,
+            'algorithm': plan.algorithmVersion,
+            'orientation_degrees': plan.orientationDegrees,
+            'quality_score': plan.qualityScore,
+            'is_provisional': true,
+          },
+        );
+      }
+      return _blocksForAssessment(assessment);
+    });
+  }
+
+  Future<List<FieldBlockRecord>> confirmProposedBlocks(
+    AssessmentRecord assessment,
+    BoundaryRecord boundary,
+  ) async {
+    final blocks = await _blocksForAssessment(assessment);
+    _validateProposedBlocks(blocks, boundary);
+    await database.transaction(() async {
+      for (final block in blocks) {
+        await (database.update(
+          database.fieldBlocks,
+        )..where((row) => row.id.equals(block.id))).write(
+          FieldBlocksCompanion(
+            isProvisional: const Value(false),
+            updatedAt: Value(DateTime.now().toUtc()),
+            syncState: const Value(DatabaseCodes.queued),
+          ),
+        );
+        await _mutations.record(
+          entityType: 'field_blocks',
+          entityId: block.id,
+          action: 'confirm_partition_proposal',
+          actorPersonId: assessment.evaluatorPersonId,
+          before: {'is_provisional': true},
+          after: {'is_provisional': false},
+        );
+      }
+    });
+    return _blocksForAssessment(assessment);
+  }
+
   Future<BlockProgressSnapshot> loadBlockSnapshot(
     PreparedScoutingRun prepared,
   ) async {
+    final assessment = await assessmentById(prepared.run.assessmentId);
+    final count = ScoutingSamplingProtocol.locationCount(
+      assessment.protocolVersion,
+    );
     final snapshots = <StationSnapshot>[];
-    for (var stationNumber = 1; stationNumber <= 5; stationNumber++) {
+    for (var stationNumber = 1; stationNumber <= count; stationNumber++) {
       snapshots.add(
         await loadStationSnapshot(prepared, stationNumber: stationNumber),
       );
@@ -274,7 +411,14 @@ class ScoutingWorkflowRepository {
     PreparedScoutingRun prepared, {
     required int stationNumber,
   }) async {
-    _validateStationNumber(stationNumber);
+    final assessment = await assessmentById(prepared.run.assessmentId);
+    final requiredPlantCount = ScoutingSamplingProtocol.plantsPerLocation(
+      assessment.protocolVersion,
+    );
+    _validateStationNumber(
+      stationNumber,
+      ScoutingSamplingProtocol.locationCount(assessment.protocolVersion),
+    );
     final station =
         await (database.select(database.stations)..where(
               (row) =>
@@ -287,6 +431,7 @@ class ScoutingWorkflowRepository {
       return StationSnapshot(
         prepared: prepared,
         stationNumber: stationNumber,
+        requiredPlantCount: requiredPlantCount,
         station: null,
         plants: const [],
         reviewedAt: null,
@@ -356,11 +501,13 @@ class ScoutingWorkflowRepository {
     return StationSnapshot(
       prepared: prepared,
       stationNumber: stationNumber,
+      requiredPlantCount: requiredPlantCount,
       station: station,
       plants: List.unmodifiable(joined),
       reviewedAt: reviewedAt,
+      manualConfirmationDeferred: manualConfirmationDeferred,
       reviewIsCurrent:
-          (joined.length == 10 || manualConfirmationDeferred) &&
+          (joined.length == requiredPlantCount || manualConfirmationDeferred) &&
           reviewedAt != null &&
           sameStrings(recordedSourceAuditIds, currentSourceAuditIds),
     );
@@ -377,7 +524,11 @@ class ScoutingWorkflowRepository {
     String? notLocatedReason,
     String? accessibilityNotes,
   }) async {
-    _validateStationNumber(stationNumber);
+    final assessment = await assessmentById(prepared.run.assessmentId);
+    _validateStationNumber(
+      stationNumber,
+      ScoutingSamplingProtocol.locationCount(assessment.protocolVersion),
+    );
     final hasCoordinates = latitude != null || longitude != null;
     final hasReason = notLocatedReason != null && notLocatedReason.isNotEmpty;
     if (hasCoordinates == hasReason ||
@@ -423,6 +574,8 @@ class ScoutingWorkflowRepository {
       final stationId = previous?.id ?? LocalId.generate();
       final now = DateTime.now().toUtc();
       final values = StationsCompanion(
+        locationSource: Value(latitude == null ? 'unavailable' : 'phone_gps'),
+        locationCapturedAt: Value(capturedAt?.toUtc()),
         latitude: Value(latitude),
         longitude: Value(longitude),
         gpsAccuracyM: Value(gpsAccuracyM),
@@ -446,6 +599,8 @@ class ScoutingWorkflowRepository {
                 capturedAt: values.capturedAt,
                 notLocatedReason: values.notLocatedReason,
                 accessibilityNotes: values.accessibilityNotes,
+                locationSource: values.locationSource,
+                locationCapturedAt: values.locationCapturedAt,
                 updatedAt: values.updatedAt,
                 syncState: values.syncState,
               ),
@@ -498,9 +653,10 @@ class ScoutingWorkflowRepository {
     bool manualConfirmationDeferred = false,
   }) async {
     if (snapshot.station == null ||
-        (!manualConfirmationDeferred && snapshot.plants.length != 10)) {
+        (!manualConfirmationDeferred &&
+            snapshot.plants.length != snapshot.requiredPlantCount)) {
       throw StateError(
-        'Station ${snapshot.stationNumber} requires ten saved plant positions.',
+        'Station ${snapshot.stationNumber} requires ${snapshot.requiredPlantCount} saved plant position(s).',
       );
     }
     if (manualConfirmationDeferred) {
@@ -514,9 +670,12 @@ class ScoutingWorkflowRepository {
               bundle.session.completedAt != null)
             bundle.session.plantPosition!,
       };
-      if (!sameInts(capturedPositions, List<int>.generate(10, (i) => i + 1))) {
+      if (!sameInts(
+        capturedPositions,
+        List<int>.generate(snapshot.requiredPlantCount, (i) => i + 1),
+      )) {
         throw StateError(
-          'Capture all ten plant positions before skipping manual confirmation.',
+          'Capture all required plant positions before deferring manual confirmation.',
         );
       }
     }
@@ -660,6 +819,12 @@ class ScoutingWorkflowRepository {
     AssessmentRecord assessment,
     BoundaryRecord boundary,
   ) {
+    if (!ScoutingSamplingProtocol.isDa(assessment.protocolVersion) ||
+        assessment.scoutingPattern != ScoutingSamplingProtocol.daPattern) {
+      throw StateError(
+        'This scouting method is no longer supported. Start a new assessment with 20 plants per sampling block.',
+      );
+    }
     if (assessment.status != DatabaseCodes.inProgress ||
         (assessment.safetySummaryStatus != DatabaseCodes.noRecentTreatment &&
             assessment.safetySummaryStatus !=
@@ -702,18 +867,42 @@ class ScoutingWorkflowRepository {
         'Assessment block definitions still require evaluator confirmation.',
       );
     }
-    if (boundary.areaHectares > 1 && blocks.length < 2) {
+    _validateProposedBlocks(blocks, boundary);
+  }
+
+  void _validateProposedBlocks(
+    List<FieldBlockRecord> blocks,
+    BoundaryRecord boundary,
+  ) {
+    if (!AssessmentAreaPolicy.isWithinAssessmentLimit(boundary.areaHectares)) {
+      throw AssessmentAreaExceedsLimitException(boundary.areaHectares);
+    }
+    final requiredBlockCount = AssessmentAreaPolicy.requiredBlockCount(
+      boundary.areaHectares,
+    );
+    if (blocks.length != requiredBlockCount) {
       throw PilotBlockRequiredException(boundary.areaHectares);
     }
     for (var index = 0; index < blocks.length; index++) {
       final block = blocks[index];
       if (block.blockNumber != index + 1 ||
-          block.areaHectares <= 0 ||
+          !AssessmentAreaPolicy.isValidBlockArea(block.areaHectares) ||
           block.geometryGeojson.trim().isEmpty) {
         throw const IncompleteBlockDefinitionsException(
           'Assessment block definitions are missing, invalid, or out of order.',
         );
       }
+    }
+    final definedArea = blocks.fold<double>(
+      0,
+      (total, block) => total + block.areaHectares,
+    );
+    final allowedDifference = boundary.areaHectares * 0.05;
+    if ((definedArea - boundary.areaHectares).abs() > allowedDifference) {
+      throw IncompleteBlockDefinitionsException(
+        'Confirmed block areas total ${definedArea.toStringAsFixed(2)} ha, '
+        'which does not match the ${boundary.areaHectares.toStringAsFixed(2)} ha field outline.',
+      );
     }
   }
 
@@ -806,9 +995,13 @@ class ScoutingWorkflowRepository {
     };
   }
 
-  void _validateStationNumber(int stationNumber) {
-    if (stationNumber < 1 || stationNumber > 5) {
-      throw ArgumentError.value(stationNumber, 'stationNumber', 'Must be 1-5');
+  void _validateStationNumber(int stationNumber, int maximum) {
+    if (stationNumber < 1 || stationNumber > maximum) {
+      throw ArgumentError.value(
+        stationNumber,
+        'stationNumber',
+        'Must be 1-$maximum',
+      );
     }
   }
 }

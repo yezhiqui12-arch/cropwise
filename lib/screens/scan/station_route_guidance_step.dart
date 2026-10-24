@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../localization/app_text.dart';
 
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart' show LatLng;
@@ -98,7 +99,7 @@ class _StationRouteGuidanceStepState extends State<StationRouteGuidanceStep> {
       key: const Key('station_route_guidance_step'),
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
       children: [
-        Text(
+        AppText(
           'BLOCK ${widget.blockNumber} · STATION ${widget.stationNumber}',
           style: const TextStyle(
             color: AppColors.primary,
@@ -106,25 +107,23 @@ class _StationRouteGuidanceStepState extends State<StationRouteGuidanceStep> {
           ),
         ),
         const SizedBox(height: 8),
-        Text(
-          'Go toward Station ${widget.stationNumber}',
+        AppText(
+          'Station ${widget.stationNumber}',
           style: Theme.of(
             context,
           ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
-        Text(
-          widget.plan.pattern == 'w'
-              ? 'Use the W orientation only while crossing remains practical and safe.'
-              : 'Follow the approximate generated spine and alternating branch guidance only where access remains practical and safe.',
+        AppText(
+          'Follow the route where safe.',
           style: const TextStyle(height: 1.4),
         ),
         if (target.sideHint != null) ...[
           const SizedBox(height: 6),
-          Text(
+          AppText(
             target.sideHint == 'right_when_accessible'
-                ? 'Suggested sampling side: right, when accessible.'
-                : 'Suggested sampling side: left, when accessible.',
+                ? 'Sample on the right when accessible.'
+                : 'Sample on the left when accessible.',
             style: const TextStyle(fontWeight: FontWeight.w600),
           ),
         ],
@@ -135,6 +134,13 @@ class _StationRouteGuidanceStepState extends State<StationRouteGuidanceStep> {
           activeStation: widget.stationNumber,
           completedStationLocations: widget.completedStationLocations,
           completedStationNumbers: widget.completedStationNumbers,
+          animateFromCompletedStation:
+              widget.stationNumber > 1 &&
+                  widget.completedStationNumbers.contains(
+                    widget.stationNumber - 1,
+                  )
+              ? widget.stationNumber - 1
+              : null,
           imageryProvider: widget.imageryProvider,
           currentLocation: location,
         ),
@@ -147,7 +153,7 @@ class _StationRouteGuidanceStepState extends State<StationRouteGuidanceStep> {
                 ? Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text(
+                      AppText(
                         _locationError == null
                             ? 'Waiting for phone location…'
                             : _friendlyLocationError(_locationError!),
@@ -158,7 +164,7 @@ class _StationRouteGuidanceStepState extends State<StationRouteGuidanceStep> {
                           key: const Key('retry_route_location'),
                           onPressed: _startLocation,
                           icon: const Icon(Icons.refresh),
-                          label: const Text('Retry phone location'),
+                          label: const AppText('Retry phone location'),
                         ),
                     ],
                   )
@@ -188,8 +194,8 @@ class _StationRouteGuidanceStepState extends State<StationRouteGuidanceStep> {
           ),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'The app will not infer that you arrived. Confirm only after you physically reach a safe, suitable station location.',
+        const AppText(
+          'Confirm arrival at the station.',
           style: TextStyle(height: 1.4),
         ),
         if (widget.plan.warnings.isNotEmpty) ...[
@@ -197,13 +203,13 @@ class _StationRouteGuidanceStepState extends State<StationRouteGuidanceStep> {
           ExpansionTile(
             key: const Key('route_warning_help'),
             tilePadding: EdgeInsets.zero,
-            title: const Text('Route limitations'),
+            title: const AppText('Route limitations'),
             children: [
               for (final warning in widget.plan.warnings)
                 ListTile(
                   dense: true,
                   leading: const Icon(Icons.warning_amber),
-                  title: Text(warning),
+                  title: AppText(warning),
                 ),
             ],
           ),
@@ -215,7 +221,7 @@ class _StationRouteGuidanceStepState extends State<StationRouteGuidanceStep> {
             key: const Key('confirm_station_reached_button'),
             onPressed: widget.isSaving ? null : widget.onConfirmReached,
             icon: const Icon(Icons.flag),
-            label: Text('I reached Station ${widget.stationNumber}'),
+            label: AppText('I reached Station ${widget.stationNumber}'),
           ),
         ),
         const SizedBox(height: 8),
@@ -223,16 +229,16 @@ class _StationRouteGuidanceStepState extends State<StationRouteGuidanceStep> {
           key: const Key('adjust_active_station_target'),
           onPressed: widget.isSaving ? null : widget.onAdjustTarget,
           icon: const Icon(Icons.edit_location_alt),
-          label: const Text('Target is inaccessible or unsafe'),
+          label: const AppText('Target is inaccessible or unsafe'),
         ),
         TextButton.icon(
           key: const Key('edit_route_preparation'),
           onPressed: widget.isSaving ? null : widget.onEditRoute,
           icon: const Icon(Icons.tune),
-          label: const Text('Edit route preparation'),
+          label: const AppText('Edit route preparation'),
         ),
         const SizedBox(height: 8),
-        const Text(
+        const AppText(
           'Approximate guidance only—not turn-by-turn navigation, validated station placement, proof of protocol compliance, or a legal/survey-grade boundary.',
           style: TextStyle(fontSize: 13, height: 1.4),
         ),
@@ -253,7 +259,7 @@ class _Metric extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 13)),
+        AppText(label, style: const TextStyle(fontSize: 13)),
         const SizedBox(height: 2),
         Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
       ],

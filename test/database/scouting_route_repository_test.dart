@@ -9,9 +9,9 @@ import 'package:wormwise/data/repositories/people_repository.dart';
 import 'package:wormwise/data/repositories/scouting_route_repository.dart';
 import 'package:wormwise/data/repositories/scouting_workflow_repository.dart';
 import 'package:wormwise/data/services/atomic_plant_save_service.dart';
-import 'package:wormwise/data/services/five_station_completion_service.dart';
-import 'package:wormwise/providers/five_station_workflow_provider.dart';
-import 'package:wormwise/providers/station1_workflow_provider.dart';
+import 'package:wormwise/data/services/scouting_completion_service.dart';
+import 'package:wormwise/providers/scouting_workflow_provider.dart';
+import 'package:wormwise/providers/scouting_workflow_state.dart';
 import 'package:wormwise/services/scouting_route_generator.dart';
 
 const _polygon =
@@ -155,7 +155,7 @@ void main() {
       expect(adjustmentRestart.state, Station1ViewState.targetAdjustment);
       await adjustmentRestart.cancelTargetAdjustment();
       await adjustmentRestart.confirmReachedActiveStation();
-      expect(adjustmentRestart.state, Station1ViewState.stationLocation);
+      expect(adjustmentRestart.state, Station1ViewState.plantSelection);
       adjustmentRestart.dispose();
 
       final arrivalRestart = _provider(database, fixture.assessment.id);
@@ -164,7 +164,7 @@ void main() {
         condition: ResumeCondition.unchanged,
         safeToContinue: true,
       );
-      expect(arrivalRestart.state, Station1ViewState.stationLocation);
+      expect(arrivalRestart.state, Station1ViewState.plantSelection);
       arrivalRestart.dispose();
     },
   );
@@ -306,7 +306,7 @@ void main() {
     );
     await routes.saveGeneratedPlan(
       plan.copyWith(
-        algorithmVersion: legacyScoutingRouteAlgorithmVersion,
+        algorithmVersion: retiredRouteAlgorithmVersion,
         segments: const [
           ScoutingRouteSegment(
             points: [LatLng(17.001, 121.005), LatLng(17.009, 121.005)],
@@ -388,14 +388,12 @@ Future<_Fixture> _fixture(
   return _Fixture(assessment, field.boundary);
 }
 
-FiveStationWorkflowProvider _provider(
-  AppDatabase database,
-  String assessmentId,
-) => FiveStationWorkflowProvider(
-  assessmentId: assessmentId,
-  workflowRepository: ScoutingWorkflowRepository(database),
-  assessmentRepository: AssessmentRepository(database),
-  plantSaveService: AtomicPlantSaveService(database),
-  completionService: FiveStationCompletionService(database),
-  routeRepository: ScoutingRouteRepository(database),
-);
+ScoutingWorkflowProvider _provider(AppDatabase database, String assessmentId) =>
+    ScoutingWorkflowProvider(
+      assessmentId: assessmentId,
+      workflowRepository: ScoutingWorkflowRepository(database),
+      assessmentRepository: AssessmentRepository(database),
+      plantSaveService: AtomicPlantSaveService(database),
+      completionService: ScoutingCompletionService(database),
+      routeRepository: ScoutingRouteRepository(database),
+    );

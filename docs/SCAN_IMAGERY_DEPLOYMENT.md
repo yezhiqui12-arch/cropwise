@@ -1,11 +1,14 @@
-# Scan imagery deployment boundary
+# Active-assessment imagery deployment boundary
 
-Status: Esri World Imagery is the current online background for both Map and
-Scan. Approved licensed imagery packages may still replace it when available.
+Status: Esri World Imagery is the current online background for both the Map tab
+and the route map used inside an active assessment. There is no separate Scout
+bottom tab. Approved licensed imagery packages may still replace Esri when
+available.
 
 ## Runtime priority
 
-Scan requests imagery automatically in this order:
+The active-assessment route map requests imagery automatically in this order:
+
 
 1. An approved high-resolution package supplied under a documented licence by
    DA, PhilSA, NAMRIA, or the LGU.
@@ -72,7 +75,7 @@ keeps visible Esri World Imagery attribution on the map.
 
 This implementation requests only tiles needed for the evaluator's current
 interactive viewport. It does not prefetch, bulk-download, scrape, package, or
-offer an offline-download control. If tile loading fails, Scan switches
+offer an offline-download control. If tile loading fails, Scout switches
 automatically to the deterministic offline illustrated field view without
 blocking scouting.
 

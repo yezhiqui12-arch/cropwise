@@ -13,6 +13,16 @@ class FieldWorkspaceProvider extends ChangeNotifier {
     _initialize();
   }
 
+  /// A route-local field/cycle snapshot. Does not change saved field selection
+  /// or run retention cleanup while resuming a historical assessment.
+  FieldWorkspaceProvider.forAssessment(
+    this._repository,
+    FieldWorkspaceRecord workspace,
+  ) : _retention = FieldRetentionService(_repository) {
+    _workspaces = [workspace];
+    _activeFieldId = workspace.field.id;
+    _isLoading = false;
+  }
   final FieldRepository _repository;
   final FieldRetentionService _retention;
   StreamSubscription<List<FieldWorkspaceRecord>>? _subscription;
@@ -62,11 +72,19 @@ class FieldWorkspaceProvider extends ChangeNotifier {
     _isLoading = false;
     _error = null;
 
+    final previousSelection = _activeFieldId;
     final selectionStillExists = workspaces.any(
       (workspace) => workspace.field.id == _activeFieldId,
     );
     if (!selectionStillExists) {
       _activeFieldId = workspaces.isEmpty ? null : workspaces.first.field.id;
+      if (_activeFieldId != previousSelection) {
+        if (_activeFieldId == null) {
+          unawaited(_persistClearedSelection());
+        } else {
+          unawaited(_persistSelection(_activeFieldId!));
+        }
+      }
     }
     notifyListeners();
   }
@@ -84,23 +102,34 @@ class FieldWorkspaceProvider extends ChangeNotifier {
     }
     _activeFieldId = fieldId;
     notifyListeners();
-    unawaited(
-      _repository.savePreferredFieldId(fieldId).catchError((Object error) {
-        _error = error;
-        notifyListeners();
-      }),
-    );
+    unawaited(_persistSelection(fieldId));
+  }
+
+  Future<void> _persistSelection(String fieldId) async {
+    try {
+      await _repository.savePreferredFieldId(fieldId);
+    } catch (error) {
+      _error = error;
+      notifyListeners();
+    }
+  }
+
+  Future<void> _persistClearedSelection() async {
+    try {
+      await _repository.clearPreferredFieldId();
+    } catch (error) {
+      _error = error;
+      notifyListeners();
+    }
   }
 
   Future<void> createField({
     required String name,
-    required double estimatedAreaHectares,
+    double? estimatedAreaHectares,
     String? barangay,
     String? municipalityCity,
     String? province,
-    String? locationDescription,
     String? varietyName,
-    String? intendedUse,
     DateTime? plantingDate,
     String? waterRegime,
     double? entranceLatitude,
@@ -137,9 +166,7 @@ class FieldWorkspaceProvider extends ChangeNotifier {
         barangay: _nullIfBlank(barangay),
         municipalityCity: _nullIfBlank(municipalityCity),
         province: _nullIfBlank(province),
-        locationDescription: _nullIfBlank(locationDescription),
         varietyName: _nullIfBlank(varietyName),
-        intendedUse: _nullIfBlank(intendedUse),
         plantingDate: plantingDate,
         plantingDatePrecision: plantingDate == null ? 'unknown' : 'exact_day',
         waterRegime: _nullIfBlank(waterRegime),
@@ -213,9 +240,9 @@ class FieldWorkspaceProvider extends ChangeNotifier {
   Future<void> updateFieldDetails({
     required String fieldId,
     required String name,
-    required double areaHectares,
+    double? areaHectares,
+    String? barangay,
     String? varietyName,
-    String? intendedUse,
     DateTime? plantingDate,
   }) async {
     final workspace = _workspaces
@@ -229,7 +256,19 @@ class FieldWorkspaceProvider extends ChangeNotifier {
     notifyListeners();
     try {
       final boundary = workspace.boundary;
-      if (!workspace.hasApproximateOutline && boundary != null) {
+      if (boundary == null && areaHectares != null) {
+        await _repository.addBoundaryVersion(
+          fieldId: fieldId,
+          geometryGeojson: '{"type":"Polygon","coordinates":[]}',
+          areaHectares: areaHectares,
+          sourceMethod: 'reported_area_only',
+          confirmationStatus: 'location_pending',
+          notes: 'Farmer-reported estimate; boundary has not been drawn.',
+        );
+      }
+      if (!workspace.hasApproximateOutline &&
+          boundary != null &&
+          areaHectares != null) {
         final areaChanged =
             (boundary.areaHectares - areaHectares).abs() > 0.000001;
         if (areaChanged) {
@@ -251,8 +290,8 @@ class FieldWorkspaceProvider extends ChangeNotifier {
       await _repository.updateFieldDetails(
         fieldId: fieldId,
         name: name,
+        barangay: _nullIfBlank(barangay),
         varietyName: _nullIfBlank(varietyName),
-        intendedUse: _nullIfBlank(intendedUse),
         plantingDate: plantingDate,
       );
     } catch (error) {

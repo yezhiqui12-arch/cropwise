@@ -39,7 +39,6 @@ void main() {
     (WidgetTester tester) async {
       final aiResult = PlantDiagnosisResult.fawInfested(
         confidence: 0.95,
-        davisGrade: 4,
         larvaSeen: true,
         larvaSize: 'medium',
         frassSeen: true,

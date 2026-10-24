@@ -1,9 +1,12 @@
 import 'dart:async';
+import '../../localization/app_language.dart';
+import '../../localization/app_text.dart';
 
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart' show LatLng;
 
 import '../../services/scouting_route_generator.dart';
+import '../../services/scouting_sampling_protocol.dart';
 import '../../services/field_imagery_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/offline_scouting_route_map.dart';
@@ -101,11 +104,12 @@ class _StationTargetAdjustmentStepState
   @override
   Widget build(BuildContext context) {
     final stationNumber = _pending.stationNumber;
+    final isDa = widget.plan.pattern == ScoutingSamplingProtocol.daPattern;
     return ListView(
       key: const Key('station_target_adjustment_step'),
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
       children: [
-        const Text(
+        const AppText(
           'TARGET ADJUSTMENT',
           style: TextStyle(
             color: AppColors.primary,
@@ -113,16 +117,18 @@ class _StationTargetAdjustmentStepState
           ),
         ),
         const SizedBox(height: 8),
-        Text(
-          'Move Station $stationNumber safely',
+        AppText(
+          'Move ${isDa ? 'Plant' : 'Station'} $stationNumber safely',
           style: Theme.of(
             context,
           ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Tap a suitable position inside the assessment block and outside marked obstacles. Completed station locations cannot be changed.',
-          style: TextStyle(height: 1.4),
+        AppText(
+          isDa
+              ? 'Choose a nearby sampling point inside the block, at least 3 m from its edge and outside marked obstacles. Saved plants cannot be moved.'
+              : 'Tap a suitable position inside the assessment block and outside marked obstacles. Completed station locations cannot be changed.',
+          style: const TextStyle(height: 1.4),
         ),
         const SizedBox(height: 14),
         OfflineScoutingRouteMap(
@@ -143,10 +149,11 @@ class _StationTargetAdjustmentStepState
           minLines: 2,
           maxLines: 4,
           onChanged: _scheduleReasonSave,
-          decoration: const InputDecoration(
-            labelText: 'Required reason',
-            hintText:
-                'For example: deep ditch, dense vegetation, unsafe access',
+          decoration: InputDecoration(
+            labelText: AppWords.of(context).translate('Required reason'),
+            hintText: AppWords.of(context).translate(
+              'For example: deep ditch, dense vegetation, unsafe access',
+            ),
             border: OutlineInputBorder(),
           ),
         ),
@@ -165,13 +172,13 @@ class _StationTargetAdjustmentStepState
             key: const Key('apply_station_target_adjustment'),
             onPressed: widget.isSaving ? null : _apply,
             icon: const Icon(Icons.check),
-            label: const Text('Use adjusted target'),
+            label: const AppText('Use adjusted target'),
           ),
         ),
         TextButton(
           key: const Key('cancel_station_target_adjustment'),
           onPressed: widget.isSaving ? null : widget.onCancel,
-          child: const Text('Cancel adjustment'),
+          child: const AppText('Cancel adjustment'),
         ),
       ],
     );

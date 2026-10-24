@@ -2,10 +2,44 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wormwise/data/services/atomic_plant_save_service.dart';
 import 'package:wormwise/screens/station1/plant_observation_step.dart';
+import 'package:wormwise/screens/station1/plant_analysis_inspector_step.dart';
 import 'package:wormwise/screens/station1/station_location_step.dart';
 import 'package:wormwise/services/phone_location_service.dart';
 
 void main() {
+  testWidgets(
+    'older photo without saved model finding requires field confirmation',
+    (tester) async {
+      String? savedStatus;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: PlantAnalysisInspectorStep(
+              position: 1,
+              stationNumber: 1,
+              blockNumber: 1,
+              growthStage: 'v1',
+              isSaving: false,
+              onSaveDiagnosis: ({required status, notes}) async =>
+                  savedStatus = status,
+              onCancel: () {},
+            ),
+          ),
+        ),
+      );
+      final save = find.byKey(const Key('save_plant_confirmation'));
+      expect(tester.widget<FilledButton>(save).onPressed, isNull);
+      await tester.ensureVisible(
+        find.byKey(const Key('confirmation_option_negative')),
+      );
+      await tester.tap(find.byKey(const Key('confirmation_option_negative')));
+      await tester.pump();
+      expect(tester.widget<FilledButton>(save).onPressed, isNotNull);
+      await tester.tap(save);
+      expect(savedStatus, isNotNull);
+    },
+  );
+
   testWidgets('plant entry remains scrollable and usable at 200 percent text', (
     WidgetTester tester,
   ) async {

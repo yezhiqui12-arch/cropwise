@@ -34,6 +34,9 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Local Supabase configuration (contains project credentials)
+/config/dev.json
+
 # Symbolication related
 app.*.symbols
 
@@ -45,3 +48,22 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 /android/.kotlin/
+
+# Local tooling, caches and review artifacts
+/node_modules/
+/.gradle-user-home/
+/.android-user-home/
+/android/build/
+/work/
+/artifacts/
+/*.png
+/*.zip
+/flutter
+
+# Local credentials and signing material
+.env
+.env.*
+!.env.example
+/android/key.properties
+*.jks
+*.keystore

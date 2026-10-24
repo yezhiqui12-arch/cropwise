@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import '../localization/app_text.dart';
 import 'package:provider/provider.dart';
-import '../models/assessment_state.dart';
+import '../data/local/database_codes.dart';
+import '../providers/assessment_workspace_provider.dart';
 import '../providers/field_workspace_provider.dart';
-import '../providers/wormwise_provider.dart';
 import '../theme/app_colors.dart';
 
 class GreetingSection extends StatelessWidget {
@@ -10,7 +11,9 @@ class GreetingSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final assessmentState = context.watch<WormWiseProvider>().currentState;
+    final assessment = context
+        .watch<AssessmentWorkspaceProvider>()
+        .currentAssessment;
     final fieldName = context
         .watch<FieldWorkspaceProvider>()
         .activeWorkspace
@@ -25,14 +28,14 @@ class GreetingSection extends StatelessWidget {
 
     final subtext = fieldName == null
         ? 'Set up a maize field to begin.'
-        : assessmentState == AssessmentState.completed
-        ? 'The latest assessment for $fieldName is complete.'
-        : '$fieldName is your active field.';
+        : assessment?.status == DatabaseCodes.completed
+        ? 'The latest assessment for {field} is complete.'
+        : '{field} is your active field.';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        AppText(
           '$greeting!',
           style: const TextStyle(
             fontSize: 26,
@@ -42,8 +45,9 @@ class GreetingSection extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 4),
-        Text(
+        AppText(
           subtext,
+          arguments: {'field': fieldName ?? ''},
           style: const TextStyle(fontSize: 15, color: AppColors.textSecondary),
         ),
       ],

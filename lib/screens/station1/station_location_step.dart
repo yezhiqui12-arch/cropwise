@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../localization/app_language.dart';
+import '../../localization/app_text.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../../data/local/database_codes.dart';
@@ -50,7 +52,7 @@ class _StationLocationStepState extends State<StationLocationStep> {
       key: const Key('station_location_step'),
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
       children: [
-        Text(
+        AppText(
           'STATION ${widget.stationNumber}',
           style: TextStyle(
             color: Color(0xFF176B3A),
@@ -60,12 +62,12 @@ class _StationLocationStepState extends State<StationLocationStep> {
           ),
         ),
         const SizedBox(height: 8),
-        const Text(
+        const AppText(
           'Saving station location…',
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 10),
-        const Text('Keep WormWise open while it records this station.'),
+        const AppText('Keep WormWise open while it records this station.'),
         const SizedBox(height: 20),
         if (_capturing || widget.isSaving)
           const Center(child: CircularProgressIndicator()),
@@ -78,7 +80,7 @@ class _StationLocationStepState extends State<StationLocationStep> {
               key: const Key('capture_station_gps_button'),
               onPressed: _capturing || widget.isSaving ? null : _capture,
               icon: const Icon(Icons.refresh),
-              label: const Text('Try again'),
+              label: const AppText('Try again'),
             ),
           ),
           if (_locationError!.code ==
@@ -87,7 +89,7 @@ class _StationLocationStepState extends State<StationLocationStep> {
             OutlinedButton(
               key: const Key('open_location_settings_button'),
               onPressed: Geolocator.openLocationSettings,
-              child: const Text('Turn on location'),
+              child: const AppText('Turn on location'),
             ),
           ],
           if (_locationError!.code ==
@@ -96,7 +98,7 @@ class _StationLocationStepState extends State<StationLocationStep> {
             OutlinedButton(
               key: const Key('open_app_location_settings_button'),
               onPressed: Geolocator.openAppSettings,
-              child: const Text('Open app settings'),
+              child: const AppText('Open app settings'),
             ),
           ],
           const SizedBox(height: 8),
@@ -105,12 +107,12 @@ class _StationLocationStepState extends State<StationLocationStep> {
             onPressed: widget.isSaving
                 ? null
                 : () => setState(() => _showUnavailable = true),
-            child: const Text('Record location problem'),
+            child: const AppText('Record location problem'),
           ),
         ],
         if (_showUnavailable) ...[
           const SizedBox(height: 20),
-          const Text(
+          const AppText(
             'Why is station GPS unavailable?',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
@@ -118,9 +120,9 @@ class _StationLocationStepState extends State<StationLocationStep> {
           DropdownButtonFormField<String>(
             key: const Key('station_gps_reason_field'),
             initialValue: _reason,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               border: OutlineInputBorder(),
-              hintText: 'Select a reason',
+              hintText: AppWords.of(context).translate('Select a reason'),
             ),
             items: _reasonLabels.entries
                 .map(
@@ -136,8 +138,10 @@ class _StationLocationStepState extends State<StationLocationStep> {
           TextField(
             controller: _note,
             maxLines: 3,
-            decoration: const InputDecoration(
-              labelText: 'Location note (optional)',
+            decoration: InputDecoration(
+              labelText: AppWords.of(
+                context,
+              ).translate('Location note (optional)'),
               border: OutlineInputBorder(),
             ),
           ),
@@ -149,7 +153,7 @@ class _StationLocationStepState extends State<StationLocationStep> {
               onPressed: _reason == null || widget.isSaving
                   ? null
                   : _saveUnavailable,
-              child: const Text('Save problem and continue'),
+              child: const AppText('Save problem and continue'),
             ),
           ),
         ],

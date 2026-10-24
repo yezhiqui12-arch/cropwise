@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../localization/app_text.dart';
 
 import '../../services/station_evidence_policy.dart';
 
@@ -6,14 +7,12 @@ class PlantSelectionStep extends StatelessWidget {
   const PlantSelectionStep({
     super.key,
     required this.onBegin,
-    this.onMarkAllHealthy,
     this.blockNumber = 1,
     this.stationNumber = 1,
     this.evidencePolicy = StationEvidencePolicy.station1TwoView,
   });
 
   final VoidCallback onBegin;
-  final VoidCallback? onMarkAllHealthy;
   final int blockNumber;
   final int stationNumber;
   final StationEvidencePolicy evidencePolicy;
@@ -24,8 +23,8 @@ class PlantSelectionStep extends StatelessWidget {
       key: const Key('plant_selection_step'),
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
       children: [
-        Text(
-          'BLOCK $blockNumber · STATION $stationNumber · 0 OF 10 PLANTS SAVED',
+        AppText(
+          'BLOCK $blockNumber · PLANT $stationNumber',
           style: const TextStyle(
             color: Color(0xFF176B3A),
             fontSize: 12,
@@ -34,17 +33,20 @@ class PlantSelectionStep extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Inspect 10 plants',
+        const AppText(
+          'Inspect this plant',
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
-        const Text(
-          'Start with the nearest plant ahead. Check the next nine plants in the same row.',
+        const AppText(
+          'Inspect the selected plant at this sampling point.',
           style: TextStyle(height: 1.45),
         ),
         const SizedBox(height: 16),
-        const _Instruction(number: '1', text: 'Keep every plant in order.'),
+        const _Instruction(
+          number: '1',
+          text: 'Keep the selected plant at this point.',
+        ),
         const _Instruction(
           number: '2',
           text: 'Check the newest leaves and whorl.',
@@ -57,27 +59,12 @@ class PlantSelectionStep extends StatelessWidget {
         ConstrainedBox(
           constraints: const BoxConstraints(minHeight: 56),
           child: FilledButton.icon(
-            key: const Key('begin_ten_plants_button'),
+            key: const Key('begin_selected_plant_button'),
             onPressed: onBegin,
-            icon: const Icon(Icons.eco_outlined),
-            label: const Text('Start Plant 1'),
+            icon: const Icon(Icons.pin_drop_outlined),
+            label: const AppText('Start this plant'),
           ),
         ),
-        if (onMarkAllHealthy != null) ...[
-          const SizedBox(height: 12),
-          ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 52),
-            child: OutlinedButton.icon(
-              key: const Key('mark_all_healthy_button'),
-              onPressed: onMarkAllHealthy,
-              icon: const Icon(
-                Icons.check_circle_outline,
-                color: Color(0xFF176B3A),
-              ),
-              label: const Text('All 10 Plants Clean (1-Tap Shortcut)'),
-            ),
-          ),
-        ],
       ],
     );
   }

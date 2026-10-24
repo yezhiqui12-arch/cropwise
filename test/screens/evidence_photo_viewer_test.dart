@@ -6,6 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:wormwise/data/local/app_database.dart';
 import 'package:wormwise/data/local/database_codes.dart';
 import 'package:wormwise/screens/station1/evidence_photo_viewer.dart';
+import 'package:wormwise/services/computer_vision/faw_computer_vision_service.dart';
+import 'package:wormwise/screens/station1/model_detection_image.dart';
 
 void main() {
   testWidgets(
@@ -98,6 +100,91 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+  testWidgets(
+    'scouting photo uses the available screen, preserves evidence and switches overlays',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final file = File('assets/images/empty_map_field_indicator.png');
+      final originalBytes = await tester.runAsync(() => file.readAsBytes());
+      final transform = TransformationController();
+      addTearDown(transform.dispose);
+      final model = PlantDiagnosisResult(
+        isInfested: false,
+        pestLabel: 'screen',
+        confidenceScore: .9,
+        detectionBoxes: [
+          ModelDetectionBox(
+            sourcePath: file.path,
+            classId: 2,
+            label: 'Larva',
+            confidence: .9,
+            left: .1,
+            top: .1,
+            right: .8,
+            bottom: .8,
+            imageWidth: 1,
+            imageHeight: 1,
+          ),
+        ],
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: EvidencePhotoViewer(
+            media: _media(
+              localUri: file.path,
+              storageState: DatabaseCodes.evidenceStorageReady,
+            ),
+            scopeLabel: 'Plant 2',
+            resolveFile: (p) async => File(p),
+            scoutingStyle: true,
+            cvDiagnosis: model,
+            transformationController: transform,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .getSize(find.byKey(const Key('evidence_interactive_viewer')))
+            .height,
+        greaterThan(600),
+      );
+      expect(
+        tester
+            .widget<ModelDetectionImage>(find.byType(ModelDetectionImage))
+            .boxes,
+        hasLength(1),
+      );
+      await tester.tap(find.byKey(const Key('scout_photo_false')));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<ModelDetectionImage>(find.byType(ModelDetectionImage))
+            .boxes,
+        isEmpty,
+      );
+      expect(model.detectionBoxes, hasLength(1));
+      transform.value = Matrix4.identity()..scaleByDouble(2, 2, 1, 1);
+      await tester.tap(find.byKey(const Key('viewer_reset_view')));
+      await tester.pumpAndSettle();
+      expect(transform.value.getMaxScaleOnAxis(), 1);
+      await tester.tap(find.byTooltip('Photo information'));
+      await tester.pumpAndSettle();
+      expect(find.text('Location not recorded'), findsOneWidget);
+      expect(find.byKey(const Key('viewer_remove')), findsNothing);
+      expect(tester.takeException(), isNull);
+      expect(await tester.runAsync(() => file.readAsBytes()), originalBytes);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await FileImage(file).evict();
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 100)),
+      );
+    },
+  );
 }
 
 EvidenceMediaRecord _media({
@@ -124,6 +211,7 @@ EvidenceMediaRecord _media({
     capturedAt: now,
     qualityStatus: 'unchecked',
     captureSource: DatabaseCodes.evidenceCaptureSourceCamera,
+    locationSource: 'unavailable',
     widthPx: 1,
     heightPx: 1,
     storageState: storageState,

@@ -13236,6 +13236,29 @@ class $StationsTable extends Stations
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _locationSourceMeta = const VerificationMeta(
+    'locationSource',
+  );
+  @override
+  late final GeneratedColumn<String> locationSource = GeneratedColumn<String>(
+    'location_source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('unverified'),
+  );
+  static const VerificationMeta _locationCapturedAtMeta =
+      const VerificationMeta('locationCapturedAt');
+  @override
+  late final GeneratedColumn<DateTime> locationCapturedAt =
+      GeneratedColumn<DateTime>(
+        'location_captured_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _latitudeMeta = const VerificationMeta(
     'latitude',
   );
@@ -13313,6 +13336,8 @@ class $StationsTable extends Stations
     serverVersion,
     assessmentBlockRunId,
     stationNumber,
+    locationSource,
+    locationCapturedAt,
     latitude,
     longitude,
     gpsAccuracyM,
@@ -13397,6 +13422,24 @@ class $StationsTable extends Stations
       );
     } else if (isInserting) {
       context.missing(_stationNumberMeta);
+    }
+    if (data.containsKey('location_source')) {
+      context.handle(
+        _locationSourceMeta,
+        locationSource.isAcceptableOrUnknown(
+          data['location_source']!,
+          _locationSourceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('location_captured_at')) {
+      context.handle(
+        _locationCapturedAtMeta,
+        locationCapturedAt.isAcceptableOrUnknown(
+          data['location_captured_at']!,
+          _locationCapturedAtMeta,
+        ),
+      );
     }
     if (data.containsKey('latitude')) {
       context.handle(
@@ -13492,6 +13535,14 @@ class $StationsTable extends Stations
         DriftSqlType.int,
         data['${effectivePrefix}station_number'],
       )!,
+      locationSource: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}location_source'],
+      )!,
+      locationCapturedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}location_captured_at'],
+      ),
       latitude: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
         data['${effectivePrefix}latitude'],
@@ -13535,6 +13586,8 @@ class StationRecord extends DataClass implements Insertable<StationRecord> {
   final int serverVersion;
   final String assessmentBlockRunId;
   final int stationNumber;
+  final String locationSource;
+  final DateTime? locationCapturedAt;
   final double? latitude;
   final double? longitude;
   final double? gpsAccuracyM;
@@ -13551,6 +13604,8 @@ class StationRecord extends DataClass implements Insertable<StationRecord> {
     required this.serverVersion,
     required this.assessmentBlockRunId,
     required this.stationNumber,
+    required this.locationSource,
+    this.locationCapturedAt,
     this.latitude,
     this.longitude,
     this.gpsAccuracyM,
@@ -13574,6 +13629,10 @@ class StationRecord extends DataClass implements Insertable<StationRecord> {
     map['server_version'] = Variable<int>(serverVersion);
     map['assessment_block_run_id'] = Variable<String>(assessmentBlockRunId);
     map['station_number'] = Variable<int>(stationNumber);
+    map['location_source'] = Variable<String>(locationSource);
+    if (!nullToAbsent || locationCapturedAt != null) {
+      map['location_captured_at'] = Variable<DateTime>(locationCapturedAt);
+    }
     if (!nullToAbsent || latitude != null) {
       map['latitude'] = Variable<double>(latitude);
     }
@@ -13610,6 +13669,10 @@ class StationRecord extends DataClass implements Insertable<StationRecord> {
       serverVersion: Value(serverVersion),
       assessmentBlockRunId: Value(assessmentBlockRunId),
       stationNumber: Value(stationNumber),
+      locationSource: Value(locationSource),
+      locationCapturedAt: locationCapturedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(locationCapturedAt),
       latitude: latitude == null && nullToAbsent
           ? const Value.absent()
           : Value(latitude),
@@ -13648,6 +13711,10 @@ class StationRecord extends DataClass implements Insertable<StationRecord> {
         json['assessmentBlockRunId'],
       ),
       stationNumber: serializer.fromJson<int>(json['stationNumber']),
+      locationSource: serializer.fromJson<String>(json['locationSource']),
+      locationCapturedAt: serializer.fromJson<DateTime?>(
+        json['locationCapturedAt'],
+      ),
       latitude: serializer.fromJson<double?>(json['latitude']),
       longitude: serializer.fromJson<double?>(json['longitude']),
       gpsAccuracyM: serializer.fromJson<double?>(json['gpsAccuracyM']),
@@ -13671,6 +13738,8 @@ class StationRecord extends DataClass implements Insertable<StationRecord> {
       'serverVersion': serializer.toJson<int>(serverVersion),
       'assessmentBlockRunId': serializer.toJson<String>(assessmentBlockRunId),
       'stationNumber': serializer.toJson<int>(stationNumber),
+      'locationSource': serializer.toJson<String>(locationSource),
+      'locationCapturedAt': serializer.toJson<DateTime?>(locationCapturedAt),
       'latitude': serializer.toJson<double?>(latitude),
       'longitude': serializer.toJson<double?>(longitude),
       'gpsAccuracyM': serializer.toJson<double?>(gpsAccuracyM),
@@ -13690,6 +13759,8 @@ class StationRecord extends DataClass implements Insertable<StationRecord> {
     int? serverVersion,
     String? assessmentBlockRunId,
     int? stationNumber,
+    String? locationSource,
+    Value<DateTime?> locationCapturedAt = const Value.absent(),
     Value<double?> latitude = const Value.absent(),
     Value<double?> longitude = const Value.absent(),
     Value<double?> gpsAccuracyM = const Value.absent(),
@@ -13706,6 +13777,10 @@ class StationRecord extends DataClass implements Insertable<StationRecord> {
     serverVersion: serverVersion ?? this.serverVersion,
     assessmentBlockRunId: assessmentBlockRunId ?? this.assessmentBlockRunId,
     stationNumber: stationNumber ?? this.stationNumber,
+    locationSource: locationSource ?? this.locationSource,
+    locationCapturedAt: locationCapturedAt.present
+        ? locationCapturedAt.value
+        : this.locationCapturedAt,
     latitude: latitude.present ? latitude.value : this.latitude,
     longitude: longitude.present ? longitude.value : this.longitude,
     gpsAccuracyM: gpsAccuracyM.present ? gpsAccuracyM.value : this.gpsAccuracyM,
@@ -13734,6 +13809,12 @@ class StationRecord extends DataClass implements Insertable<StationRecord> {
       stationNumber: data.stationNumber.present
           ? data.stationNumber.value
           : this.stationNumber,
+      locationSource: data.locationSource.present
+          ? data.locationSource.value
+          : this.locationSource,
+      locationCapturedAt: data.locationCapturedAt.present
+          ? data.locationCapturedAt.value
+          : this.locationCapturedAt,
       latitude: data.latitude.present ? data.latitude.value : this.latitude,
       longitude: data.longitude.present ? data.longitude.value : this.longitude,
       gpsAccuracyM: data.gpsAccuracyM.present
@@ -13763,6 +13844,8 @@ class StationRecord extends DataClass implements Insertable<StationRecord> {
           ..write('serverVersion: $serverVersion, ')
           ..write('assessmentBlockRunId: $assessmentBlockRunId, ')
           ..write('stationNumber: $stationNumber, ')
+          ..write('locationSource: $locationSource, ')
+          ..write('locationCapturedAt: $locationCapturedAt, ')
           ..write('latitude: $latitude, ')
           ..write('longitude: $longitude, ')
           ..write('gpsAccuracyM: $gpsAccuracyM, ')
@@ -13784,6 +13867,8 @@ class StationRecord extends DataClass implements Insertable<StationRecord> {
     serverVersion,
     assessmentBlockRunId,
     stationNumber,
+    locationSource,
+    locationCapturedAt,
     latitude,
     longitude,
     gpsAccuracyM,
@@ -13804,6 +13889,8 @@ class StationRecord extends DataClass implements Insertable<StationRecord> {
           other.serverVersion == this.serverVersion &&
           other.assessmentBlockRunId == this.assessmentBlockRunId &&
           other.stationNumber == this.stationNumber &&
+          other.locationSource == this.locationSource &&
+          other.locationCapturedAt == this.locationCapturedAt &&
           other.latitude == this.latitude &&
           other.longitude == this.longitude &&
           other.gpsAccuracyM == this.gpsAccuracyM &&
@@ -13822,6 +13909,8 @@ class StationsCompanion extends UpdateCompanion<StationRecord> {
   final Value<int> serverVersion;
   final Value<String> assessmentBlockRunId;
   final Value<int> stationNumber;
+  final Value<String> locationSource;
+  final Value<DateTime?> locationCapturedAt;
   final Value<double?> latitude;
   final Value<double?> longitude;
   final Value<double?> gpsAccuracyM;
@@ -13839,6 +13928,8 @@ class StationsCompanion extends UpdateCompanion<StationRecord> {
     this.serverVersion = const Value.absent(),
     this.assessmentBlockRunId = const Value.absent(),
     this.stationNumber = const Value.absent(),
+    this.locationSource = const Value.absent(),
+    this.locationCapturedAt = const Value.absent(),
     this.latitude = const Value.absent(),
     this.longitude = const Value.absent(),
     this.gpsAccuracyM = const Value.absent(),
@@ -13857,6 +13948,8 @@ class StationsCompanion extends UpdateCompanion<StationRecord> {
     this.serverVersion = const Value.absent(),
     required String assessmentBlockRunId,
     required int stationNumber,
+    this.locationSource = const Value.absent(),
+    this.locationCapturedAt = const Value.absent(),
     this.latitude = const Value.absent(),
     this.longitude = const Value.absent(),
     this.gpsAccuracyM = const Value.absent(),
@@ -13877,6 +13970,8 @@ class StationsCompanion extends UpdateCompanion<StationRecord> {
     Expression<int>? serverVersion,
     Expression<String>? assessmentBlockRunId,
     Expression<int>? stationNumber,
+    Expression<String>? locationSource,
+    Expression<DateTime>? locationCapturedAt,
     Expression<double>? latitude,
     Expression<double>? longitude,
     Expression<double>? gpsAccuracyM,
@@ -13896,6 +13991,9 @@ class StationsCompanion extends UpdateCompanion<StationRecord> {
       if (assessmentBlockRunId != null)
         'assessment_block_run_id': assessmentBlockRunId,
       if (stationNumber != null) 'station_number': stationNumber,
+      if (locationSource != null) 'location_source': locationSource,
+      if (locationCapturedAt != null)
+        'location_captured_at': locationCapturedAt,
       if (latitude != null) 'latitude': latitude,
       if (longitude != null) 'longitude': longitude,
       if (gpsAccuracyM != null) 'gps_accuracy_m': gpsAccuracyM,
@@ -13916,6 +14014,8 @@ class StationsCompanion extends UpdateCompanion<StationRecord> {
     Value<int>? serverVersion,
     Value<String>? assessmentBlockRunId,
     Value<int>? stationNumber,
+    Value<String>? locationSource,
+    Value<DateTime?>? locationCapturedAt,
     Value<double?>? latitude,
     Value<double?>? longitude,
     Value<double?>? gpsAccuracyM,
@@ -13934,6 +14034,8 @@ class StationsCompanion extends UpdateCompanion<StationRecord> {
       serverVersion: serverVersion ?? this.serverVersion,
       assessmentBlockRunId: assessmentBlockRunId ?? this.assessmentBlockRunId,
       stationNumber: stationNumber ?? this.stationNumber,
+      locationSource: locationSource ?? this.locationSource,
+      locationCapturedAt: locationCapturedAt ?? this.locationCapturedAt,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       gpsAccuracyM: gpsAccuracyM ?? this.gpsAccuracyM,
@@ -13976,6 +14078,14 @@ class StationsCompanion extends UpdateCompanion<StationRecord> {
     if (stationNumber.present) {
       map['station_number'] = Variable<int>(stationNumber.value);
     }
+    if (locationSource.present) {
+      map['location_source'] = Variable<String>(locationSource.value);
+    }
+    if (locationCapturedAt.present) {
+      map['location_captured_at'] = Variable<DateTime>(
+        locationCapturedAt.value,
+      );
+    }
     if (latitude.present) {
       map['latitude'] = Variable<double>(latitude.value);
     }
@@ -14012,6 +14122,8 @@ class StationsCompanion extends UpdateCompanion<StationRecord> {
           ..write('serverVersion: $serverVersion, ')
           ..write('assessmentBlockRunId: $assessmentBlockRunId, ')
           ..write('stationNumber: $stationNumber, ')
+          ..write('locationSource: $locationSource, ')
+          ..write('locationCapturedAt: $locationCapturedAt, ')
           ..write('latitude: $latitude, ')
           ..write('longitude: $longitude, ')
           ..write('gpsAccuracyM: $gpsAccuracyM, ')
@@ -16561,6 +16673,29 @@ class $PlantObservationsTable extends PlantObservations
         type: DriftSqlType.string,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _locationSourceMeta = const VerificationMeta(
+    'locationSource',
+  );
+  @override
+  late final GeneratedColumn<String> locationSource = GeneratedColumn<String>(
+    'location_source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('unverified'),
+  );
+  static const VerificationMeta _locationCapturedAtMeta =
+      const VerificationMeta('locationCapturedAt');
+  @override
+  late final GeneratedColumn<DateTime> locationCapturedAt =
+      GeneratedColumn<DateTime>(
+        'location_captured_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _latitudeMeta = const VerificationMeta(
     'latitude',
   );
@@ -16638,6 +16773,8 @@ class $PlantObservationsTable extends PlantObservations
     oldDamagePresent,
     naturalEnemyQuickStatus,
     wholePlantContextNote,
+    locationSource,
+    locationCapturedAt,
     latitude,
     longitude,
     gpsAccuracyM,
@@ -16819,6 +16956,24 @@ class $PlantObservationsTable extends PlantObservations
         ),
       );
     }
+    if (data.containsKey('location_source')) {
+      context.handle(
+        _locationSourceMeta,
+        locationSource.isAcceptableOrUnknown(
+          data['location_source']!,
+          _locationSourceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('location_captured_at')) {
+      context.handle(
+        _locationCapturedAtMeta,
+        locationCapturedAt.isAcceptableOrUnknown(
+          data['location_captured_at']!,
+          _locationCapturedAtMeta,
+        ),
+      );
+    }
     if (data.containsKey('latitude')) {
       context.handle(
         _latitudeMeta,
@@ -16948,6 +17103,14 @@ class $PlantObservationsTable extends PlantObservations
         DriftSqlType.string,
         data['${effectivePrefix}whole_plant_context_note'],
       ),
+      locationSource: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}location_source'],
+      )!,
+      locationCapturedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}location_captured_at'],
+      ),
       latitude: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
         data['${effectivePrefix}latitude'],
@@ -16999,6 +17162,8 @@ class PlantObservationRecord extends DataClass
   final bool oldDamagePresent;
   final String naturalEnemyQuickStatus;
   final String? wholePlantContextNote;
+  final String locationSource;
+  final DateTime? locationCapturedAt;
   final double? latitude;
   final double? longitude;
   final double? gpsAccuracyM;
@@ -17025,6 +17190,8 @@ class PlantObservationRecord extends DataClass
     required this.oldDamagePresent,
     required this.naturalEnemyQuickStatus,
     this.wholePlantContextNote,
+    required this.locationSource,
+    this.locationCapturedAt,
     this.latitude,
     this.longitude,
     this.gpsAccuracyM,
@@ -17077,6 +17244,10 @@ class PlantObservationRecord extends DataClass
     );
     if (!nullToAbsent || wholePlantContextNote != null) {
       map['whole_plant_context_note'] = Variable<String>(wholePlantContextNote);
+    }
+    map['location_source'] = Variable<String>(locationSource);
+    if (!nullToAbsent || locationCapturedAt != null) {
+      map['location_captured_at'] = Variable<DateTime>(locationCapturedAt);
     }
     if (!nullToAbsent || latitude != null) {
       map['latitude'] = Variable<double>(latitude);
@@ -17138,6 +17309,10 @@ class PlantObservationRecord extends DataClass
       wholePlantContextNote: wholePlantContextNote == null && nullToAbsent
           ? const Value.absent()
           : Value(wholePlantContextNote),
+      locationSource: Value(locationSource),
+      locationCapturedAt: locationCapturedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(locationCapturedAt),
       latitude: latitude == null && nullToAbsent
           ? const Value.absent()
           : Value(latitude),
@@ -17196,6 +17371,10 @@ class PlantObservationRecord extends DataClass
       wholePlantContextNote: serializer.fromJson<String?>(
         json['wholePlantContextNote'],
       ),
+      locationSource: serializer.fromJson<String>(json['locationSource']),
+      locationCapturedAt: serializer.fromJson<DateTime?>(
+        json['locationCapturedAt'],
+      ),
       latitude: serializer.fromJson<double?>(json['latitude']),
       longitude: serializer.fromJson<double?>(json['longitude']),
       gpsAccuracyM: serializer.fromJson<double?>(json['gpsAccuracyM']),
@@ -17237,6 +17416,8 @@ class PlantObservationRecord extends DataClass
       'wholePlantContextNote': serializer.toJson<String?>(
         wholePlantContextNote,
       ),
+      'locationSource': serializer.toJson<String>(locationSource),
+      'locationCapturedAt': serializer.toJson<DateTime?>(locationCapturedAt),
       'latitude': serializer.toJson<double?>(latitude),
       'longitude': serializer.toJson<double?>(longitude),
       'gpsAccuracyM': serializer.toJson<double?>(gpsAccuracyM),
@@ -17266,6 +17447,8 @@ class PlantObservationRecord extends DataClass
     bool? oldDamagePresent,
     String? naturalEnemyQuickStatus,
     Value<String?> wholePlantContextNote = const Value.absent(),
+    String? locationSource,
+    Value<DateTime?> locationCapturedAt = const Value.absent(),
     Value<double?> latitude = const Value.absent(),
     Value<double?> longitude = const Value.absent(),
     Value<double?> gpsAccuracyM = const Value.absent(),
@@ -17307,6 +17490,10 @@ class PlantObservationRecord extends DataClass
     wholePlantContextNote: wholePlantContextNote.present
         ? wholePlantContextNote.value
         : this.wholePlantContextNote,
+    locationSource: locationSource ?? this.locationSource,
+    locationCapturedAt: locationCapturedAt.present
+        ? locationCapturedAt.value
+        : this.locationCapturedAt,
     latitude: latitude.present ? latitude.value : this.latitude,
     longitude: longitude.present ? longitude.value : this.longitude,
     gpsAccuracyM: gpsAccuracyM.present ? gpsAccuracyM.value : this.gpsAccuracyM,
@@ -17364,6 +17551,12 @@ class PlantObservationRecord extends DataClass
       wholePlantContextNote: data.wholePlantContextNote.present
           ? data.wholePlantContextNote.value
           : this.wholePlantContextNote,
+      locationSource: data.locationSource.present
+          ? data.locationSource.value
+          : this.locationSource,
+      locationCapturedAt: data.locationCapturedAt.present
+          ? data.locationCapturedAt.value
+          : this.locationCapturedAt,
       latitude: data.latitude.present ? data.latitude.value : this.latitude,
       longitude: data.longitude.present ? data.longitude.value : this.longitude,
       gpsAccuracyM: data.gpsAccuracyM.present
@@ -17403,6 +17596,8 @@ class PlantObservationRecord extends DataClass
           ..write('oldDamagePresent: $oldDamagePresent, ')
           ..write('naturalEnemyQuickStatus: $naturalEnemyQuickStatus, ')
           ..write('wholePlantContextNote: $wholePlantContextNote, ')
+          ..write('locationSource: $locationSource, ')
+          ..write('locationCapturedAt: $locationCapturedAt, ')
           ..write('latitude: $latitude, ')
           ..write('longitude: $longitude, ')
           ..write('gpsAccuracyM: $gpsAccuracyM, ')
@@ -17434,6 +17629,8 @@ class PlantObservationRecord extends DataClass
     oldDamagePresent,
     naturalEnemyQuickStatus,
     wholePlantContextNote,
+    locationSource,
+    locationCapturedAt,
     latitude,
     longitude,
     gpsAccuracyM,
@@ -17465,6 +17662,8 @@ class PlantObservationRecord extends DataClass
           other.oldDamagePresent == this.oldDamagePresent &&
           other.naturalEnemyQuickStatus == this.naturalEnemyQuickStatus &&
           other.wholePlantContextNote == this.wholePlantContextNote &&
+          other.locationSource == this.locationSource &&
+          other.locationCapturedAt == this.locationCapturedAt &&
           other.latitude == this.latitude &&
           other.longitude == this.longitude &&
           other.gpsAccuracyM == this.gpsAccuracyM &&
@@ -17494,6 +17693,8 @@ class PlantObservationsCompanion
   final Value<bool> oldDamagePresent;
   final Value<String> naturalEnemyQuickStatus;
   final Value<String?> wholePlantContextNote;
+  final Value<String> locationSource;
+  final Value<DateTime?> locationCapturedAt;
   final Value<double?> latitude;
   final Value<double?> longitude;
   final Value<double?> gpsAccuracyM;
@@ -17521,6 +17722,8 @@ class PlantObservationsCompanion
     this.oldDamagePresent = const Value.absent(),
     this.naturalEnemyQuickStatus = const Value.absent(),
     this.wholePlantContextNote = const Value.absent(),
+    this.locationSource = const Value.absent(),
+    this.locationCapturedAt = const Value.absent(),
     this.latitude = const Value.absent(),
     this.longitude = const Value.absent(),
     this.gpsAccuracyM = const Value.absent(),
@@ -17549,6 +17752,8 @@ class PlantObservationsCompanion
     this.oldDamagePresent = const Value.absent(),
     required String naturalEnemyQuickStatus,
     this.wholePlantContextNote = const Value.absent(),
+    this.locationSource = const Value.absent(),
+    this.locationCapturedAt = const Value.absent(),
     this.latitude = const Value.absent(),
     this.longitude = const Value.absent(),
     this.gpsAccuracyM = const Value.absent(),
@@ -17581,6 +17786,8 @@ class PlantObservationsCompanion
     Expression<bool>? oldDamagePresent,
     Expression<String>? naturalEnemyQuickStatus,
     Expression<String>? wholePlantContextNote,
+    Expression<String>? locationSource,
+    Expression<DateTime>? locationCapturedAt,
     Expression<double>? latitude,
     Expression<double>? longitude,
     Expression<double>? gpsAccuracyM,
@@ -17616,6 +17823,9 @@ class PlantObservationsCompanion
         'natural_enemy_quick_status': naturalEnemyQuickStatus,
       if (wholePlantContextNote != null)
         'whole_plant_context_note': wholePlantContextNote,
+      if (locationSource != null) 'location_source': locationSource,
+      if (locationCapturedAt != null)
+        'location_captured_at': locationCapturedAt,
       if (latitude != null) 'latitude': latitude,
       if (longitude != null) 'longitude': longitude,
       if (gpsAccuracyM != null) 'gps_accuracy_m': gpsAccuracyM,
@@ -17646,6 +17856,8 @@ class PlantObservationsCompanion
     Value<bool>? oldDamagePresent,
     Value<String>? naturalEnemyQuickStatus,
     Value<String?>? wholePlantContextNote,
+    Value<String>? locationSource,
+    Value<DateTime?>? locationCapturedAt,
     Value<double?>? latitude,
     Value<double?>? longitude,
     Value<double?>? gpsAccuracyM,
@@ -17680,6 +17892,8 @@ class PlantObservationsCompanion
           naturalEnemyQuickStatus ?? this.naturalEnemyQuickStatus,
       wholePlantContextNote:
           wholePlantContextNote ?? this.wholePlantContextNote,
+      locationSource: locationSource ?? this.locationSource,
+      locationCapturedAt: locationCapturedAt ?? this.locationCapturedAt,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       gpsAccuracyM: gpsAccuracyM ?? this.gpsAccuracyM,
@@ -17764,6 +17978,14 @@ class PlantObservationsCompanion
         wholePlantContextNote.value,
       );
     }
+    if (locationSource.present) {
+      map['location_source'] = Variable<String>(locationSource.value);
+    }
+    if (locationCapturedAt.present) {
+      map['location_captured_at'] = Variable<DateTime>(
+        locationCapturedAt.value,
+      );
+    }
     if (latitude.present) {
       map['latitude'] = Variable<double>(latitude.value);
     }
@@ -17810,6 +18032,8 @@ class PlantObservationsCompanion
           ..write('oldDamagePresent: $oldDamagePresent, ')
           ..write('naturalEnemyQuickStatus: $naturalEnemyQuickStatus, ')
           ..write('wholePlantContextNote: $wholePlantContextNote, ')
+          ..write('locationSource: $locationSource, ')
+          ..write('locationCapturedAt: $locationCapturedAt, ')
           ..write('latitude: $latitude, ')
           ..write('longitude: $longitude, ')
           ..write('gpsAccuracyM: $gpsAccuracyM, ')
@@ -27807,6 +28031,29 @@ class $EvidenceMediaTable extends EvidenceMedia
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _locationSourceMeta = const VerificationMeta(
+    'locationSource',
+  );
+  @override
+  late final GeneratedColumn<String> locationSource = GeneratedColumn<String>(
+    'location_source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('unverified'),
+  );
+  static const VerificationMeta _locationCapturedAtMeta =
+      const VerificationMeta('locationCapturedAt');
+  @override
+  late final GeneratedColumn<DateTime> locationCapturedAt =
+      GeneratedColumn<DateTime>(
+        'location_captured_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _latitudeMeta = const VerificationMeta(
     'latitude',
   );
@@ -27972,6 +28219,8 @@ class $EvidenceMediaTable extends EvidenceMedia
     byteSize,
     sha256Checksum,
     capturedAt,
+    locationSource,
+    locationCapturedAt,
     latitude,
     longitude,
     gpsAccuracyM,
@@ -28178,6 +28427,24 @@ class $EvidenceMediaTable extends EvidenceMedia
         capturedAt.isAcceptableOrUnknown(data['captured_at']!, _capturedAtMeta),
       );
     }
+    if (data.containsKey('location_source')) {
+      context.handle(
+        _locationSourceMeta,
+        locationSource.isAcceptableOrUnknown(
+          data['location_source']!,
+          _locationSourceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('location_captured_at')) {
+      context.handle(
+        _locationCapturedAtMeta,
+        locationCapturedAt.isAcceptableOrUnknown(
+          data['location_captured_at']!,
+          _locationCapturedAtMeta,
+        ),
+      );
+    }
     if (data.containsKey('latitude')) {
       context.handle(
         _latitudeMeta,
@@ -28379,6 +28646,14 @@ class $EvidenceMediaTable extends EvidenceMedia
         DriftSqlType.dateTime,
         data['${effectivePrefix}captured_at'],
       ),
+      locationSource: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}location_source'],
+      )!,
+      locationCapturedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}location_captured_at'],
+      ),
       latitude: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
         data['${effectivePrefix}latitude'],
@@ -28462,6 +28737,8 @@ class EvidenceMediaRecord extends DataClass
   final int? byteSize;
   final String sha256Checksum;
   final DateTime? capturedAt;
+  final String locationSource;
+  final DateTime? locationCapturedAt;
   final double? latitude;
   final double? longitude;
   final double? gpsAccuracyM;
@@ -28505,6 +28782,8 @@ class EvidenceMediaRecord extends DataClass
     this.byteSize,
     required this.sha256Checksum,
     this.capturedAt,
+    required this.locationSource,
+    this.locationCapturedAt,
     this.latitude,
     this.longitude,
     this.gpsAccuracyM,
@@ -28576,6 +28855,10 @@ class EvidenceMediaRecord extends DataClass
     map['sha256_checksum'] = Variable<String>(sha256Checksum);
     if (!nullToAbsent || capturedAt != null) {
       map['captured_at'] = Variable<DateTime>(capturedAt);
+    }
+    map['location_source'] = Variable<String>(locationSource);
+    if (!nullToAbsent || locationCapturedAt != null) {
+      map['location_captured_at'] = Variable<DateTime>(locationCapturedAt);
     }
     if (!nullToAbsent || latitude != null) {
       map['latitude'] = Variable<double>(latitude);
@@ -28665,6 +28948,10 @@ class EvidenceMediaRecord extends DataClass
       capturedAt: capturedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(capturedAt),
+      locationSource: Value(locationSource),
+      locationCapturedAt: locationCapturedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(locationCapturedAt),
       latitude: latitude == null && nullToAbsent
           ? const Value.absent()
           : Value(latitude),
@@ -28732,6 +29019,10 @@ class EvidenceMediaRecord extends DataClass
       byteSize: serializer.fromJson<int?>(json['byteSize']),
       sha256Checksum: serializer.fromJson<String>(json['sha256Checksum']),
       capturedAt: serializer.fromJson<DateTime?>(json['capturedAt']),
+      locationSource: serializer.fromJson<String>(json['locationSource']),
+      locationCapturedAt: serializer.fromJson<DateTime?>(
+        json['locationCapturedAt'],
+      ),
       latitude: serializer.fromJson<double?>(json['latitude']),
       longitude: serializer.fromJson<double?>(json['longitude']),
       gpsAccuracyM: serializer.fromJson<double?>(json['gpsAccuracyM']),
@@ -28782,6 +29073,8 @@ class EvidenceMediaRecord extends DataClass
       'byteSize': serializer.toJson<int?>(byteSize),
       'sha256Checksum': serializer.toJson<String>(sha256Checksum),
       'capturedAt': serializer.toJson<DateTime?>(capturedAt),
+      'locationSource': serializer.toJson<String>(locationSource),
+      'locationCapturedAt': serializer.toJson<DateTime?>(locationCapturedAt),
       'latitude': serializer.toJson<double?>(latitude),
       'longitude': serializer.toJson<double?>(longitude),
       'gpsAccuracyM': serializer.toJson<double?>(gpsAccuracyM),
@@ -28822,6 +29115,8 @@ class EvidenceMediaRecord extends DataClass
     Value<int?> byteSize = const Value.absent(),
     String? sha256Checksum,
     Value<DateTime?> capturedAt = const Value.absent(),
+    String? locationSource,
+    Value<DateTime?> locationCapturedAt = const Value.absent(),
     Value<double?> latitude = const Value.absent(),
     Value<double?> longitude = const Value.absent(),
     Value<double?> gpsAccuracyM = const Value.absent(),
@@ -28873,6 +29168,10 @@ class EvidenceMediaRecord extends DataClass
     byteSize: byteSize.present ? byteSize.value : this.byteSize,
     sha256Checksum: sha256Checksum ?? this.sha256Checksum,
     capturedAt: capturedAt.present ? capturedAt.value : this.capturedAt,
+    locationSource: locationSource ?? this.locationSource,
+    locationCapturedAt: locationCapturedAt.present
+        ? locationCapturedAt.value
+        : this.locationCapturedAt,
     latitude: latitude.present ? latitude.value : this.latitude,
     longitude: longitude.present ? longitude.value : this.longitude,
     gpsAccuracyM: gpsAccuracyM.present ? gpsAccuracyM.value : this.gpsAccuracyM,
@@ -28940,6 +29239,12 @@ class EvidenceMediaRecord extends DataClass
       capturedAt: data.capturedAt.present
           ? data.capturedAt.value
           : this.capturedAt,
+      locationSource: data.locationSource.present
+          ? data.locationSource.value
+          : this.locationSource,
+      locationCapturedAt: data.locationCapturedAt.present
+          ? data.locationCapturedAt.value
+          : this.locationCapturedAt,
       latitude: data.latitude.present ? data.latitude.value : this.latitude,
       longitude: data.longitude.present ? data.longitude.value : this.longitude,
       gpsAccuracyM: data.gpsAccuracyM.present
@@ -28998,6 +29303,8 @@ class EvidenceMediaRecord extends DataClass
           ..write('byteSize: $byteSize, ')
           ..write('sha256Checksum: $sha256Checksum, ')
           ..write('capturedAt: $capturedAt, ')
+          ..write('locationSource: $locationSource, ')
+          ..write('locationCapturedAt: $locationCapturedAt, ')
           ..write('latitude: $latitude, ')
           ..write('longitude: $longitude, ')
           ..write('gpsAccuracyM: $gpsAccuracyM, ')
@@ -29040,6 +29347,8 @@ class EvidenceMediaRecord extends DataClass
     byteSize,
     sha256Checksum,
     capturedAt,
+    locationSource,
+    locationCapturedAt,
     latitude,
     longitude,
     gpsAccuracyM,
@@ -29081,6 +29390,8 @@ class EvidenceMediaRecord extends DataClass
           other.byteSize == this.byteSize &&
           other.sha256Checksum == this.sha256Checksum &&
           other.capturedAt == this.capturedAt &&
+          other.locationSource == this.locationSource &&
+          other.locationCapturedAt == this.locationCapturedAt &&
           other.latitude == this.latitude &&
           other.longitude == this.longitude &&
           other.gpsAccuracyM == this.gpsAccuracyM &&
@@ -29120,6 +29431,8 @@ class EvidenceMediaCompanion extends UpdateCompanion<EvidenceMediaRecord> {
   final Value<int?> byteSize;
   final Value<String> sha256Checksum;
   final Value<DateTime?> capturedAt;
+  final Value<String> locationSource;
+  final Value<DateTime?> locationCapturedAt;
   final Value<double?> latitude;
   final Value<double?> longitude;
   final Value<double?> gpsAccuracyM;
@@ -29158,6 +29471,8 @@ class EvidenceMediaCompanion extends UpdateCompanion<EvidenceMediaRecord> {
     this.byteSize = const Value.absent(),
     this.sha256Checksum = const Value.absent(),
     this.capturedAt = const Value.absent(),
+    this.locationSource = const Value.absent(),
+    this.locationCapturedAt = const Value.absent(),
     this.latitude = const Value.absent(),
     this.longitude = const Value.absent(),
     this.gpsAccuracyM = const Value.absent(),
@@ -29197,6 +29512,8 @@ class EvidenceMediaCompanion extends UpdateCompanion<EvidenceMediaRecord> {
     this.byteSize = const Value.absent(),
     required String sha256Checksum,
     this.capturedAt = const Value.absent(),
+    this.locationSource = const Value.absent(),
+    this.locationCapturedAt = const Value.absent(),
     this.latitude = const Value.absent(),
     this.longitude = const Value.absent(),
     this.gpsAccuracyM = const Value.absent(),
@@ -29240,6 +29557,8 @@ class EvidenceMediaCompanion extends UpdateCompanion<EvidenceMediaRecord> {
     Expression<int>? byteSize,
     Expression<String>? sha256Checksum,
     Expression<DateTime>? capturedAt,
+    Expression<String>? locationSource,
+    Expression<DateTime>? locationCapturedAt,
     Expression<double>? latitude,
     Expression<double>? longitude,
     Expression<double>? gpsAccuracyM,
@@ -29281,6 +29600,9 @@ class EvidenceMediaCompanion extends UpdateCompanion<EvidenceMediaRecord> {
       if (byteSize != null) 'byte_size': byteSize,
       if (sha256Checksum != null) 'sha256_checksum': sha256Checksum,
       if (capturedAt != null) 'captured_at': capturedAt,
+      if (locationSource != null) 'location_source': locationSource,
+      if (locationCapturedAt != null)
+        'location_captured_at': locationCapturedAt,
       if (latitude != null) 'latitude': latitude,
       if (longitude != null) 'longitude': longitude,
       if (gpsAccuracyM != null) 'gps_accuracy_m': gpsAccuracyM,
@@ -29323,6 +29645,8 @@ class EvidenceMediaCompanion extends UpdateCompanion<EvidenceMediaRecord> {
     Value<int?>? byteSize,
     Value<String>? sha256Checksum,
     Value<DateTime?>? capturedAt,
+    Value<String>? locationSource,
+    Value<DateTime?>? locationCapturedAt,
     Value<double?>? latitude,
     Value<double?>? longitude,
     Value<double?>? gpsAccuracyM,
@@ -29363,6 +29687,8 @@ class EvidenceMediaCompanion extends UpdateCompanion<EvidenceMediaRecord> {
       byteSize: byteSize ?? this.byteSize,
       sha256Checksum: sha256Checksum ?? this.sha256Checksum,
       capturedAt: capturedAt ?? this.capturedAt,
+      locationSource: locationSource ?? this.locationSource,
+      locationCapturedAt: locationCapturedAt ?? this.locationCapturedAt,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       gpsAccuracyM: gpsAccuracyM ?? this.gpsAccuracyM,
@@ -29456,6 +29782,14 @@ class EvidenceMediaCompanion extends UpdateCompanion<EvidenceMediaRecord> {
     if (capturedAt.present) {
       map['captured_at'] = Variable<DateTime>(capturedAt.value);
     }
+    if (locationSource.present) {
+      map['location_source'] = Variable<String>(locationSource.value);
+    }
+    if (locationCapturedAt.present) {
+      map['location_captured_at'] = Variable<DateTime>(
+        locationCapturedAt.value,
+      );
+    }
     if (latitude.present) {
       map['latitude'] = Variable<double>(latitude.value);
     }
@@ -29527,6 +29861,8 @@ class EvidenceMediaCompanion extends UpdateCompanion<EvidenceMediaRecord> {
           ..write('byteSize: $byteSize, ')
           ..write('sha256Checksum: $sha256Checksum, ')
           ..write('capturedAt: $capturedAt, ')
+          ..write('locationSource: $locationSource, ')
+          ..write('locationCapturedAt: $locationCapturedAt, ')
           ..write('latitude: $latitude, ')
           ..write('longitude: $longitude, ')
           ..write('gpsAccuracyM: $gpsAccuracyM, ')
@@ -43458,6 +43794,8 @@ typedef $$StationsTableCreateCompanionBuilder =
       Value<int> serverVersion,
       required String assessmentBlockRunId,
       required int stationNumber,
+      Value<String> locationSource,
+      Value<DateTime?> locationCapturedAt,
       Value<double?> latitude,
       Value<double?> longitude,
       Value<double?> gpsAccuracyM,
@@ -43477,6 +43815,8 @@ typedef $$StationsTableUpdateCompanionBuilder =
       Value<int> serverVersion,
       Value<String> assessmentBlockRunId,
       Value<int> stationNumber,
+      Value<String> locationSource,
+      Value<DateTime?> locationCapturedAt,
       Value<double?> latitude,
       Value<double?> longitude,
       Value<double?> gpsAccuracyM,
@@ -43676,6 +44016,16 @@ class $$StationsTableFilterComposer
 
   ColumnFilters<int> get stationNumber => $composableBuilder(
     column: $table.stationNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get locationSource => $composableBuilder(
+    column: $table.locationSource,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get locationCapturedAt => $composableBuilder(
+    column: $table.locationCapturedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -43911,6 +44261,16 @@ class $$StationsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get locationSource => $composableBuilder(
+    column: $table.locationSource,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get locationCapturedAt => $composableBuilder(
+    column: $table.locationCapturedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<double> get latitude => $composableBuilder(
     column: $table.latitude,
     builder: (column) => ColumnOrderings(column),
@@ -44000,6 +44360,16 @@ class $$StationsTableAnnotationComposer
 
   GeneratedColumn<int> get stationNumber => $composableBuilder(
     column: $table.stationNumber,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get locationSource => $composableBuilder(
+    column: $table.locationSource,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get locationCapturedAt => $composableBuilder(
+    column: $table.locationCapturedAt,
     builder: (column) => column,
   );
 
@@ -44229,6 +44599,8 @@ class $$StationsTableTableManager
                 Value<int> serverVersion = const Value.absent(),
                 Value<String> assessmentBlockRunId = const Value.absent(),
                 Value<int> stationNumber = const Value.absent(),
+                Value<String> locationSource = const Value.absent(),
+                Value<DateTime?> locationCapturedAt = const Value.absent(),
                 Value<double?> latitude = const Value.absent(),
                 Value<double?> longitude = const Value.absent(),
                 Value<double?> gpsAccuracyM = const Value.absent(),
@@ -44246,6 +44618,8 @@ class $$StationsTableTableManager
                 serverVersion: serverVersion,
                 assessmentBlockRunId: assessmentBlockRunId,
                 stationNumber: stationNumber,
+                locationSource: locationSource,
+                locationCapturedAt: locationCapturedAt,
                 latitude: latitude,
                 longitude: longitude,
                 gpsAccuracyM: gpsAccuracyM,
@@ -44265,6 +44639,8 @@ class $$StationsTableTableManager
                 Value<int> serverVersion = const Value.absent(),
                 required String assessmentBlockRunId,
                 required int stationNumber,
+                Value<String> locationSource = const Value.absent(),
+                Value<DateTime?> locationCapturedAt = const Value.absent(),
                 Value<double?> latitude = const Value.absent(),
                 Value<double?> longitude = const Value.absent(),
                 Value<double?> gpsAccuracyM = const Value.absent(),
@@ -44282,6 +44658,8 @@ class $$StationsTableTableManager
                 serverVersion: serverVersion,
                 assessmentBlockRunId: assessmentBlockRunId,
                 stationNumber: stationNumber,
+                locationSource: locationSource,
+                locationCapturedAt: locationCapturedAt,
                 latitude: latitude,
                 longitude: longitude,
                 gpsAccuracyM: gpsAccuracyM,
@@ -45873,6 +46251,8 @@ typedef $$PlantObservationsTableCreateCompanionBuilder =
       Value<bool> oldDamagePresent,
       required String naturalEnemyQuickStatus,
       Value<String?> wholePlantContextNote,
+      Value<String> locationSource,
+      Value<DateTime?> locationCapturedAt,
       Value<double?> latitude,
       Value<double?> longitude,
       Value<double?> gpsAccuracyM,
@@ -45902,6 +46282,8 @@ typedef $$PlantObservationsTableUpdateCompanionBuilder =
       Value<bool> oldDamagePresent,
       Value<String> naturalEnemyQuickStatus,
       Value<String?> wholePlantContextNote,
+      Value<String> locationSource,
+      Value<DateTime?> locationCapturedAt,
       Value<double?> latitude,
       Value<double?> longitude,
       Value<double?> gpsAccuracyM,
@@ -46190,6 +46572,16 @@ class $$PlantObservationsTableFilterComposer
 
   ColumnFilters<String> get wholePlantContextNote => $composableBuilder(
     column: $table.wholePlantContextNote,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get locationSource => $composableBuilder(
+    column: $table.locationSource,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get locationCapturedAt => $composableBuilder(
+    column: $table.locationCapturedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -46495,6 +46887,16 @@ class $$PlantObservationsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get locationSource => $composableBuilder(
+    column: $table.locationSource,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get locationCapturedAt => $composableBuilder(
+    column: $table.locationCapturedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<double> get latitude => $composableBuilder(
     column: $table.latitude,
     builder: (column) => ColumnOrderings(column),
@@ -46653,6 +47055,16 @@ class $$PlantObservationsTableAnnotationComposer
 
   GeneratedColumn<String> get wholePlantContextNote => $composableBuilder(
     column: $table.wholePlantContextNote,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get locationSource => $composableBuilder(
+    column: $table.locationSource,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get locationCapturedAt => $composableBuilder(
+    column: $table.locationCapturedAt,
     builder: (column) => column,
   );
 
@@ -46918,6 +47330,8 @@ class $$PlantObservationsTableTableManager
                 Value<bool> oldDamagePresent = const Value.absent(),
                 Value<String> naturalEnemyQuickStatus = const Value.absent(),
                 Value<String?> wholePlantContextNote = const Value.absent(),
+                Value<String> locationSource = const Value.absent(),
+                Value<DateTime?> locationCapturedAt = const Value.absent(),
                 Value<double?> latitude = const Value.absent(),
                 Value<double?> longitude = const Value.absent(),
                 Value<double?> gpsAccuracyM = const Value.absent(),
@@ -46946,6 +47360,8 @@ class $$PlantObservationsTableTableManager
                 oldDamagePresent: oldDamagePresent,
                 naturalEnemyQuickStatus: naturalEnemyQuickStatus,
                 wholePlantContextNote: wholePlantContextNote,
+                locationSource: locationSource,
+                locationCapturedAt: locationCapturedAt,
                 latitude: latitude,
                 longitude: longitude,
                 gpsAccuracyM: gpsAccuracyM,
@@ -46976,6 +47392,8 @@ class $$PlantObservationsTableTableManager
                 Value<bool> oldDamagePresent = const Value.absent(),
                 required String naturalEnemyQuickStatus,
                 Value<String?> wholePlantContextNote = const Value.absent(),
+                Value<String> locationSource = const Value.absent(),
+                Value<DateTime?> locationCapturedAt = const Value.absent(),
                 Value<double?> latitude = const Value.absent(),
                 Value<double?> longitude = const Value.absent(),
                 Value<double?> gpsAccuracyM = const Value.absent(),
@@ -47004,6 +47422,8 @@ class $$PlantObservationsTableTableManager
                 oldDamagePresent: oldDamagePresent,
                 naturalEnemyQuickStatus: naturalEnemyQuickStatus,
                 wholePlantContextNote: wholePlantContextNote,
+                locationSource: locationSource,
+                locationCapturedAt: locationCapturedAt,
                 latitude: latitude,
                 longitude: longitude,
                 gpsAccuracyM: gpsAccuracyM,
@@ -52808,6 +53228,8 @@ typedef $$EvidenceMediaTableCreateCompanionBuilder =
       Value<int?> byteSize,
       required String sha256Checksum,
       Value<DateTime?> capturedAt,
+      Value<String> locationSource,
+      Value<DateTime?> locationCapturedAt,
       Value<double?> latitude,
       Value<double?> longitude,
       Value<double?> gpsAccuracyM,
@@ -52848,6 +53270,8 @@ typedef $$EvidenceMediaTableUpdateCompanionBuilder =
       Value<int?> byteSize,
       Value<String> sha256Checksum,
       Value<DateTime?> capturedAt,
+      Value<String> locationSource,
+      Value<DateTime?> locationCapturedAt,
       Value<double?> latitude,
       Value<double?> longitude,
       Value<double?> gpsAccuracyM,
@@ -53114,6 +53538,16 @@ class $$EvidenceMediaTableFilterComposer
 
   ColumnFilters<DateTime> get capturedAt => $composableBuilder(
     column: $table.capturedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get locationSource => $composableBuilder(
+    column: $table.locationSource,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get locationCapturedAt => $composableBuilder(
+    column: $table.locationCapturedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -53453,6 +53887,16 @@ class $$EvidenceMediaTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get locationSource => $composableBuilder(
+    column: $table.locationSource,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get locationCapturedAt => $composableBuilder(
+    column: $table.locationCapturedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<double> get latitude => $composableBuilder(
     column: $table.latitude,
     builder: (column) => ColumnOrderings(column),
@@ -53766,6 +54210,16 @@ class $$EvidenceMediaTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get locationSource => $composableBuilder(
+    column: $table.locationSource,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get locationCapturedAt => $composableBuilder(
+    column: $table.locationCapturedAt,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<double> get latitude =>
       $composableBuilder(column: $table.latitude, builder: (column) => column);
 
@@ -54068,6 +54522,8 @@ class $$EvidenceMediaTableTableManager
                 Value<int?> byteSize = const Value.absent(),
                 Value<String> sha256Checksum = const Value.absent(),
                 Value<DateTime?> capturedAt = const Value.absent(),
+                Value<String> locationSource = const Value.absent(),
+                Value<DateTime?> locationCapturedAt = const Value.absent(),
                 Value<double?> latitude = const Value.absent(),
                 Value<double?> longitude = const Value.absent(),
                 Value<double?> gpsAccuracyM = const Value.absent(),
@@ -54106,6 +54562,8 @@ class $$EvidenceMediaTableTableManager
                 byteSize: byteSize,
                 sha256Checksum: sha256Checksum,
                 capturedAt: capturedAt,
+                locationSource: locationSource,
+                locationCapturedAt: locationCapturedAt,
                 latitude: latitude,
                 longitude: longitude,
                 gpsAccuracyM: gpsAccuracyM,
@@ -54146,6 +54604,8 @@ class $$EvidenceMediaTableTableManager
                 Value<int?> byteSize = const Value.absent(),
                 required String sha256Checksum,
                 Value<DateTime?> capturedAt = const Value.absent(),
+                Value<String> locationSource = const Value.absent(),
+                Value<DateTime?> locationCapturedAt = const Value.absent(),
                 Value<double?> latitude = const Value.absent(),
                 Value<double?> longitude = const Value.absent(),
                 Value<double?> gpsAccuracyM = const Value.absent(),
@@ -54184,6 +54644,8 @@ class $$EvidenceMediaTableTableManager
                 byteSize: byteSize,
                 sha256Checksum: sha256Checksum,
                 capturedAt: capturedAt,
+                locationSource: locationSource,
+                locationCapturedAt: locationCapturedAt,
                 latitude: latitude,
                 longitude: longitude,
                 gpsAccuracyM: gpsAccuracyM,

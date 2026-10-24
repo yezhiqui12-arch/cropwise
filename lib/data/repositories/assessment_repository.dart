@@ -1,3 +1,5 @@
+import '../../services/computer_vision/detection_preferences.dart';
+import '../../services/scouting_sampling_protocol.dart';
 import 'package:drift/drift.dart';
 
 import '../local/app_database.dart';
@@ -69,6 +71,7 @@ class AssessmentRepository {
               deviceId: Value(deviceId),
             ),
           );
+      await DetectionPreferences.forAssessment(database, id);
       await _mutations.record(
         entityType: 'assessments',
         entityId: id,
@@ -94,6 +97,10 @@ class AssessmentRepository {
         (row) =>
             row.cropCycleId.equals(cropCycleId) &
             row.deletedAt.isNull() &
+            row.protocolVersion
+                .equals(ScoutingSamplingProtocol.retiredFiveStationVersion)
+                .not() &
+            row.scoutingPattern.isIn(['w', 'ladder']).not() &
             row.status.isIn([
               DatabaseCodes.draft,
               DatabaseCodes.safetyBlocked,
@@ -106,6 +113,10 @@ class AssessmentRepository {
     return query.watchSingleOrNull();
   }
 
+  Stream<AssessmentRecord?> watchAssessmentById(String id) =>
+      (database.select(database.assessments)
+            ..where((row) => row.id.equals(id) & row.deletedAt.isNull()))
+          .watchSingleOrNull();
   Future<AssessmentRecord> assessmentById(String id) => _assessmentById(id);
 
   Future<void> updateWeatherContext({

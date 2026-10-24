@@ -1,37 +1,78 @@
 import 'dart:async';
+import '../localization/app_language.dart';
+import '../localization/app_text.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 
 import '../data/repositories/field_repository.dart';
 import '../providers/field_workspace_provider.dart';
 import '../services/phone_location_service.dart';
+import '../services/piat_barangay_centers.dart';
+import '../services/map_view_policy.dart';
 import '../services/polygon_calculator.dart';
 import '../services/walk_boundary_recorder.dart';
 import '../theme/app_colors.dart';
 import 'fields_screen.dart';
 import 'field_details_screen.dart';
 
+LatLng _fieldMapCenter(
+  FieldWorkspaceRecord workspace, {
+  LatLng? initialCenter,
+}) {
+  final outline = PolygonCalculator.fromGeoJson(
+    workspace.boundary?.geometryGeojson ?? '',
+  );
+  if (outline.isNotEmpty) return PolygonCalculator.calculateCenter(outline);
+  final latitude = workspace.boundary?.centroidLatitude;
+  final longitude = workspace.boundary?.centroidLongitude;
+  if (latitude != null && longitude != null) {
+    final recorded = LatLng(latitude, longitude);
+    if (PolygonCalculator.isValidCoordinate(recorded)) return recorded;
+  }
+  if (initialCenter != null &&
+      PolygonCalculator.isValidCoordinate(initialCenter)) {
+    return initialCenter;
+  }
+  return PiatBarangayCenters.forName(workspace.field.barangay) ??
+      PiatBarangayCenters.fallback;
+}
+
 class FieldBoundarySetupScreen extends StatelessWidget {
-  const FieldBoundarySetupScreen({super.key});
+  const FieldBoundarySetupScreen({
+    super.key,
+    this.initialLatitude,
+    this.initialLongitude,
+    this.locationLabel,
+  });
+
+  final double? initialLatitude;
+  final double? initialLongitude;
+  final String? locationLabel;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Field Boundary'),
+        title: const AppText('Field Boundary'),
         actions: [
           TextButton(
             key: const Key('finish_boundary_setup_button'),
             onPressed: () => Navigator.pop(context),
-            child: const Text('Done'),
+            child: const AppText('Done'),
           ),
           const SizedBox(width: 8),
         ],
       ),
-      body: const _BoundaryManagementBody(),
+      body: _BoundaryManagementBody(
+        initialCenter: initialLatitude != null && initialLongitude != null
+            ? LatLng(initialLatitude!, initialLongitude!)
+            : null,
+        locationLabel: locationLabel,
+      ),
     );
   }
 }
@@ -69,15 +110,43 @@ class ManageFieldBoundaryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final fieldName = context
+        .watch<FieldWorkspaceProvider>()
+        .activeWorkspace
+        ?.field
+        .name;
     return Scaffold(
-      appBar: AppBar(title: const Text('Manage Field Boundary')),
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        centerTitle: true,
+        title: Column(
+          children: [
+            const AppText(
+              'Manage Field Boundary',
+              style: TextStyle(fontWeight: FontWeight.w800),
+            ),
+            if (fieldName != null)
+              Text(
+                fieldName,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w400,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+          ],
+        ),
+      ),
       body: const _BoundaryManagementBody(),
     );
   }
 }
 
 class _BoundaryManagementBody extends StatelessWidget {
-  const _BoundaryManagementBody();
+  const _BoundaryManagementBody({this.initialCenter, this.locationLabel});
+
+  final LatLng? initialCenter;
+  final String? locationLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -94,7 +163,11 @@ class _BoundaryManagementBody extends StatelessWidget {
         ),
       );
     }
-    return _BoundaryMethodSelection(workspace: workspace);
+    return _BoundaryMethodSelection(
+      workspace: workspace,
+      initialCenter: initialCenter,
+      locationLabel: locationLabel,
+    );
   }
 }
 
@@ -112,6 +185,8 @@ class _FieldMapOverviewState extends State<_FieldMapOverview> {
   late final List<LatLng> _outline;
   late final LatLng _initialCenter;
   late double _zoom;
+  LatLng? _userLocation;
+  bool _findingUser = false;
 
   bool get _hasOutline =>
       _outline.length >= 3 &&
@@ -124,12 +199,7 @@ class _FieldMapOverviewState extends State<_FieldMapOverview> {
     _outline = PolygonCalculator.fromGeoJson(
       boundary?.geometryGeojson ?? '',
     ).toList();
-    _initialCenter = _outline.isNotEmpty
-        ? PolygonCalculator.calculateCenter(_outline)
-        : boundary?.centroidLatitude != null &&
-              boundary?.centroidLongitude != null
-        ? LatLng(boundary!.centroidLatitude!, boundary.centroidLongitude!)
-        : const LatLng(17.7905, 121.4781);
+    _initialCenter = _fieldMapCenter(widget.workspace);
     _zoom = _outline.isNotEmpty ? 17 : 15;
   }
 
@@ -144,12 +214,35 @@ class _FieldMapOverviewState extends State<_FieldMapOverview> {
       _mapController.fitCamera(
         CameraFit.coordinates(
           coordinates: _outline,
-          padding: const EdgeInsets.fromLTRB(50, 90, 50, 230),
+          padding: const EdgeInsets.fromLTRB(50, 90, 90, 310),
         ),
       );
       return;
     }
     _mapController.move(_initialCenter, _zoom);
+  }
+
+  Future<void> _centerUser() async {
+    if (_findingUser) return;
+    setState(() => _findingUser = true);
+    try {
+      final reading = await const PhoneLocationService().captureAverage(
+        targetSamples: 1,
+        maximumWait: const Duration(seconds: 8),
+      );
+      if (!mounted) return;
+      final point = LatLng(reading.latitude, reading.longitude);
+      setState(() => _userLocation = point);
+      _mapController.move(point, 17);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: AppText('Current location unavailable.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _findingUser = false);
+    }
   }
 
   void _openBoundaryManagement() {
@@ -170,21 +263,44 @@ class _FieldMapOverviewState extends State<_FieldMapOverview> {
         FlutterMap(
           mapController: _mapController,
           options: MapOptions(
-            initialCenter: _initialCenter,
+            initialCenter: MapViewPolicy.initialCenter(_initialCenter),
             initialZoom: _zoom,
+            minZoom: MapViewPolicy.minZoom,
+            maxZoom: MapViewPolicy.maxZoom,
             onMapReady: _centerField,
             onPositionChanged: (camera, _) => _zoom = camera.zoom,
           ),
           children: [
-            if (_satelliteView)
+            if (_satelliteView) ...[
               TileLayer(
+                tileUpdateTransformer: TileUpdateTransformers.debounce(
+                  const Duration(milliseconds: 160),
+                ),
+                panBuffer: 0,
+                keepBuffer: 3,
                 urlTemplate:
                     'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
                 userAgentPackageName: 'com.wormwise.app.wormwise',
                 maxNativeZoom: 17,
-              )
-            else
+              ),
               TileLayer(
+                tileUpdateTransformer: TileUpdateTransformers.debounce(
+                  const Duration(milliseconds: 160),
+                ),
+                panBuffer: 0,
+                keepBuffer: 3,
+                urlTemplate:
+                    'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+                userAgentPackageName: 'com.wormwise.app.wormwise',
+                maxNativeZoom: 19,
+              ),
+            ] else
+              TileLayer(
+                tileUpdateTransformer: TileUpdateTransformers.debounce(
+                  const Duration(milliseconds: 160),
+                ),
+                panBuffer: 0,
+                keepBuffer: 3,
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'com.wormwise.app.wormwise',
               ),
@@ -193,14 +309,32 @@ class _FieldMapOverviewState extends State<_FieldMapOverview> {
                 polygons: [
                   Polygon(
                     points: _outline,
-                    color: AppColors.primary.withValues(alpha: 0.24),
-                    borderColor: AppColors.primary,
+                    color: const Color(0x2419C85A),
+                    borderColor: const Color(0xAA8DFF63),
+                    borderStrokeWidth: 9,
+                  ),
+                  Polygon(
+                    points: _outline,
+                    color: Colors.transparent,
+                    borderColor: const Color(0xFF064D2B),
                     borderStrokeWidth: 4,
+                    pattern: StrokePattern.dashed(segments: const [11, 7]),
                   ),
                 ],
               ),
             MarkerLayer(
               markers: [
+                if (_userLocation != null)
+                  Marker(
+                    point: _userLocation!,
+                    width: 36,
+                    height: 36,
+                    child: const Icon(
+                      Icons.my_location,
+                      color: Color(0xFF1565C0),
+                      size: 30,
+                    ),
+                  ),
                 if (!_hasOutline &&
                     boundary?.centroidLatitude != null &&
                     boundary?.centroidLongitude != null)
@@ -234,28 +368,43 @@ class _FieldMapOverviewState extends State<_FieldMapOverview> {
           child: Column(
             children: [
               _MapControlButton(
-                tooltip: 'Zoom in',
+                tooltip: AppWords.of(context).translate('Zoom in'),
                 icon: Icons.add,
                 onPressed: () {
-                  _zoom = (_zoom + 1).clamp(3.0, 20.0);
+                  _zoom = (_zoom + 1).clamp(
+                    MapViewPolicy.minZoom,
+                    MapViewPolicy.maxZoom,
+                  );
                   _mapController.move(_mapController.camera.center, _zoom);
                 },
               ),
               const SizedBox(height: 8),
               _MapControlButton(
-                tooltip: 'Zoom out',
+                tooltip: AppWords.of(context).translate('Zoom out'),
                 icon: Icons.remove,
                 onPressed: () {
-                  _zoom = (_zoom - 1).clamp(3.0, 20.0);
+                  _zoom = (_zoom - 1).clamp(
+                    MapViewPolicy.minZoom,
+                    MapViewPolicy.maxZoom,
+                  );
                   _mapController.move(_mapController.camera.center, _zoom);
                 },
               ),
               const SizedBox(height: 8),
               _MapControlButton(
                 key: const Key('center_active_field_button'),
-                tooltip: 'Center active field',
+                tooltip: AppWords.of(context).translate('Center active field'),
                 icon: Icons.center_focus_strong,
                 onPressed: _centerField,
+              ),
+              const SizedBox(height: 8),
+              _MapControlButton(
+                key: const Key('center_user_location_button'),
+                tooltip: _findingUser
+                    ? 'Finding your location'
+                    : 'Center on my location',
+                icon: Icons.my_location,
+                onPressed: _centerUser,
               ),
               const SizedBox(height: 8),
               _MapControlButton(
@@ -371,25 +520,47 @@ class _MapFieldCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: onOpenFields,
-                  child: const Text('Field details'),
-                ),
-                const SizedBox(width: 5),
-                FilledButton.icon(
-                  key: const Key('manage_boundary_button'),
-                  onPressed: onManageBoundary,
-                  icon: Icon(
-                    hasOutline
-                        ? Icons.edit_location_alt_outlined
-                        : Icons.add_location_alt_outlined,
+            SizedBox(
+              width: double.infinity,
+              child: Wrap(
+                alignment: WrapAlignment.end,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  TextButton(
+                    onPressed: onOpenFields,
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    child: const AppText('Field details'),
                   ),
-                  label: Text(hasOutline ? 'Manage boundary' : 'Add boundary'),
-                ),
-              ],
+                  FilledButton.icon(
+                    key: const Key('manage_boundary_button'),
+                    onPressed: onManageBoundary,
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    icon: Icon(
+                      hasOutline
+                          ? Icons.edit_location_alt_outlined
+                          : Icons.add_location_alt_outlined,
+                      size: 18,
+                    ),
+                    label: Text(
+                      hasOutline ? 'Manage boundary' : 'Add boundary',
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -401,33 +572,44 @@ class _MapFieldCard extends StatelessWidget {
 enum BoundaryEditorMode { manual, walk }
 
 class ManualFieldBoundaryScreen extends StatelessWidget {
-  const ManualFieldBoundaryScreen({super.key});
+  const ManualFieldBoundaryScreen({super.key, this.initialCenter});
+
+  final LatLng? initialCenter;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Draw Field Boundary')),
-      body: const _BoundaryEditorHost(mode: BoundaryEditorMode.manual),
+      appBar: AppBar(title: const AppText('Draw Field Boundary')),
+      body: _BoundaryEditorHost(
+        mode: BoundaryEditorMode.manual,
+        initialCenter: initialCenter,
+      ),
     );
   }
 }
 
 class WalkFieldBoundaryScreen extends StatelessWidget {
-  const WalkFieldBoundaryScreen({super.key});
+  const WalkFieldBoundaryScreen({super.key, this.initialCenter});
+
+  final LatLng? initialCenter;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Walk Field Boundary')),
-      body: const _BoundaryEditorHost(mode: BoundaryEditorMode.walk),
+      appBar: AppBar(title: const AppText('Walk Field Boundary')),
+      body: _BoundaryEditorHost(
+        mode: BoundaryEditorMode.walk,
+        initialCenter: initialCenter,
+      ),
     );
   }
 }
 
 class _BoundaryEditorHost extends StatelessWidget {
-  const _BoundaryEditorHost({required this.mode});
+  const _BoundaryEditorHost({required this.mode, this.initialCenter});
 
   final BoundaryEditorMode mode;
+  final LatLng? initialCenter;
 
   @override
   Widget build(BuildContext context) {
@@ -450,14 +632,21 @@ class _BoundaryEditorHost extends StatelessWidget {
       ),
       workspace: workspace,
       mode: mode,
+      initialCenter: initialCenter,
     );
   }
 }
 
 class _BoundaryMethodSelection extends StatelessWidget {
-  const _BoundaryMethodSelection({required this.workspace});
+  const _BoundaryMethodSelection({
+    required this.workspace,
+    this.initialCenter,
+    this.locationLabel,
+  });
 
   final FieldWorkspaceRecord workspace;
+  final LatLng? initialCenter;
+  final String? locationLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -478,252 +667,437 @@ class _BoundaryMethodSelection extends StatelessWidget {
     };
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
       children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: hasSavedOutline
-                ? AppColors.primaryLight
-                : const Color(0xFFE3F2FD),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: hasSavedOutline
-                  ? AppColors.primary.withValues(alpha: 0.28)
-                  : const Color(0xFF90CAF9),
-            ),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(
-                hasSavedOutline
-                    ? Icons.check_circle_outline
-                    : Icons.landscape_outlined,
-                color: hasSavedOutline
-                    ? AppColors.primary
-                    : const Color(0xFF1565C0),
-                size: 30,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      workspace.field.name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 19,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      hasSavedOutline
-                          ? 'Approximate boundary saved'
-                          : 'No complete boundary saved',
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      hasSavedOutline
-                          ? '${boundary!.areaHectares.toStringAsFixed(3)} ha • $sourceLabel'
-                          : 'Reported area: ${boundary?.areaHectares.toStringAsFixed(2) ?? '--'} ha',
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
-                        height: 1.3,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+        _BoundaryStatusCard(
+          workspace: workspace,
+          points: savedPoints,
+          hasSavedOutline: hasSavedOutline,
+          sourceLabel: sourceLabel,
+          locationLabel: locationLabel,
         ),
         const SizedBox(height: 24),
         Text(
-          hasSavedOutline
-              ? 'Manage field boundary'
-              : 'Choose how to add the boundary',
+          hasSavedOutline ? 'Update boundary' : 'Add boundary',
           style: Theme.of(
             context,
           ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 6),
-        const Text(
-          'Choose one method. Each opens a focused workflow and returns here when finished.',
-          style: TextStyle(color: AppColors.textSecondary, height: 1.35),
-        ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
         _BoundaryMethodCard(
           key: const Key('choose_manual_boundary_method'),
-          icon: Icons.edit_location_alt_outlined,
-          title: hasSavedOutline ? 'Review or draw on map' : 'Draw on map',
-          description:
-              'Tap field corners, add averaged GPS corners, and manually correct the outline.',
-          badge: hasSavedOutline ? 'EDITABLE' : 'QUICK',
+          accentPath: 'assets/images/boundary_landscape_accent.png',
+          title: 'Draw on Map',
+          tags: const ['Place corners on the map'],
+          tone: _BoundaryCardTone.green,
           onTap: () => Navigator.push<void>(
             context,
             MaterialPageRoute(
-              builder: (_) => const ManualFieldBoundaryScreen(),
+              builder: (_) =>
+                  ManualFieldBoundaryScreen(initialCenter: initialCenter),
             ),
           ),
         ),
         const SizedBox(height: 12),
         _BoundaryMethodCard(
           key: const Key('choose_walk_boundary_method'),
-          icon: Icons.directions_walk,
-          title: 'Walk the field edge',
-          description:
-              'Follow the boundary outdoors while WormWise records a filtered phone-GPS path.',
-          badge: 'OUTDOOR',
+          accentPath: 'assets/images/boundary_walk_accent.png',
+          title: 'Walk Field Edge',
+          tags: const ['Record the edge with phone GPS'],
+          tone: _BoundaryCardTone.amber,
           onTap: () => Navigator.push<void>(
             context,
-            MaterialPageRoute(builder: (_) => const WalkFieldBoundaryScreen()),
+            MaterialPageRoute(
+              builder: (_) =>
+                  WalkFieldBoundaryScreen(initialCenter: initialCenter),
+            ),
           ),
-        ),
-        const SizedBox(height: 12),
-        const _BoundaryMethodCard(
-          icon: Icons.satellite_alt_outlined,
-          title: 'Satellite reference',
-          description:
-              'View online imagery as a drawing reference. Availability and image date may vary.',
-          badge: 'ONLINE',
         ),
         const SizedBox(height: 18),
-        Container(
-          padding: const EdgeInsets.all(13),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFFF8E1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(Icons.info_outline, color: Color(0xFF8A5A00)),
-              SizedBox(width: 9),
-              Expanded(
-                child: Text(
-                  'Phone GPS and map drawing create approximate scouting outlines, not survey-grade property boundaries.',
-                  style: TextStyle(height: 1.35),
+        Row(
+          children: [
+            const Icon(Icons.info_outline, size: 17, color: Color(0xFF728176)),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: AppText(
+                'Approximate scouting boundary',
+                style: TextStyle(fontSize: 12, color: Color(0xFF728176)),
+              ),
+            ),
+            IconButton(
+              tooltip: AppWords.of(
+                context,
+              ).translate('About boundary accuracy'),
+              icon: const Icon(
+                Icons.help_outline,
+                size: 19,
+                color: Color(0xFF728176),
+              ),
+              onPressed: () => showDialog<void>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const AppText('Boundary accuracy'),
+                  content: const AppText(
+                    'Phone GPS and map drawing create approximate scouting outlines, not survey-grade property boundaries.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const AppText('Close'),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ],
     );
   }
 }
 
+class _BoundaryStatusCard extends StatelessWidget {
+  const _BoundaryStatusCard({
+    required this.workspace,
+    required this.points,
+    required this.hasSavedOutline,
+    required this.sourceLabel,
+    this.locationLabel,
+  });
+
+  final FieldWorkspaceRecord workspace;
+  final List<LatLng> points;
+  final bool hasSavedOutline;
+  final String sourceLabel;
+  final String? locationLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final boundary = workspace.boundary;
+    final location = workspace.field.barangay?.trim().isNotEmpty == true
+        ? workspace.field.barangay!
+        : locationLabel ?? 'Location saved';
+    final perimeter = points.length >= 3
+        ? PolygonCalculator.calculatePerimeterMeters(points)
+        : null;
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFDDE7E0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            height: 150,
+            width: double.infinity,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                _BoundaryThumbnail(
+                  points: points,
+                  fallback:
+                      boundary?.centroidLatitude != null &&
+                          boundary?.centroidLongitude != null
+                      ? LatLng(
+                          boundary!.centroidLatitude!,
+                          boundary.centroidLongitude!,
+                        )
+                      : initialCenterFallback,
+                ),
+                Positioned(
+                  top: 12,
+                  left: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          hasSavedOutline
+                              ? Icons.check_circle_outline
+                              : Icons.edit_location_alt_outlined,
+                          size: 15,
+                          color: const Color(0xFF315E43),
+                        ),
+                        const SizedBox(width: 5),
+                        AppText(
+                          hasSavedOutline ? 'Boundary saved' : 'Outline needed',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF315E43),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: _BoundaryMetric(
+                        icon: Icons.crop_free,
+                        value: boundary == null
+                            ? '—'
+                            : '${boundary.areaHectares.toStringAsFixed(2)} ha',
+                        label: 'Area',
+                      ),
+                    ),
+                    Expanded(
+                      child: _BoundaryMetric(
+                        icon: Icons.route_outlined,
+                        value: perimeter == null
+                            ? '—'
+                            : '${perimeter.toStringAsFixed(0)} m',
+                        label: 'Perimeter',
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Divider(height: 1, color: Color(0xFFEBF0EC)),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.location_on_outlined,
+                      size: 15,
+                      color: Color(0xFF718276),
+                    ),
+                    const SizedBox(width: 5),
+                    Expanded(
+                      child: Text(
+                        location,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF617468),
+                        ),
+                      ),
+                    ),
+                    if (hasSavedOutline)
+                      Text(
+                        DateFormat(
+                          'MMM d, yyyy',
+                        ).format(boundary!.updatedAt.toLocal()),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF7B887F),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+const initialCenterFallback = LatLng(17.7905, 121.4781);
+
+class _BoundaryThumbnail extends StatelessWidget {
+  const _BoundaryThumbnail({required this.points, required this.fallback});
+  final List<LatLng> points;
+  final LatLng fallback;
+
+  @override
+  Widget build(BuildContext context) {
+    if (points.length < 3) {
+      return DecoratedBox(
+        decoration: BoxDecoration(
+          color: AppColors.primaryLight,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Image.asset('assets/images/boundary_draw_method.png'),
+        ),
+      );
+    }
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: FlutterMap(
+        options: MapOptions(
+          initialCenter: MapViewPolicy.initialCenter(fallback),
+          initialZoom: 17,
+          minZoom: MapViewPolicy.minZoom,
+          maxZoom: MapViewPolicy.maxZoom,
+          initialCameraFit: CameraFit.bounds(
+            bounds: LatLngBounds.fromPoints(points),
+            padding: const EdgeInsets.all(12),
+            maxZoom: 18,
+          ),
+          interactionOptions: const InteractionOptions(
+            flags: InteractiveFlag.none,
+          ),
+        ),
+        children: [
+          TileLayer(
+            tileUpdateTransformer: TileUpdateTransformers.debounce(
+              const Duration(milliseconds: 160),
+            ),
+            panBuffer: 0,
+            keepBuffer: 3,
+            urlTemplate:
+                'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+            userAgentPackageName: 'com.wormwise.app.wormwise',
+            maxNativeZoom: 18,
+          ),
+          PolygonLayer(
+            polygons: [
+              Polygon(
+                points: points,
+                color: const Color(0x2419C85A),
+                borderColor: const Color(0xFF064D2B),
+                borderStrokeWidth: 3,
+                pattern: StrokePattern.dashed(segments: const [9, 6]),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BoundaryMetric extends StatelessWidget {
+  const _BoundaryMetric({
+    required this.icon,
+    required this.value,
+    required this.label,
+  });
+  final IconData icon;
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Icon(icon, size: 18, color: AppColors.primary),
+      const SizedBox(width: 5),
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 100),
+            child: Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+            ),
+          ),
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 10.5,
+            ),
+          ),
+        ],
+      ),
+    ],
+  );
+}
+
+enum _BoundaryCardTone { green, amber, blue }
+
 class _BoundaryMethodCard extends StatelessWidget {
   const _BoundaryMethodCard({
     super.key,
-    required this.icon,
+    required this.accentPath,
     required this.title,
-    required this.description,
-    required this.badge,
+    required this.tags,
+    required this.tone,
     this.onTap,
   });
 
-  final IconData icon;
+  final String accentPath;
   final String title;
-  final String description;
-  final String badge;
+  final List<String> tags;
+  final _BoundaryCardTone tone;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final enabled = onTap != null;
-    return Card(
-      margin: EdgeInsets.zero,
-      elevation: 0,
-      color: enabled ? Colors.white : AppColors.surfaceContainer,
+    final icon = switch (tone) {
+      _BoundaryCardTone.green => Icons.edit_location_alt_outlined,
+      _BoundaryCardTone.amber => Icons.directions_walk_rounded,
+      _BoundaryCardTone.blue => Icons.layers_outlined,
+    };
+    return Material(
+      color: Colors.white,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-        side: BorderSide(color: AppColors.outlineVariant, width: 1),
+        borderRadius: BorderRadius.circular(18),
+        side: const BorderSide(color: Color(0xFFDDE7E0)),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(15),
+          padding: const EdgeInsets.all(16),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 46,
-                height: 46,
+                width: 42,
+                height: 42,
                 decoration: BoxDecoration(
-                  color: enabled
-                      ? AppColors.primaryLight
-                      : AppColors.outlineVariant.withValues(alpha: 0.45),
+                  color: const Color(0xFFEDF4EF),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(
-                  icon,
-                  color: enabled ? AppColors.primary : AppColors.textSecondary,
-                ),
+                child: Icon(icon, size: 23, color: const Color(0xFF416C50)),
               ),
-              const SizedBox(width: 13),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 5,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Text(
-                          title,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 17,
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 7,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: enabled
-                                ? AppColors.primaryLight
-                                : AppColors.outlineVariant,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            badge,
-                            style: TextStyle(
-                              color: enabled
-                                  ? AppColors.primary
-                                  : AppColors.textSecondary,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 10,
-                            ),
-                          ),
-                        ),
-                      ],
+                    AppText(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF283E30),
+                      ),
                     ),
                     const SizedBox(height: 5),
-                    Text(
-                      description,
+                    AppText(
+                      tags.first,
                       style: const TextStyle(
-                        color: AppColors.textSecondary,
-                        height: 1.35,
+                        fontSize: 11,
+                        color: Color(0xFF748378),
                       ),
                     ),
                   ],
                 ),
               ),
-              if (enabled) ...[
-                const SizedBox(width: 8),
-                const Padding(
-                  padding: EdgeInsets.only(top: 10),
-                  child: Icon(Icons.chevron_right),
-                ),
-              ],
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.chevron_right_rounded,
+                size: 20,
+                color: Color(0xFF899A8D),
+              ),
             ],
           ),
         ),
@@ -746,10 +1120,12 @@ class _BoundaryEditor extends StatefulWidget {
     super.key,
     required this.workspace,
     required this.mode,
+    this.initialCenter,
   });
 
   final FieldWorkspaceRecord workspace;
   final BoundaryEditorMode mode;
+  final LatLng? initialCenter;
 
   @override
   State<_BoundaryEditor> createState() => _BoundaryEditorState();
@@ -769,9 +1145,6 @@ class _BoundaryEditorState extends State<_BoundaryEditor> {
   int? _selectedPointIndex;
   bool _isDirty = false;
   bool _savedInThisSession = false;
-  int? _tapCandidatePointer;
-  Offset? _tapDownPosition;
-  bool _tapCandidateMoved = false;
   StreamSubscription<PhoneLocationReading>? _walkSubscription;
   _WalkTrackingStatus _walkStatus = _WalkTrackingStatus.idle;
   bool _isMarkingWalkCorner = false;
@@ -794,12 +1167,10 @@ class _BoundaryEditorState extends State<_BoundaryEditor> {
       null,
       growable: true,
     );
-    final boundary = widget.workspace.boundary;
-    _referenceCenter =
-        boundary?.centroidLatitude != null &&
-            boundary?.centroidLongitude != null
-        ? LatLng(boundary!.centroidLatitude!, boundary.centroidLongitude!)
-        : PolygonCalculator.calculateCenter(_points);
+    _referenceCenter = _fieldMapCenter(
+      widget.workspace,
+      initialCenter: widget.initialCenter,
+    );
     _cameraCenter = _points.isEmpty
         ? _referenceCenter
         : PolygonCalculator.calculateCenter(_points);
@@ -834,35 +1205,11 @@ class _BoundaryEditorState extends State<_BoundaryEditor> {
     );
   }
 
-  void _handleMapPointerDown(PointerDownEvent event) {
+  void _handleMapTap(TapPosition tap, LatLng position) {
     if (!_manualEditingEnabled || _walkSessionOpen) return;
-    if (_tapCandidatePointer != null) {
-      _tapCandidateMoved = true;
-      return;
-    }
-    _tapCandidatePointer = event.pointer;
-    _tapDownPosition = event.localPosition;
-    _tapCandidateMoved = false;
-  }
-
-  void _handleMapPointerMove(PointerMoveEvent event) {
-    if (!_manualEditingEnabled || _walkSessionOpen) return;
-    if (event.pointer != _tapCandidatePointer || _tapDownPosition == null) {
-      return;
-    }
-    if ((event.localPosition - _tapDownPosition!).distance > 12) {
-      _tapCandidateMoved = true;
-    }
-  }
-
-  void _handleMapPointerUp(PointerUpEvent event) {
-    if (!_manualEditingEnabled || _walkSessionOpen) return;
-    if (event.pointer != _tapCandidatePointer) return;
-    final shouldPlacePoint = !_tapCandidateMoved;
-    _resetTapCandidate();
-    if (!shouldPlacePoint) return;
-
-    final tapOffset = event.localPosition;
+    if (!PolygonCalculator.isValidCoordinate(position)) return;
+    final tapOffset = tap.relative;
+    if (tapOffset == null) return;
     final tappedExistingPoint = _points.any(
       (point) =>
           (_mapController.camera.latLngToScreenOffset(point) - tapOffset)
@@ -871,23 +1218,12 @@ class _BoundaryEditorState extends State<_BoundaryEditor> {
     );
     if (tappedExistingPoint) return;
 
-    final position = _mapController.camera.screenOffsetToLatLng(tapOffset);
     _addOrMovePoint(position);
     Feedback.forTap(context);
   }
 
-  void _handleMapPointerCancel(PointerCancelEvent event) {
-    if (event.pointer == _tapCandidatePointer) _resetTapCandidate();
-  }
-
-  void _resetTapCandidate() {
-    _tapCandidatePointer = null;
-    _tapDownPosition = null;
-    _tapCandidateMoved = false;
-  }
-
   void _addOrMovePoint(LatLng position, {double? accuracyMeters}) {
-    var automaticallyAdjusted = false;
+    if (!PolygonCalculator.isValidCoordinate(position)) return;
     setState(() {
       _saveHistory();
       final selectedIndex = _selectedPointIndex;
@@ -899,21 +1235,10 @@ class _BoundaryEditorState extends State<_BoundaryEditor> {
         _pointAccuracies[selectedIndex] = accuracyMeters;
         _selectedPointIndex = null;
       }
-      automaticallyAdjusted = _untangleBoundaryPoints();
+      _untangleBoundaryPoints();
       if (_walkBoundaryWasCaptured) _walkBoundaryWasAdjusted = true;
       _isDirty = true;
     });
-    if (automaticallyAdjusted) {
-      ScaffoldMessenger.of(context)
-        ..clearSnackBars()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Point order adjusted automatically to prevent crossing edges.',
-            ),
-          ),
-        );
-    }
   }
 
   bool _untangleBoundaryPoints() {
@@ -997,14 +1322,20 @@ class _BoundaryEditorState extends State<_BoundaryEditor> {
   }
 
   Future<void> _zoomBy(double amount) async {
-    final targetZoom = (_cameraZoom + amount).clamp(3.0, 20.0).toDouble();
+    final targetZoom = (_cameraZoom + amount)
+        .clamp(MapViewPolicy.minZoom, MapViewPolicy.maxZoom)
+        .toDouble();
     await _moveCamera(_cameraCenter, targetZoom);
   }
 
   Future<void> _moveCamera(LatLng center, double zoom) async {
-    _cameraCenter = center;
-    _cameraZoom = zoom;
-    _mapController.move(center, zoom);
+    if (!PolygonCalculator.isValidCoordinate(center) || !zoom.isFinite) return;
+    _mapController.move(
+      MapViewPolicy.initialCenter(center),
+      zoom.clamp(MapViewPolicy.minZoom, MapViewPolicy.maxZoom).toDouble(),
+    );
+    _cameraCenter = _mapController.camera.center;
+    _cameraZoom = _mapController.camera.zoom;
   }
 
   Future<void> _captureGpsCorner() async {
@@ -1018,7 +1349,7 @@ class _BoundaryEditorState extends State<_BoundaryEditor> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
+          content: AppText(
             'GPS point added from ${location.sampleCount} reading(s), '
             'about ${location.averageAccuracyMeters.toStringAsFixed(1)} m accuracy.',
           ),
@@ -1032,7 +1363,7 @@ class _BoundaryEditorState extends State<_BoundaryEditor> {
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not add a GPS point: $error')),
+        SnackBar(content: AppText('Could not add a GPS point: $error')),
       );
     } finally {
       if (mounted) setState(() => _isCapturingGpsCorner = false);
@@ -1047,20 +1378,20 @@ class _BoundaryEditorState extends State<_BoundaryEditor> {
       final replace = await showDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          title: const Text('Start a new walked boundary?'),
-          content: const Text(
+          title: const AppText('Start a new walked boundary?'),
+          content: const AppText(
             'Walking will temporarily replace the points currently on the map. '
             'You can discard the walk to restore them.',
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Keep current outline'),
+              child: const AppText('Keep current outline'),
             ),
             FilledButton(
               key: const Key('confirm_start_walk_boundary_button'),
               onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('Start walking'),
+              child: const AppText('Start walking'),
             ),
           ],
         ),
@@ -1070,18 +1401,22 @@ class _BoundaryEditorState extends State<_BoundaryEditor> {
 
     setState(() => _walkStatus = _WalkTrackingStatus.starting);
     try {
+      final start = await _captureWalkCorner();
+      if (!mounted) return;
       final stream = await _locationService.watchPosition();
       if (!mounted) return;
       _walkPreviousDirty = _isDirty;
       _saveHistory();
       _walkRecorder.reset();
+      _walkRecorder.markCorner(start);
+      _walkRecorder.addSample(start);
       _latestWalkDecision = null;
       _displayedWalkSample = null;
       _hasLiveWalkReading = false;
-      _resetTapCandidate();
       setState(() {
         _points.clear();
         _pointAccuracies.clear();
+        _copyWalkPointsToEditor();
         _selectedPointIndex = null;
         _walkBoundaryWasCaptured = false;
         _walkBoundaryWasAdjusted = false;
@@ -1099,7 +1434,7 @@ class _BoundaryEditorState extends State<_BoundaryEditor> {
       if (!mounted) return;
       setState(() => _walkStatus = _WalkTrackingStatus.idle);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not start boundary walking: $error')),
+        SnackBar(content: AppText('Could not start boundary walking: $error')),
       );
     }
   }
@@ -1113,7 +1448,7 @@ class _BoundaryEditorState extends State<_BoundaryEditor> {
         setState(() => _walkStatus = _WalkTrackingStatus.paused);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
+            content: AppText(
               'GPS tracking paused because location updates stopped: $error',
             ),
           ),
@@ -1150,7 +1485,7 @@ class _BoundaryEditorState extends State<_BoundaryEditor> {
   }
 
   void _copyWalkPointsToEditor({List<WalkBoundaryPoint>? points}) {
-    final source = points ?? _walkRecorder.points;
+    final source = points ?? _walkRecorder.corners;
     _points = [for (final point in source) point.position];
     _pointAccuracies = [for (final point in source) point.accuracyMeters];
     _selectedPointIndex = null;
@@ -1182,7 +1517,7 @@ class _BoundaryEditorState extends State<_BoundaryEditor> {
       if (!mounted) return;
       setState(() => _walkStatus = _WalkTrackingStatus.paused);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not resume GPS tracking: $error')),
+        SnackBar(content: AppText('Could not resume GPS tracking: $error')),
       );
     }
   }
@@ -1193,19 +1528,9 @@ class _BoundaryEditorState extends State<_BoundaryEditor> {
     }
     setState(() => _isMarkingWalkCorner = true);
     try {
-      final latest = _displayedWalkSample;
-      if (latest == null || !_hasLiveWalkReading) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Current location is not available yet. Keep the phone outdoors with Location on.',
-            ),
-          ),
-        );
-        return;
-      }
-      final decision = _walkRecorder.addSample(latest, markedCorner: true);
+      final latest = await _captureWalkCorner();
+      if (!mounted || _walkStatus != _WalkTrackingStatus.active) return;
+      final decision = _walkRecorder.markCorner(latest);
       final accepted =
           decision == WalkSampleDecision.acceptedCorner ||
           decision == WalkSampleDecision.replacedWithCorner;
@@ -1217,8 +1542,8 @@ class _BoundaryEditorState extends State<_BoundaryEditor> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Turn marked at the current location '
+            content: AppText(
+              'Corner ${_walkRecorder.corners.length} marked using averaged GPS '
               '(about ${latest.accuracyMeters.toStringAsFixed(1)} m accuracy).',
             ),
           ),
@@ -1229,7 +1554,7 @@ class _BoundaryEditorState extends State<_BoundaryEditor> {
             content: Text(
               decision == WalkSampleDecision.poorAccuracy
                   ? 'Corner not marked. GPS accuracy is currently too weak.'
-                  : 'Move closer to the actual corner and try marking it again.',
+                  : 'This corner is too close to one already marked. If you are back at the start, tap Finish.',
             ),
           ),
         );
@@ -1239,23 +1564,45 @@ class _BoundaryEditorState extends State<_BoundaryEditor> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(error.message)));
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: AppText('Could not mark the corner: $error')),
+      );
     } finally {
       if (mounted) setState(() => _isMarkingWalkCorner = false);
     }
   }
 
+  Future<WalkBoundarySample> _captureWalkCorner() async {
+    final location = await _locationService.captureAverage(
+      maximumAcceptedAccuracyMeters: _walkRecorder.maximumAccuracyMeters,
+      fallbackToCurrentPosition: false,
+    );
+    if (location.sampleCount < 3) {
+      throw const PhoneLocationException(
+        'Not enough GPS readings. Stand still at the corner and try again.',
+      );
+    }
+    return WalkBoundarySample(
+      position: LatLng(location.latitude, location.longitude),
+      accuracyMeters: location.averageAccuracyMeters,
+      capturedAt: DateTime.now().toUtc(),
+    );
+  }
+
   Future<void> _finishWalkBoundary() async {
-    if (!_walkSessionOpen) return;
+    if (!_walkSessionOpen || _isMarkingWalkCorner) return;
     await _walkSubscription?.cancel();
     _walkSubscription = null;
     if (!mounted) return;
     setState(() => _walkStatus = _WalkTrackingStatus.paused);
 
-    if (_walkRecorder.points.length < 3) {
+    if (_walkRecorder.corners.length < 3) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Keep walking until at least three filtered boundary points are recorded.',
+          content: AppText(
+            'Mark at least three field corners before finishing.',
           ),
         ),
       );
@@ -1267,8 +1614,8 @@ class _BoundaryEditorState extends State<_BoundaryEditor> {
       final finishAnyway = await showDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          title: const Text('You are not near the starting point'),
-          content: Text(
+          title: const AppText('You are not near the starting point'),
+          content: AppText(
             'The phone is about ${distanceToStart.toStringAsFixed(0)} m from the '
             'start. Finishing now will connect the last point to the start with '
             'a straight line.',
@@ -1276,12 +1623,12 @@ class _BoundaryEditorState extends State<_BoundaryEditor> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Continue walking'),
+              child: const AppText('Continue walking'),
             ),
             FilledButton(
               key: const Key('finish_walk_away_from_start_button'),
               onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('Finish anyway'),
+              child: const AppText('Finish anyway'),
             ),
           ],
         ),
@@ -1292,21 +1639,30 @@ class _BoundaryEditorState extends State<_BoundaryEditor> {
       }
     }
 
-    final simplified = _walkRecorder.simplified(toleranceMeters: 2);
+    if (!mounted) return;
+    final corners = _walkRecorder.corners;
+    final validation = PolygonCalculator.validate([
+      for (final corner in corners) corner.position,
+    ]);
+    if (!validation.isValid) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: AppText(validation.issues.first)));
+      return;
+    }
     setState(() {
-      _copyWalkPointsToEditor(points: simplified);
+      _copyWalkPointsToEditor(points: corners);
       _walkBoundaryWasCaptured = true;
       _walkBoundaryWasAdjusted = false;
       _walkStatus = _WalkTrackingStatus.review;
-      _untangleBoundaryPoints();
     });
     await _centerBoundary();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          'Walk finished. ${_walkRecorder.points.length} filtered points were '
-          'simplified to ${_points.length}. Review and adjust the outline before saving.',
+        content: AppText(
+          'Walk finished. ${_points.length} confirmed corners are joined by straight edges. '
+          'Review and adjust the outline before saving.',
         ),
       ),
     );
@@ -1317,20 +1673,20 @@ class _BoundaryEditorState extends State<_BoundaryEditor> {
     final discard = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Discard this walk?'),
-        content: const Text(
+        title: const AppText('Discard this walk?'),
+        content: const AppText(
           'The current walked route will be removed and the previous outline '
           'will be restored.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Keep walking'),
+            child: const AppText('Keep walking'),
           ),
           FilledButton(
             key: const Key('confirm_discard_walk_button'),
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Discard walk'),
+            child: const AppText('Discard walk'),
           ),
         ],
       ),
@@ -1362,167 +1718,188 @@ class _BoundaryEditorState extends State<_BoundaryEditor> {
       first > second ? first : second;
 
   Widget _buildMap() {
-    return Listener(
+    return FlutterMap(
       key: const Key('boundary_map_tap_area'),
-      behavior: HitTestBehavior.opaque,
-      onPointerDown: _handleMapPointerDown,
-      onPointerMove: _handleMapPointerMove,
-      onPointerUp: _handleMapPointerUp,
-      onPointerCancel: _handleMapPointerCancel,
-      child: FlutterMap(
-        mapController: _mapController,
-        options: MapOptions(
-          initialCenter: _cameraCenter,
-          initialZoom: _cameraZoom,
-          onPositionChanged: (camera, _) {
-            _cameraCenter = camera.center;
-            _cameraZoom = camera.zoom;
-          },
-          interactionOptions: const InteractionOptions(
-            flags: ~InteractiveFlag.doubleTapZoom,
-          ),
+      mapController: _mapController,
+      options: MapOptions(
+        initialCenter: MapViewPolicy.initialCenter(_cameraCenter),
+        initialZoom: _cameraZoom,
+        minZoom: MapViewPolicy.minZoom,
+        maxZoom: MapViewPolicy.maxZoom,
+        onTap: _handleMapTap,
+        onPositionChanged: (camera, _) {
+          if (!PolygonCalculator.isValidCoordinate(camera.center) ||
+              !camera.zoom.isFinite) {
+            return;
+          }
+          _cameraCenter = camera.center;
+          _cameraZoom = camera.zoom;
+        },
+        interactionOptions: const InteractionOptions(
+          flags: ~InteractiveFlag.doubleTapZoom,
         ),
-        children: [
-          if (_satelliteView)
-            TileLayer(
-              urlTemplate:
-                  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-              userAgentPackageName: 'com.wormwise.app.wormwise',
-              maxNativeZoom: 17,
-            )
-          else
-            TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'com.wormwise.app.wormwise',
+      ),
+      children: [
+        if (_satelliteView) ...[
+          TileLayer(
+            tileUpdateTransformer: TileUpdateTransformers.debounce(
+              const Duration(milliseconds: 160),
             ),
-          if (_walkSessionOpen && _displayedWalkSample != null)
-            CircleLayer(
-              circles: [
-                CircleMarker(
-                  point: _displayedWalkSample!.position,
-                  radius: mathMax(_displayedWalkSample!.accuracyMeters, 3),
-                  useRadiusInMeter: true,
-                  color:
-                      (_displayedWalkSample?.accuracyMeters ??
-                              double.infinity) <=
-                          15
-                      ? AppColors.primary.withValues(alpha: 0.14)
-                      : const Color(0xFFF57C00).withValues(alpha: 0.16),
-                  borderColor:
-                      (_displayedWalkSample?.accuracyMeters ??
-                              double.infinity) <=
-                          15
-                      ? AppColors.primary.withValues(alpha: 0.55)
-                      : const Color(0xFFF57C00),
-                  borderStrokeWidth: 2,
-                ),
-              ],
-            ),
-          if (widget.mode == BoundaryEditorMode.walk &&
-              _walkStatus == _WalkTrackingStatus.review &&
-              _walkRecorder.points.length >= 2)
-            PolylineLayer(
-              polylines: [
-                Polyline(
-                  points: [
-                    for (final point in _walkRecorder.points) point.position,
-                  ],
-                  color: AppColors.textSecondary.withValues(alpha: 0.45),
-                  strokeWidth: 5,
-                ),
-              ],
-            ),
-          if (!_walkSessionOpen && _points.length >= 3)
-            PolygonLayer(
-              polygons: [
-                Polygon(
-                  points: _points,
-                  color: AppColors.primary.withValues(alpha: 0.22),
-                  borderColor: AppColors.primary,
-                  borderStrokeWidth: 3,
-                ),
-              ],
-            )
-          else if (_points.length >= 2)
-            PolylineLayer(
-              polylines: [
-                Polyline(
-                  points: _points,
-                  color: AppColors.primary,
-                  strokeWidth: 3,
-                ),
-              ],
-            ),
-          MarkerLayer(
-            markers: [
-              if (widget.workspace.hasEntranceLocation)
-                Marker(
-                  point: _referenceCenter,
-                  width: 42,
-                  height: 42,
-                  child: Semantics(
-                    label: 'Recorded field entrance',
-                    child: const Icon(
-                      Icons.location_pin,
-                      size: 38,
-                      color: Color(0xFF1565C0),
-                    ),
-                  ),
-                ),
-              if (_walkSessionOpen && _points.isNotEmpty)
-                Marker(
-                  point: _points.first,
-                  width: 42,
-                  height: 42,
-                  child: const _WalkMapMarker(
-                    icon: Icons.flag,
-                    color: Color(0xFF1565C0),
-                    label: 'Walk starting point',
-                  ),
-                ),
-              if (_walkSessionOpen && _displayedWalkSample != null)
-                Marker(
-                  point: _displayedWalkSample!.position,
-                  width: 44,
-                  height: 44,
-                  child: const _WalkMapMarker(
-                    icon: Icons.navigation,
-                    color: Color(0xFFF57C00),
-                    label: 'Current phone location',
-                  ),
-                ),
-              if (_manualEditingEnabled)
-                for (var index = 0; index < _points.length; index++)
-                  Marker(
-                    point: _points[index],
-                    width: 52,
-                    height: 52,
-                    child: Semantics(
-                      button: true,
-                      label: 'Boundary point ${index + 1}',
-                      child: GestureDetector(
-                        onTap: () => _selectPoint(index),
-                        child: _BoundaryPointMarker(
-                          number: index + 1,
-                          isSelected: _selectedPointIndex == index,
-                        ),
-                      ),
-                    ),
-                  ),
-            ],
+            panBuffer: 0,
+            keepBuffer: 3,
+            urlTemplate:
+                'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+            userAgentPackageName: 'com.wormwise.app.wormwise',
+            maxNativeZoom: 17,
           ),
-          RichAttributionWidget(
-            showFlutterMapAttribution: false,
-            attributions: [
-              TextSourceAttribution(
-                _satelliteView
-                    ? 'Esri World Imagery'
-                    : 'OpenStreetMap contributors',
+          TileLayer(
+            tileUpdateTransformer: TileUpdateTransformers.debounce(
+              const Duration(milliseconds: 160),
+            ),
+            panBuffer: 0,
+            keepBuffer: 3,
+            urlTemplate:
+                'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+            userAgentPackageName: 'com.wormwise.app.wormwise',
+            maxNativeZoom: 19,
+          ),
+        ] else
+          TileLayer(
+            tileUpdateTransformer: TileUpdateTransformers.debounce(
+              const Duration(milliseconds: 160),
+            ),
+            panBuffer: 0,
+            keepBuffer: 3,
+            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+            userAgentPackageName: 'com.wormwise.app.wormwise',
+          ),
+        if (_walkSessionOpen && _displayedWalkSample != null)
+          CircleLayer(
+            circles: [
+              CircleMarker(
+                point: _displayedWalkSample!.position,
+                radius: mathMax(_displayedWalkSample!.accuracyMeters, 3),
+                useRadiusInMeter: true,
+                color:
+                    (_displayedWalkSample?.accuracyMeters ?? double.infinity) <=
+                        15
+                    ? AppColors.primary.withValues(alpha: 0.14)
+                    : const Color(0xFFF57C00).withValues(alpha: 0.16),
+                borderColor:
+                    (_displayedWalkSample?.accuracyMeters ?? double.infinity) <=
+                        15
+                    ? AppColors.primary.withValues(alpha: 0.55)
+                    : const Color(0xFFF57C00),
+                borderStrokeWidth: 2,
               ),
             ],
           ),
-        ],
-      ),
+        if (widget.mode == BoundaryEditorMode.walk &&
+            (_walkSessionOpen || _walkStatus == _WalkTrackingStatus.review) &&
+            _walkRecorder.points.length >= 2)
+          PolylineLayer(
+            polylines: [
+              Polyline(
+                points: [
+                  for (final point in _walkRecorder.points) point.position,
+                ],
+                color: AppColors.textSecondary.withValues(alpha: 0.45),
+                strokeWidth: 5,
+              ),
+            ],
+          ),
+        if (!_walkSessionOpen && _points.length >= 3)
+          PolygonLayer(
+            polygons: [
+              Polygon(
+                points: _points,
+                color: AppColors.primary.withValues(alpha: 0.22),
+                borderColor: AppColors.primary,
+                borderStrokeWidth: 3,
+              ),
+            ],
+          )
+        else if (_points.length >= 2)
+          PolylineLayer(
+            polylines: [
+              Polyline(
+                points: _points,
+                color: AppColors.primary,
+                strokeWidth: 3,
+              ),
+            ],
+          ),
+        MarkerLayer(
+          markers: [
+            if (widget.workspace.hasEntranceLocation)
+              Marker(
+                point: _referenceCenter,
+                width: 42,
+                height: 42,
+                child: Semantics(
+                  label: 'Recorded field entrance',
+                  child: const Icon(
+                    Icons.location_pin,
+                    size: 38,
+                    color: Color(0xFF1565C0),
+                  ),
+                ),
+              ),
+            if (_walkSessionOpen && _points.isNotEmpty)
+              Marker(
+                point: _points.first,
+                width: 42,
+                height: 42,
+                child: const _WalkMapMarker(
+                  icon: Icons.flag,
+                  color: Color(0xFF1565C0),
+                  label: 'Walk starting point',
+                ),
+              ),
+            if (_walkSessionOpen && _displayedWalkSample != null)
+              Marker(
+                point: _displayedWalkSample!.position,
+                width: 44,
+                height: 44,
+                child: const _WalkMapMarker(
+                  icon: Icons.navigation,
+                  color: Color(0xFFF57C00),
+                  label: 'Current phone location',
+                ),
+              ),
+            if (_manualEditingEnabled || _walkSessionOpen)
+              for (var index = 0; index < _points.length; index++)
+                Marker(
+                  point: _points[index],
+                  width: 52,
+                  height: 52,
+                  child: Semantics(
+                    button: true,
+                    label: 'Boundary point ${index + 1}',
+                    child: GestureDetector(
+                      onTap: _manualEditingEnabled
+                          ? () => _selectPoint(index)
+                          : null,
+                      child: _BoundaryPointMarker(
+                        number: index + 1,
+                        isSelected: _selectedPointIndex == index,
+                      ),
+                    ),
+                  ),
+                ),
+          ],
+        ),
+        RichAttributionWidget(
+          showFlutterMapAttribution: false,
+          attributions: [
+            TextSourceAttribution(
+              _satelliteView
+                  ? 'Esri World Imagery'
+                  : 'OpenStreetMap contributors',
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -1594,7 +1971,7 @@ class _BoundaryEditorState extends State<_BoundaryEditor> {
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Boundary could not be saved: $error')),
+        SnackBar(content: AppText('Boundary could not be saved: $error')),
       );
     }
   }
@@ -1618,6 +1995,7 @@ class _BoundaryEditorState extends State<_BoundaryEditor> {
         ),
         Expanded(
           child: Stack(
+            fit: StackFit.expand,
             children: [
               _buildMap(),
               if (_manualEditingEnabled || _walkSessionOpen)
@@ -1640,20 +2018,22 @@ class _BoundaryEditorState extends State<_BoundaryEditor> {
                   children: [
                     _MapControlButton(
                       key: const Key('boundary_zoom_in_button'),
-                      tooltip: 'Zoom in',
+                      tooltip: AppWords.of(context).translate('Zoom in'),
                       icon: Icons.add,
                       onPressed: () => _zoomBy(1),
                     ),
                     const SizedBox(height: 8),
                     _MapControlButton(
                       key: const Key('boundary_zoom_out_button'),
-                      tooltip: 'Zoom out',
+                      tooltip: AppWords.of(context).translate('Zoom out'),
                       icon: Icons.remove,
                       onPressed: () => _zoomBy(-1),
                     ),
                     const SizedBox(height: 8),
                     _MapControlButton(
-                      tooltip: 'Center boundary',
+                      tooltip: AppWords.of(
+                        context,
+                      ).translate('Center boundary'),
                       icon: Icons.center_focus_strong,
                       onPressed: _centerBoundary,
                     ),
@@ -1673,7 +2053,9 @@ class _BoundaryEditorState extends State<_BoundaryEditor> {
                       const SizedBox(height: 8),
                       _MapControlButton(
                         key: const Key('add_gps_boundary_point_button'),
-                        tooltip: 'Add averaged GPS corner',
+                        tooltip: AppWords.of(
+                          context,
+                        ).translate('Add averaged GPS corner'),
                         icon: _isCapturingGpsCorner
                             ? Icons.gps_fixed
                             : Icons.add_location_alt_outlined,
@@ -1683,13 +2065,15 @@ class _BoundaryEditorState extends State<_BoundaryEditor> {
                       ),
                       const SizedBox(height: 8),
                       _MapControlButton(
-                        tooltip: 'Undo',
+                        tooltip: AppWords.of(context).translate('Undo'),
                         icon: Icons.undo,
                         onPressed: _history.isEmpty ? null : _undo,
                       ),
                       const SizedBox(height: 8),
                       _MapControlButton(
-                        tooltip: 'Delete selected point',
+                        tooltip: AppWords.of(
+                          context,
+                        ).translate('Delete selected point'),
                         icon: Icons.delete_outline,
                         onPressed: _selectedPointIndex == null
                             ? null
@@ -1706,7 +2090,7 @@ class _BoundaryEditorState extends State<_BoundaryEditor> {
                   bottom: 12,
                   child: _WalkBoundaryPanel(
                     status: _walkStatus,
-                    acceptedPointCount: _walkRecorder.points.length,
+                    acceptedPointCount: _walkRecorder.corners.length,
                     latestAccuracyMeters: _displayedWalkSample?.accuracyMeters,
                     hasLiveLocation: _hasLiveWalkReading,
                     acceptedPathMeters: _walkRecorder.acceptedPathMeters,
@@ -1778,8 +2162,8 @@ class _FieldBoundaryHeader extends StatelessWidget {
                   mode == BoundaryEditorMode.manual
                       ? 'Draw and adjust an approximate outline'
                       : isReview
-                      ? 'Review the simplified walked outline'
-                      : 'Filtered phone-GPS boundary walk',
+                      ? 'Review the straight edges between marked corners'
+                      : 'Walk and mark the field corners',
                   style: const TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 12,
@@ -1858,7 +2242,7 @@ class _MapInstruction extends StatelessWidget {
               children: [
                 Text(
                   isWalking
-                      ? 'Walk along the field edge.'
+                      ? 'Stand still and mark each field corner.'
                       : isPaused
                       ? 'Boundary walking is paused.'
                       : selectedPointNumber == null
@@ -1943,7 +2327,7 @@ class _WalkBoundaryPanel extends StatelessWidget {
                   Icon(Icons.directions_walk, color: AppColors.primary),
                   SizedBox(width: 10),
                   Expanded(
-                    child: Text(
+                    child: AppText(
                       'Before you start',
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
@@ -1956,11 +2340,12 @@ class _WalkBoundaryPanel extends StatelessWidget {
               const SizedBox(height: 10),
               const _WalkPrepLine(
                 icon: Icons.flag_outlined,
-                text: 'Stand at an accessible field corner or edge.',
+                text:
+                    'Stand still at the first field corner while GPS is averaged.',
               ),
               const _WalkPrepLine(
                 icon: Icons.phone_android,
-                text: 'Keep WormWise open while you walk the boundary.',
+                text: 'Mark each corner. Add extra corners along curved edges.',
               ),
               const _WalkPrepLine(
                 icon: Icons.health_and_safety_outlined,
@@ -1971,7 +2356,7 @@ class _WalkBoundaryPanel extends StatelessWidget {
                 key: const Key('start_walk_boundary_button'),
                 onPressed: onStart,
                 icon: const Icon(Icons.play_arrow),
-                label: const Text("I'm at the starting edge - Begin"),
+                label: const AppText('Mark first corner & begin'),
               ),
             ],
           ),
@@ -1995,12 +2380,12 @@ class _WalkBoundaryPanel extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
+                    AppText(
                       'Walk captured - review it',
                       style: TextStyle(fontWeight: FontWeight.w700),
                     ),
-                    Text(
-                      'The raw path is grey; the saved outline is green.',
+                    AppText(
+                      'The GPS trace is grey; straight boundary edges are green.',
                       style: TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 11,
@@ -2014,7 +2399,7 @@ class _WalkBoundaryPanel extends StatelessWidget {
                 key: const Key('start_walk_boundary_button'),
                 onPressed: onStart,
                 icon: const Icon(Icons.replay),
-                label: const Text('Walk again'),
+                label: const AppText('Walk again'),
               ),
             ],
           ),
@@ -2037,8 +2422,8 @@ class _WalkBoundaryPanel extends StatelessWidget {
               ),
               SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  'Finding your location... Move outdoors and keep this screen open.',
+                child: AppText(
+                  'Averaging the first corner... Stand still outdoors and keep this screen open.',
                 ),
               ),
             ],
@@ -2086,13 +2471,15 @@ class _WalkBoundaryPanel extends StatelessWidget {
                         ? 'Boundary walk paused'
                         : closeEnough
                         ? 'Near the start — ready to finish'
-                        : 'Recording filtered boundary walk',
+                        : isMarkingCorner
+                        ? 'Averaging corner — stand still'
+                        : 'Walk to the next corner',
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ),
                 IconButton(
                   key: const Key('discard_walk_boundary_button'),
-                  tooltip: 'Discard walk',
+                  tooltip: AppWords.of(context).translate('Discard walk'),
                   visualDensity: VisualDensity.compact,
                   onPressed: onDiscard,
                   icon: const Icon(Icons.close),
@@ -2129,7 +2516,7 @@ class _WalkBoundaryPanel extends StatelessWidget {
                 ),
                 _WalkMetricChip(
                   icon: Icons.route,
-                  text: '$acceptedPointCount points',
+                  text: '$acceptedPointCount corners',
                 ),
                 _WalkMetricChip(
                   icon: Icons.straighten,
@@ -2158,7 +2545,11 @@ class _WalkBoundaryPanel extends StatelessWidget {
               children: [
                 OutlinedButton.icon(
                   key: const Key('pause_resume_walk_boundary_button'),
-                  onPressed: paused ? onResume : onPause,
+                  onPressed: isMarkingCorner
+                      ? null
+                      : paused
+                      ? onResume
+                      : onPause,
                   icon: Icon(paused ? Icons.play_arrow : Icons.pause),
                   label: Text(paused ? 'Resume' : 'Pause'),
                 ),
@@ -2172,13 +2563,15 @@ class _WalkBoundaryPanel extends StatelessWidget {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.add_location_alt_outlined),
-                    label: const Text('Mark turn'),
+                    label: const AppText('Mark corner'),
                   ),
                 FilledButton.icon(
                   key: const Key('finish_walk_boundary_button'),
-                  onPressed: acceptedPointCount >= 3 ? onFinish : null,
+                  onPressed: acceptedPointCount >= 3 && !isMarkingCorner
+                      ? onFinish
+                      : null,
                   icon: const Icon(Icons.flag),
-                  label: const Text('Finish'),
+                  label: const AppText('Finish'),
                 ),
               ],
             ),
@@ -2343,7 +2736,7 @@ class _BoundaryPointMarker extends StatelessWidget {
             ),
           ],
         ),
-        child: Text(
+        child: AppText(
           '$number',
           style: const TextStyle(
             color: Colors.white,
@@ -2439,7 +2832,7 @@ class _BoundarySummaryPanel extends StatelessWidget {
                 TextButton.icon(
                   onPressed: onClear,
                   icon: const Icon(Icons.delete_sweep_outlined),
-                  label: const Text('Clear'),
+                  label: const AppText('Clear'),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -2518,7 +2911,7 @@ class _BoundaryConfirmationDialogState
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Review field outline'),
+      title: const AppText('Review field outline'),
       content: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2529,13 +2922,8 @@ class _BoundaryConfirmationDialogState
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
-            Text('Boundary points: ${widget.pointCount}'),
-            Text(
-              'Calculated area: ${widget.areaHectares.toStringAsFixed(3)} ha',
-            ),
-            Text(
-              'Calculated perimeter: '
-              '${widget.perimeterMeters.toStringAsFixed(0)} m',
+            AppText(
+              '${widget.areaHectares.toStringAsFixed(2)} ha · ${widget.pointCount} points',
             ),
             const SizedBox(height: 14),
             Container(
@@ -2544,9 +2932,8 @@ class _BoundaryConfirmationDialogState
                 color: const Color(0xFFFFF8E1),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Text(
-                'Use this outline for scouting and approximate area only. It is not '
-                'a legal, cadastral, or survey-grade property boundary.',
+              child: const AppText(
+                'Approximate outline for scouting only.',
                 style: TextStyle(fontSize: 13, height: 1.35),
               ),
             ),
@@ -2571,9 +2958,8 @@ class _BoundaryConfirmationDialogState
                     const Expanded(
                       child: Padding(
                         padding: EdgeInsets.only(top: 11),
-                        child: Text(
-                          'I checked the point order and shape. It reasonably '
-                          'represents this maize field.',
+                        child: AppText(
+                          'This outline covers the maize area.',
                           textAlign: TextAlign.start,
                           style: TextStyle(fontSize: 13, height: 1.35),
                         ),
@@ -2589,12 +2975,12 @@ class _BoundaryConfirmationDialogState
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: const Text('Continue editing'),
+          child: const AppText('Continue editing'),
         ),
         FilledButton(
           key: const Key('save_confirmed_boundary_button'),
           onPressed: _acknowledged ? () => Navigator.pop(context, true) : null,
-          child: const Text('Save outline'),
+          child: const AppText('Save outline'),
         ),
       ],
       actionsOverflowButtonSpacing: 8,
@@ -2615,18 +3001,24 @@ class _NoActiveField extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.add_location_alt_outlined,
-              color: AppColors.primary,
-              size: 64,
+            Semantics(
+              image: true,
+              label: 'Illustration of adding a field boundary to a map',
+              child: Image.asset(
+                'assets/images/empty_map_field_indicator.png',
+                width: 250,
+                height: 190,
+                fit: BoxFit.contain,
+                filterQuality: FilterQuality.high,
+              ),
             ),
-            const SizedBox(height: 16),
-            const Text(
+            const SizedBox(height: 10),
+            const AppText(
               'Select a maize field first',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const Text(
+            const AppText(
               'A field outline must belong to a registered field so it can be '
               'linked to the correct assessment and report.',
               textAlign: TextAlign.center,
@@ -2636,7 +3028,7 @@ class _NoActiveField extends StatelessWidget {
             FilledButton.icon(
               onPressed: onOpenFields,
               icon: const Icon(Icons.landscape_outlined),
-              label: const Text('Open My Fields'),
+              label: const AppText('Open My Fields'),
             ),
           ],
         ),
@@ -2644,3 +3036,4 @@ class _NoActiveField extends StatelessWidget {
     );
   }
 }
+

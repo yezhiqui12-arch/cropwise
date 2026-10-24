@@ -15,7 +15,7 @@ void main() {
 
     expect(find.text('Home'), findsWidgets);
     expect(find.byKey(const Key('bottom_nav_scan')), findsOneWidget);
-    expect(find.text('Scan'), findsOneWidget);
+    expect(find.text('Scout'), findsOneWidget);
     expect(find.text('Add your first field'), findsOneWidget);
     expect(find.text('Bayani Cornfield'), findsNothing);
 

@@ -256,6 +256,9 @@ class Stations extends SyncableTable {
   TextColumn get assessmentBlockRunId =>
       text().references(AssessmentBlockRuns, #id)();
   IntColumn get stationNumber => integer()();
+  TextColumn get locationSource =>
+      text().withDefault(const Constant('unverified'))();
+  DateTimeColumn get locationCapturedAt => dateTime().nullable()();
   RealColumn get latitude => real().nullable()();
   RealColumn get longitude => real().nullable()();
   RealColumn get gpsAccuracyM => real().nullable()();
@@ -326,6 +329,9 @@ class PlantObservations extends SyncableTable {
       boolean().withDefault(const Constant(false))();
   TextColumn get naturalEnemyQuickStatus => text()();
   TextColumn get wholePlantContextNote => text().nullable()();
+  TextColumn get locationSource =>
+      text().withDefault(const Constant('unverified'))();
+  DateTimeColumn get locationCapturedAt => dateTime().nullable()();
   RealColumn get latitude => real().nullable()();
   RealColumn get longitude => real().nullable()();
   RealColumn get gpsAccuracyM => real().nullable()();
@@ -575,6 +581,9 @@ class EvidenceMedia extends SyncableTable {
   IntColumn get byteSize => integer().nullable()();
   TextColumn get sha256Checksum => text()();
   DateTimeColumn get capturedAt => dateTime().nullable()();
+  TextColumn get locationSource =>
+      text().withDefault(const Constant('unverified'))();
+  DateTimeColumn get locationCapturedAt => dateTime().nullable()();
   RealColumn get latitude => real().nullable()();
   RealColumn get longitude => real().nullable()();
   RealColumn get gpsAccuracyM => real().nullable()();
@@ -714,12 +723,31 @@ class AppDatabase extends _$AppDatabase {
       );
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (migrator) => migrator.createAll(),
     onUpgrade: (migrator, from, to) async {
+      if (from < 8) {
+        await migrator.addColumn(stations, stations.locationSource);
+        await migrator.addColumn(stations, stations.locationCapturedAt);
+        await migrator.addColumn(
+          plantObservations,
+          plantObservations.locationSource,
+        );
+        await migrator.addColumn(
+          plantObservations,
+          plantObservations.locationCapturedAt,
+        );
+        await migrator.addColumn(evidenceMedia, evidenceMedia.locationSource);
+        await migrator.addColumn(
+          evidenceMedia,
+          evidenceMedia.locationCapturedAt,
+        );
+        // Old coordinates may have been generated targets. Never assert GPS provenance.
+        await customStatement("UPDATE stations SET sync_state = 'queued'");
+      }
       if (from < 2) {
         await migrator.createTable(appPreferences);
       }

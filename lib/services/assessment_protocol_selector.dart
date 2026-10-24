@@ -1,3 +1,4 @@
+import 'scouting_sampling_protocol.dart';
 import '../data/local/database_codes.dart';
 
 class GrowthStageOption {
@@ -71,12 +72,8 @@ abstract final class AssessmentProtocolSelector {
     };
   }
 
-  static String recommendedPatternFor(String growthStage) {
-    return switch (growthStage) {
-      've' || 'v1' || 'v2' || 'v3_v6' => DatabaseCodes.patternW,
-      _ => DatabaseCodes.patternLadder,
-    };
-  }
+  static String recommendedPatternFor(String growthStage) =>
+      ScoutingSamplingProtocol.daPattern;
 
   static String growthStageLabel(String code) {
     for (final stage in growthStages) {
@@ -94,18 +91,16 @@ abstract final class AssessmentProtocolSelector {
 
   static String patternLabel(String code) {
     return switch (code) {
-      DatabaseCodes.patternW => 'W pattern',
-      DatabaseCodes.patternLadder => 'Ladder pattern',
+      ScoutingSamplingProtocol.daPattern => 'DA guided scouting · 20 plants',
+      'w' || 'ladder' => 'Outdated scouting method',
       _ => code,
     };
   }
 
   static String patternHelp(String code) {
     return switch (code) {
-      DatabaseCodes.patternW =>
-        'Walk a W-shaped route through a safely accessible young crop.',
-      DatabaseCodes.patternLadder =>
-        'Use parallel passes with accessible connections instead of crossing through tall maize.',
+      ScoutingSamplingProtocol.daPattern =>
+        'Select 20 separate plants spread across the sampling block, at least 3 m from the field edge. Inspect the upper 3–4 leaves and record natural enemies.',
       _ => '',
     };
   }

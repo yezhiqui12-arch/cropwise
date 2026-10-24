@@ -4,13 +4,14 @@ import 'package:flutter/foundation.dart';
 
 import '../data/local/app_database.dart';
 import '../data/local/database_codes.dart';
+import 'scouting_sampling_protocol.dart';
 import '../data/repositories/assessment_repository.dart';
 import '../data/repositories/field_repository.dart';
 import '../data/repositories/people_repository.dart';
 
 const _debugPolygon =
-    '{"type":"Polygon","coordinates":[[[121.0,17.0],[121.008,17.0],'
-    '[121.008,17.008],[121.0,17.008],[121.0,17.0]]]}';
+    '{"type":"Polygon","coordinates":[[[121.0,17.0],[121.00085,17.0],'
+    '[121.00085,17.00080],[121.0,17.00080],[121.0,17.0]]]}';
 
 class DebugTestDataService {
   DebugTestDataService(this.database);
@@ -26,7 +27,7 @@ class DebugTestDataService {
     ).findOrCreateEvaluator('[TEST DATA] Evaluator');
     final field = await FieldRepository(database)
         .createFieldWithBoundaryAndCycle(
-          name: '[TEST DATA] Five-station maize field',
+          name: '[TEST DATA] DA maize field',
           geometryGeojson: _debugPolygon,
           areaHectares: 0.8,
           boundarySourceMethod: 'debug_synthetic_outline',
@@ -37,12 +38,12 @@ class DebugTestDataService {
     final assessments = AssessmentRepository(database);
     final draft = await assessments.createDraft(
       cropCycleId: field.cropCycle.id,
-      boundaryVersionId: field.boundary.id,
+      boundaryVersionId: field.boundary!.id,
       evaluatorPersonId: evaluator.id,
       assessmentMode: DatabaseCodes.modeVeV6,
-      scoutingPattern: DatabaseCodes.patternW,
+      scoutingPattern: ScoutingSamplingProtocol.daPattern,
       growthStage: 'v3_v6',
-      protocolVersion: 'debug-test-data-v1',
+      protocolVersion: ScoutingSamplingProtocol.daVersion,
       formulaVersion: 'debug-test-data-v1',
       preferredLanguage: 'en',
     );

@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wormwise/services/assessment_protocol_selector.dart';
 import 'package:wormwise/data/local/app_database.dart';
 import 'package:wormwise/data/local/database_codes.dart';
 import 'package:wormwise/data/repositories/assessment_repository.dart';
@@ -10,9 +13,9 @@ import 'package:wormwise/data/repositories/scouting_workflow_repository.dart';
 import 'package:wormwise/data/services/atomic_plant_save_service.dart';
 import 'package:wormwise/data/services/atomic_ve_v2_save_service.dart';
 import 'package:wormwise/data/services/assessment_completion_validator.dart';
-import 'package:wormwise/data/services/five_station_completion_service.dart';
-import 'package:wormwise/providers/five_station_workflow_provider.dart';
-import 'package:wormwise/providers/station1_workflow_provider.dart';
+import 'package:wormwise/data/services/scouting_completion_service.dart';
+import 'package:wormwise/providers/scouting_workflow_provider.dart';
+import 'package:wormwise/providers/scouting_workflow_state.dart';
 import 'package:wormwise/services/evidence_capture_coordinator.dart';
 import 'package:wormwise/services/evidence_storage_service.dart';
 import 'package:wormwise/services/station_evidence_policy.dart';
@@ -22,6 +25,7 @@ const _polygon =
     '[121.01,17.01],[121.0,17.01],[121.0,17.0]]]}';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   late AppDatabase database;
 
   setUp(() => database = AppDatabase(NativeDatabase.memory()));
@@ -177,12 +181,12 @@ void main() {
         repository: evidence,
         storage: EvidenceStorageService(),
       );
-      final provider = FiveStationWorkflowProvider(
+      final provider = ScoutingWorkflowProvider(
         assessmentId: fixture.assessment.id,
         workflowRepository: workflow,
         assessmentRepository: AssessmentRepository(database),
         plantSaveService: saves,
-        completionService: FiveStationCompletionService(database),
+        completionService: ScoutingCompletionService(database),
         evidenceCoordinator: coordinator,
       );
       await provider.initialize();
@@ -193,13 +197,8 @@ void main() {
         condition: ResumeCondition.unchanged,
         safeToContinue: true,
       );
-      expect(provider.state, Station1ViewState.stationLocation);
-      expect(provider.stationNumber, 3);
-
-      await provider.saveStationUnavailable(
-        reason: DatabaseCodes.stationNoCurrentFix,
-      );
       expect(provider.state, Station1ViewState.stationContextEvidence);
+      expect(provider.stationNumber, 3);
       await provider.waiveEvidence(
         viewType: DatabaseCodes.evidenceViewStationContext,
         reasonCode: DatabaseCodes.evidenceFallbackNoCamera,
@@ -237,7 +236,7 @@ void main() {
       expect(provider.state, Station1ViewState.betweenStations);
       await provider.continueToNextStation();
       expect(provider.stationNumber, 4);
-      expect(provider.state, Station1ViewState.stationLocation);
+      expect(provider.state, Station1ViewState.stationContextEvidence);
     },
   );
 
@@ -255,7 +254,7 @@ void main() {
         database,
         evidenceRepository: evidence,
       );
-      final completion = FiveStationCompletionService(database);
+      final completion = ScoutingCompletionService(database);
 
       for (var stationNumber = 1; stationNumber <= 4; stationNumber++) {
         await _completeStation(
@@ -290,7 +289,7 @@ void main() {
       );
       final complete = await completion.validateBlock(prepared.run.id);
       expect(complete.issues, isEmpty);
-      final provider = FiveStationWorkflowProvider(
+      final provider = ScoutingWorkflowProvider(
         assessmentId: fixture.assessment.id,
         workflowRepository: workflow,
         assessmentRepository: AssessmentRepository(database),
@@ -301,17 +300,73 @@ void main() {
           storage: EvidenceStorageService(),
         ),
       );
-      await provider.initialize();
+      await provider.initialize(
+        initialBlockRunId: prepared.run.id,
+        initialStationNumber: 2,
+      );
+      expect(provider.stationNumber, 2);
       expect(provider.state, Station1ViewState.resumeCheck);
       await provider.submitResumeCheck(
         condition: ResumeCondition.unchanged,
         safeToContinue: true,
       );
-      expect(provider.state, Station1ViewState.blockReview);
+      expect(provider.state, Station1ViewState.betweenStations);
       await provider.openStationFromBlockReview(3);
       expect(provider.state, Station1ViewState.stationReview);
       await provider.confirmStationReview();
       expect(provider.state, Station1ViewState.blockReview);
+
+      // A direct review action must reopen an already reviewed station instead
+      // of redirecting to its between-stations continuation screen.
+      await provider.initialize(
+        initialBlockRunId: prepared.run.id,
+        initialStationNumber: 2,
+        openForReview: true,
+      );
+      expect(provider.stationNumber, 2);
+      expect(provider.state, Station1ViewState.stationReview);
+
+      // A changed station must not pass on the existence of an old review.
+      await workflow.saveStationLocation(
+        prepared: prepared,
+        actorPersonId: fixture.assessment.evaluatorPersonId,
+        stationNumber: 2,
+        latitude: 17.01,
+        longitude: 121.01,
+        gpsAccuracyM: 5,
+        capturedAt: DateTime.now().toUtc(),
+      );
+      final stale = await completion.validateAssessment(fixture.assessment.id);
+      expect(
+        stale.issues.any(
+          (i) => i.code == 'station_review_stale' && i.stationNumber == 2,
+        ),
+        isTrue,
+      );
+      final reviewsBefore = await database.select(database.auditLogs).get();
+      await expectLater(
+        completion.completeBlock(prepared.run.id),
+        throwsA(isA<AssessmentValidationException>()),
+      );
+      expect(
+        (await workflow.assessmentById(fixture.assessment.id)).status,
+        DatabaseCodes.inProgress,
+      );
+      expect(
+        (await database.select(database.auditLogs).get()).length,
+        reviewsBefore.length,
+      );
+      await workflow.confirmStationReview(
+        snapshot: await workflow.loadStationSnapshot(
+          prepared,
+          stationNumber: 2,
+        ),
+        actorPersonId: fixture.assessment.evaluatorPersonId,
+      );
+      expect(
+        (await completion.validateAssessment(fixture.assessment.id)).isValid,
+        isTrue,
+      );
 
       await completion.completeBlock(prepared.run.id);
 
@@ -379,7 +434,7 @@ void main() {
         );
       }
 
-      await FiveStationCompletionService(
+      await ScoutingCompletionService(
         database,
       ).completeBlock(prepared.first.run.id);
       final assessment = await workflow.assessmentById(fixture.assessment.id);
@@ -397,7 +452,7 @@ void main() {
       final fixture = await _createFixture(database);
       final workflow = ScoutingWorkflowRepository(database);
       final evidence = EvidenceCaptureRepository(database);
-      final provider = FiveStationWorkflowProvider(
+      final provider = ScoutingWorkflowProvider(
         assessmentId: fixture.assessment.id,
         workflowRepository: workflow,
         assessmentRepository: AssessmentRepository(database),
@@ -405,7 +460,7 @@ void main() {
           database,
           evidenceRepository: evidence,
         ),
-        completionService: FiveStationCompletionService(database),
+        completionService: ScoutingCompletionService(database),
         evidenceCoordinator: EvidenceCaptureCoordinator(
           repository: evidence,
           storage: EvidenceStorageService(),
@@ -473,12 +528,20 @@ void main() {
   );
 
   test(
-    'debug all-station shortcut bypasses camera and forms for Stations 1-5',
+    'realistic debug shortcut creates 50 photos and plant GPS records',
     () async {
+      final evidenceRoot = await Directory.systemTemp.createTemp(
+        'wormwise-realistic-fixture-',
+      );
+      addTearDown(() async {
+        if (await evidenceRoot.exists()) {
+          await evidenceRoot.delete(recursive: true);
+        }
+      });
       final fixture = await _createFixture(database);
       final workflow = ScoutingWorkflowRepository(database);
       final evidence = EvidenceCaptureRepository(database);
-      final provider = FiveStationWorkflowProvider(
+      final provider = ScoutingWorkflowProvider(
         assessmentId: fixture.assessment.id,
         workflowRepository: workflow,
         assessmentRepository: AssessmentRepository(database),
@@ -486,13 +549,16 @@ void main() {
           database,
           evidenceRepository: evidence,
         ),
-        completionService: FiveStationCompletionService(database),
+        completionService: ScoutingCompletionService(database),
         evidenceCoordinator: EvidenceCaptureCoordinator(
           repository: evidence,
-          storage: EvidenceStorageService(),
+          storage: EvidenceStorageService(
+            rootDirectory: () async => evidenceRoot,
+          ),
         ),
         testMode: true,
         debugFeaturesEnabled: true,
+        realisticTestFixture: true,
       );
       await provider.initialize();
       expect(provider.state, Station1ViewState.blockPreparation);
@@ -515,7 +581,38 @@ void main() {
         await database.select(database.evidenceCaptureSessions).get(),
         hasLength(55),
       );
-      expect(await database.select(database.evidenceMedia).get(), isEmpty);
+      final stations = await database.select(database.stations).get();
+      final plants = await database.select(database.plantObservations).get();
+      final media = await database.select(database.evidenceMedia).get();
+      expect(
+        stations.every(
+          (station) =>
+              station.latitude != null &&
+              station.longitude != null &&
+              station.gpsAccuracyM != null,
+        ),
+        isTrue,
+      );
+      expect(
+        plants.every(
+          (plant) =>
+              plant.latitude != null &&
+              plant.longitude != null &&
+              plant.gpsAccuracyM != null,
+        ),
+        isTrue,
+      );
+      expect(media, hasLength(50));
+      expect(
+        media.every(
+          (item) =>
+              item.storageState == DatabaseCodes.evidenceStorageReady &&
+              item.plantObservationId != null &&
+              item.latitude != null &&
+              item.longitude != null,
+        ),
+        isTrue,
+      );
       final stationReviews = (await database.select(database.auditLogs).get())
           .where((audit) => audit.action == 'review_confirmed')
           .toList();
@@ -531,25 +628,24 @@ void main() {
       final fixture = await _createFixture(database, growthStage: 've');
       final workflow = ScoutingWorkflowRepository(database);
       final evidence = EvidenceCaptureRepository(database);
-      final completion = FiveStationCompletionService(database);
-      FiveStationWorkflowProvider buildProvider() =>
-          FiveStationWorkflowProvider(
-            assessmentId: fixture.assessment.id,
-            workflowRepository: workflow,
-            assessmentRepository: AssessmentRepository(database),
-            plantSaveService: AtomicPlantSaveService(
-              database,
-              evidenceRepository: evidence,
-            ),
-            completionService: completion,
-            veV2SaveService: AtomicVeV2SaveService(database),
-            evidenceCoordinator: EvidenceCaptureCoordinator(
-              repository: evidence,
-              storage: EvidenceStorageService(),
-            ),
-            testMode: true,
-            debugFeaturesEnabled: true,
-          );
+      final completion = ScoutingCompletionService(database);
+      ScoutingWorkflowProvider buildProvider() => ScoutingWorkflowProvider(
+        assessmentId: fixture.assessment.id,
+        workflowRepository: workflow,
+        assessmentRepository: AssessmentRepository(database),
+        plantSaveService: AtomicPlantSaveService(
+          database,
+          evidenceRepository: evidence,
+        ),
+        completionService: completion,
+        veV2SaveService: AtomicVeV2SaveService(database),
+        evidenceCoordinator: EvidenceCaptureCoordinator(
+          repository: evidence,
+          storage: EvidenceStorageService(),
+        ),
+        testMode: true,
+        debugFeaturesEnabled: true,
+      );
       var provider = buildProvider();
       await provider.initialize();
       expect(provider.state, Station1ViewState.blockPreparation);
@@ -571,7 +667,7 @@ void main() {
         safeToContinue: true,
       );
       expect(provider.stationNumber, 2);
-      expect(provider.state, Station1ViewState.stationLocation);
+      expect(provider.state, Station1ViewState.stationContextEvidence);
 
       await provider.completeAllRemainingTestStations();
 
@@ -612,12 +708,59 @@ void main() {
   );
 
   test(
+    'V7-V12, VT-R2, and R3-R6 test shortcuts complete all stations and finalize the block without errors',
+    () async {
+      for (final stage in ['v7_v12', 'vt_r2', 'r3_r6']) {
+        final fixture = await _createFixture(database, growthStage: stage);
+        final workflow = ScoutingWorkflowRepository(database);
+        final evidence = EvidenceCaptureRepository(database);
+        final completion = ScoutingCompletionService(database);
+        final provider = ScoutingWorkflowProvider(
+          assessmentId: fixture.assessment.id,
+          workflowRepository: workflow,
+          assessmentRepository: AssessmentRepository(database),
+          plantSaveService: AtomicPlantSaveService(
+            database,
+            evidenceRepository: evidence,
+          ),
+          completionService: completion,
+          evidenceCoordinator: EvidenceCaptureCoordinator(
+            repository: evidence,
+            storage: EvidenceStorageService(),
+          ),
+          testMode: true,
+          debugFeaturesEnabled: true,
+        );
+        await provider.initialize();
+        expect(provider.state, Station1ViewState.blockPreparation);
+
+        await provider.completeAllRemainingTestStations();
+        expect(provider.stationNumber, 5);
+        expect(provider.state, Station1ViewState.blockReview);
+
+        final validation = await completion.validateBlock(
+          provider.prepared!.run.id,
+        );
+        expect(validation.issues, isEmpty);
+
+        await provider.completeCurrentBlock();
+        expect(provider.state, Station1ViewState.samplingComplete);
+        expect(
+          (await workflow.assessmentById(fixture.assessment.id)).status,
+          DatabaseCodes.completed,
+        );
+        provider.dispose();
+      }
+    },
+  );
+
+  test(
     'Back moves through station views without changing persisted records',
     () async {
       final fixture = await _createFixture(database);
       final workflow = ScoutingWorkflowRepository(database);
       final evidence = EvidenceCaptureRepository(database);
-      final provider = FiveStationWorkflowProvider(
+      final provider = ScoutingWorkflowProvider(
         assessmentId: fixture.assessment.id,
         workflowRepository: workflow,
         assessmentRepository: AssessmentRepository(database),
@@ -625,7 +768,7 @@ void main() {
           database,
           evidenceRepository: evidence,
         ),
-        completionService: FiveStationCompletionService(database),
+        completionService: ScoutingCompletionService(database),
         evidenceCoordinator: EvidenceCaptureCoordinator(
           repository: evidence,
           storage: EvidenceStorageService(),
@@ -673,7 +816,7 @@ void main() {
 
   test('production provider rejects debug shortcuts', () async {
     final evidence = EvidenceCaptureRepository(database);
-    final provider = FiveStationWorkflowProvider(
+    final provider = ScoutingWorkflowProvider(
       assessmentId: 'production-assessment',
       workflowRepository: ScoutingWorkflowRepository(database),
       assessmentRepository: AssessmentRepository(database),
@@ -681,7 +824,7 @@ void main() {
         database,
         evidenceRepository: evidence,
       ),
-      completionService: FiveStationCompletionService(database),
+      completionService: ScoutingCompletionService(database),
       evidenceCoordinator: EvidenceCaptureCoordinator(
         repository: evidence,
         storage: EvidenceStorageService(),
@@ -698,6 +841,76 @@ void main() {
     );
     provider.dispose();
   });
+
+  test(
+    'Station Review inspecting plant returns directly to Station Review on save, cancel, or back without jumping to capture',
+    () async {
+      final fixture = await _createFixture(database);
+      final workflow = ScoutingWorkflowRepository(database);
+      final evidence = EvidenceCaptureRepository(database);
+      final provider = ScoutingWorkflowProvider(
+        assessmentId: fixture.assessment.id,
+        workflowRepository: workflow,
+        assessmentRepository: AssessmentRepository(database),
+        plantSaveService: AtomicPlantSaveService(
+          database,
+          evidenceRepository: evidence,
+        ),
+        completionService: ScoutingCompletionService(database),
+        evidenceCoordinator: EvidenceCaptureCoordinator(
+          repository: evidence,
+          storage: EvidenceStorageService(),
+        ),
+        testMode: true,
+        debugFeaturesEnabled: true,
+      );
+      await provider.initialize();
+      await provider.prepareRequiredBlocks();
+      await provider.fillRemainingTestPlants();
+
+      expect(provider.state, Station1ViewState.stationReview);
+
+      // Inspect Plant 3 from Station Review
+      await provider.editPlant(3);
+      expect(provider.state, Station1ViewState.plantEntry);
+      expect(provider.currentPlantPosition, 3);
+
+      // Save updated diagnosis and notes on Plant 3 -> returns directly to Station Review
+      await provider.savePlantDiagnosisAndReturnToReview(
+        plantPosition: 3,
+        status: DatabaseCodes.plantCurrentPositive,
+        notes: 'Confirmed live larva in whorl during review',
+      );
+      expect(provider.state, Station1ViewState.stationReview);
+      expect(provider.currentPlantPosition, isNull);
+
+      // Verify the persisted plant is updated in SQLite
+      final plant3 = provider.snapshot!.plants
+          .where((p) => p.plant.sequenceNumber == 3)
+          .single;
+      expect(plant3.plant.plantStatus, DatabaseCodes.plantCurrentPositive);
+      expect(
+        plant3.plant.evaluatorNotes,
+        'Confirmed live larva in whorl during review',
+      );
+
+      // Inspect Plant 5 and cancel -> returns directly to Station Review
+      await provider.editPlant(5);
+      expect(provider.state, Station1ViewState.plantEntry);
+      await provider.returnToStationReview();
+      expect(provider.state, Station1ViewState.stationReview);
+      expect(provider.currentPlantPosition, isNull);
+
+      // Inspect Plant 7 and navigate back -> returns directly to Station Review
+      await provider.editPlant(7);
+      expect(provider.state, Station1ViewState.plantEntry);
+      await provider.navigateBackWithinWorkflow();
+      expect(provider.state, Station1ViewState.stationReview);
+      expect(provider.currentPlantPosition, isNull);
+
+      provider.dispose();
+    },
+  );
 }
 
 class _Fixture {
@@ -729,7 +942,7 @@ Future<_Fixture> _createFixture(
     cropCycleId: field.cropCycle.id,
     boundaryVersionId: field.boundary.id,
     evaluatorPersonId: evaluator.id,
-    assessmentMode: DatabaseCodes.modeVeV6,
+    assessmentMode: AssessmentProtocolSelector.assessmentModeFor(growthStage),
     scoutingPattern: DatabaseCodes.patternW,
     growthStage: growthStage,
     protocolVersion: 'increment-a-test',

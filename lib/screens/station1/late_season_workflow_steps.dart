@@ -1,4 +1,6 @@
 import 'dart:io';
+import '../../localization/app_language.dart';
+import '../../localization/app_text.dart';
 
 import 'package:flutter/material.dart';
 
@@ -8,6 +10,7 @@ import '../../data/repositories/evidence_capture_repository.dart';
 import '../../data/repositories/scouting_workflow_repository.dart';
 import '../../data/services/stage_plant_save_service.dart';
 import 'evidence_capture_panel.dart';
+import 'field_workflow_components.dart';
 
 class LateSeasonSetupStep extends StatefulWidget {
   const LateSeasonSetupStep({
@@ -60,165 +63,186 @@ class _LateSeasonSetupStepState extends State<LateSeasonSetupStep> {
   }
 
   @override
-  Widget build(BuildContext context) => ListView(
-    key: const Key('late_season_setup_step'),
-    padding: const EdgeInsets.all(18),
+  Widget build(BuildContext context) => FieldWorkflowShell(
+    scrollKey: const Key('late_season_setup_step'),
+    bottomBar: StickyWorkflowActionBar(
+      message:
+          _error ??
+          'External assessment continues even when opening permission is refused or unavailable.',
+      actionLabel: 'Lock authorization and plan',
+      actionKey: const Key('save_late_season_setup'),
+      isSaving: widget.isSaving,
+      onPressed: _save,
+    ),
     children: [
-      const Text(
-        'R3–R6 authorization and sampling plan',
-        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+      const WorkflowContextHeader(
+        stageLabel: 'R3–R6',
+        title: 'Authorization and sampling plan',
+        subtitle:
+            'Record crop context, permission, and the designated-ear rule before inspecting ears.',
+        completedCount: 0,
+        totalCount: 3,
+        attentionCount: 3,
       ),
-      const SizedBox(height: 8),
-      const Text(
-        'Record this once before inspecting ears. External assessment continues even when opening permission is refused or unavailable.',
-        style: TextStyle(height: 1.4),
-      ),
-      const SizedBox(height: 18),
-      DropdownButtonFormField<String>(
-        key: const Key('late_crop_use'),
-        initialValue: _cropUse,
-        decoration: const InputDecoration(
-          labelText: 'Crop use',
-          border: OutlineInputBorder(),
-        ),
-        items: const [
-          DropdownMenuItem(value: 'grain', child: Text('Grain')),
-          DropdownMenuItem(value: 'green_corn', child: Text('Green corn')),
-          DropdownMenuItem(value: 'sweet_corn', child: Text('Sweet corn')),
-          DropdownMenuItem(value: 'seed', child: Text('Seed')),
-          DropdownMenuItem(value: 'silage', child: Text('Silage')),
-          DropdownMenuItem(value: 'other', child: Text('Other')),
-        ],
-        onChanged: (value) => setState(() => _cropUse = value),
-      ),
-      const SizedBox(height: 14),
-      _BinarySetupQuestion(
-        label: 'Has commercial harvest started?',
-        value: _harvestStarted,
-        onChanged: (value) => setState(() => _harvestStarted = value),
-      ),
-      _BinarySetupQuestion(
-        label: 'Are selected ears already part of harvest?',
-        value: _selectedEarsPartOfHarvest,
-        onChanged: (value) =>
-            setState(() => _selectedEarsPartOfHarvest = value),
-      ),
-      const SizedBox(height: 10),
-      DropdownButtonFormField<String>(
-        key: const Key('late_opening_permission'),
-        initialValue: _permission,
-        decoration: const InputDecoration(
-          labelText: 'Permission to open ears',
-          border: OutlineInputBorder(),
-        ),
-        items: const [
-          DropdownMenuItem(
-            value: DatabaseCodes.openingPermissionGranted,
-            child: Text('Granted'),
+      const SizedBox(height: 12),
+      WorkflowFormSection(
+        title: '1 · Crop context',
+        icon: Icons.agriculture_outlined,
+        completed:
+            _cropUse != null &&
+            _harvestStarted != null &&
+            _selectedEarsPartOfHarvest != null,
+        children: [
+          DropdownButtonFormField<String>(
+            key: const Key('late_crop_use'),
+            initialValue: _cropUse,
+            decoration: InputDecoration(
+              labelText: AppWords.of(context).translate('Crop use'),
+            ),
+            items: const [
+              DropdownMenuItem(value: 'grain', child: AppText('Grain')),
+              DropdownMenuItem(
+                value: 'green_corn',
+                child: AppText('Green corn'),
+              ),
+              DropdownMenuItem(
+                value: 'sweet_corn',
+                child: AppText('Sweet corn'),
+              ),
+              DropdownMenuItem(value: 'seed', child: AppText('Seed')),
+              DropdownMenuItem(value: 'silage', child: AppText('Silage')),
+              DropdownMenuItem(value: 'other', child: AppText('Other')),
+            ],
+            onChanged: (value) => setState(() => _cropUse = value),
           ),
-          DropdownMenuItem(
-            value: DatabaseCodes.openingPermissionRefused,
-            child: Text('Refused'),
+          _BinarySetupQuestion(
+            label: 'Has commercial harvest started?',
+            value: _harvestStarted,
+            onChanged: (value) => setState(() => _harvestStarted = value),
           ),
-          DropdownMenuItem(
-            value: DatabaseCodes.openingPermissionUnavailable,
-            child: Text('Not available'),
+          _BinarySetupQuestion(
+            label: 'Are selected ears already part of harvest?',
+            value: _selectedEarsPartOfHarvest,
+            onChanged: (value) =>
+                setState(() => _selectedEarsPartOfHarvest = value),
           ),
         ],
-        onChanged: (value) => setState(() {
-          _permission = value;
-          if (value != DatabaseCodes.openingPermissionGranted) {
-            _maximum.text = '0';
-          } else if (_maximum.text == '0') {
-            _maximum.text = '10';
-          }
-        }),
       ),
-      if (_permission == DatabaseCodes.openingPermissionGranted) ...[
-        const SizedBox(height: 14),
-        TextField(
-          key: const Key('late_maximum_ears'),
-          controller: _maximum,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Maximum ears permitted to open',
-            helperText: 'The provisional standard sample is 2 per station.',
-            border: OutlineInputBorder(),
+      WorkflowFormSection(
+        title: '2 · Opening permission',
+        icon: Icons.verified_user_outlined,
+        completed: _permission != null,
+        subtitle: _permission == null
+            ? 'Decision required'
+            : 'Permission recorded',
+        children: [
+          DropdownButtonFormField<String>(
+            key: const Key('late_opening_permission'),
+            initialValue: _permission,
+            decoration: InputDecoration(
+              labelText: AppWords.of(
+                context,
+              ).translate('Permission to open ears'),
+            ),
+            items: const [
+              DropdownMenuItem(
+                value: DatabaseCodes.openingPermissionGranted,
+                child: AppText('Granted'),
+              ),
+              DropdownMenuItem(
+                value: DatabaseCodes.openingPermissionRefused,
+                child: AppText('Refused'),
+              ),
+              DropdownMenuItem(
+                value: DatabaseCodes.openingPermissionUnavailable,
+                child: AppText('Not available'),
+              ),
+            ],
+            onChanged: (value) => setState(() {
+              _permission = value;
+              if (value != DatabaseCodes.openingPermissionGranted) {
+                _maximum.text = '0';
+              } else if (_maximum.text == '0') {
+                _maximum.text = '10';
+              }
+            }),
           ),
-        ),
-        const SizedBox(height: 14),
-        TextField(
-          key: const Key('late_opening_reason'),
-          controller: _reason,
-          decoration: const InputDecoration(
-            labelText: 'Reason for opening',
-            hintText: 'Severity documentation, expert validation, research…',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: 14),
-        TextField(
-          key: const Key('late_permission_grantor'),
-          controller: _grantor,
-          decoration: const InputDecoration(
-            labelText: 'Person granting permission',
-            border: OutlineInputBorder(),
-          ),
-        ),
-      ],
-      const SizedBox(height: 14),
-      DropdownButtonFormField<String>(
-        key: const Key('late_ear_designation_rule'),
-        initialValue: _designationRule,
-        decoration: const InputDecoration(
-          labelText: 'Designated-ear rule',
-          border: OutlineInputBorder(),
-        ),
-        items: const [
-          DropdownMenuItem(
-            value: 'primary_or_uppermost_marketable_ear',
-            child: Text('Primary / uppermost marketable ear'),
-          ),
-          DropdownMenuItem(value: 'primary_ear', child: Text('Primary ear')),
-          DropdownMenuItem(
-            value: 'uppermost_ear',
-            child: Text('Uppermost ear'),
-          ),
+          if (_permission == DatabaseCodes.openingPermissionGranted) ...[
+            TextField(
+              key: const Key('late_maximum_ears'),
+              controller: _maximum,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: AppWords.of(
+                  context,
+                ).translate('Maximum ears permitted to open'),
+                helperText: AppWords.of(context).translate(
+                  'The provisional standard sample is 2 per station.',
+                ),
+              ),
+            ),
+            TextField(
+              key: const Key('late_opening_reason'),
+              controller: _reason,
+              decoration: InputDecoration(
+                labelText: AppWords.of(context).translate('Reason for opening'),
+                hintText: AppWords.of(
+                  context,
+                ).translate('Severity documentation, validation, research…'),
+              ),
+            ),
+            TextField(
+              key: const Key('late_permission_grantor'),
+              controller: _grantor,
+              decoration: InputDecoration(
+                labelText: AppWords.of(
+                  context,
+                ).translate('Person granting permission'),
+              ),
+            ),
+          ] else if (_permission != null)
+            const AppText(
+              'Internal kernel condition will remain “not assessed”; it is never stored as zero damage.',
+            ),
         ],
-        onChanged: (value) => setState(() => _designationRule = value!),
       ),
-      const SizedBox(height: 14),
-      TextField(
-        controller: _remarks,
-        maxLines: 3,
-        decoration: const InputDecoration(
-          labelText: 'Authorization remarks (optional)',
-          border: OutlineInputBorder(),
-        ),
-      ),
-      if (_permission != DatabaseCodes.openingPermissionGranted) ...[
-        const SizedBox(height: 12),
-        const Card(
-          color: Color(0xFFFFF3CD),
-          child: Padding(
-            padding: EdgeInsets.all(12),
-            child: Text(
-              'Internal kernel condition will remain “not assessed”; it will never be stored as zero damage.',
+      WorkflowFormSection(
+        title: '3 · Sampling rule',
+        icon: Icons.rule_outlined,
+        completed: _designationRule.isNotEmpty,
+        children: [
+          DropdownButtonFormField<String>(
+            key: const Key('late_ear_designation_rule'),
+            initialValue: _designationRule,
+            decoration: InputDecoration(
+              labelText: AppWords.of(context).translate('Designated-ear rule'),
+            ),
+            items: const [
+              DropdownMenuItem(
+                value: 'primary_or_uppermost_marketable_ear',
+                child: AppText('Primary / uppermost marketable ear'),
+              ),
+              DropdownMenuItem(
+                value: 'primary_ear',
+                child: AppText('Primary ear'),
+              ),
+              DropdownMenuItem(
+                value: 'uppermost_ear',
+                child: AppText('Uppermost ear'),
+              ),
+            ],
+            onChanged: (value) => setState(() => _designationRule = value!),
+          ),
+          TextField(
+            controller: _remarks,
+            maxLines: 3,
+            decoration: InputDecoration(
+              labelText: AppWords.of(
+                context,
+              ).translate('Authorization remarks (optional)'),
             ),
           ),
-        ),
-      ],
-      if (_error != null) ...[
-        const SizedBox(height: 12),
-        Text(_error!, style: const TextStyle(color: Color(0xFF9D241F))),
-      ],
-      const SizedBox(height: 18),
-      FilledButton(
-        key: const Key('save_late_season_setup'),
-        onPressed: widget.isSaving ? null : _save,
-        child: Text(
-          widget.isSaving ? 'Saving…' : 'Lock authorization and plan',
-        ),
+        ],
       ),
     ],
   );
@@ -289,12 +313,12 @@ class _BinarySetupQuestion extends StatelessWidget {
         spacing: 8,
         children: [
           ChoiceChip(
-            label: const Text('Yes'),
+            label: const AppText('Yes'),
             selected: value == true,
             onSelected: (_) => onChanged(true),
           ),
           ChoiceChip(
-            label: const Text('No'),
+            label: const AppText('No'),
             selected: value == false,
             onSelected: (_) => onChanged(false),
           ),
@@ -398,244 +422,254 @@ class _OpenedEarEntryStepState extends State<OpenedEarEntryStep> {
   }
 
   @override
-  Widget build(BuildContext context) => Column(
-    children: [
-      Material(
-        color: const Color(0xFFF3F8F4),
-        child: ListTile(
-          title: Text(
-            'Opened ear · Plant ${widget.selection.plantPosition}',
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          subtitle: Text(
-            widget.selection.initiallySelected
-                ? 'Preselected before damage inspection'
-                : 'Replacement for Plant ${widget.selection.replacesPlantPosition}',
+  Widget build(BuildContext context) {
+    final requiredViews = const {
+      DatabaseCodes.evidenceViewWholeEarBeforeOpening,
+      DatabaseCodes.evidenceViewOpenedEarSideA,
+      DatabaseCodes.evidenceViewOpenedEarSideB,
+    };
+    final evidenceCount = requiredViews
+        .where(widget.evidence.isViewSatisfied)
+        .length;
+    return FieldWorkflowShell(
+      scrollKey: const Key('opened_ear_entry_step'),
+      bottomBar: StickyWorkflowActionBar(
+        message:
+            _error ??
+            (evidenceCount == 3
+                ? 'All three evidence views are ready for final review.'
+                : '${3 - evidenceCount} required evidence ${3 - evidenceCount == 1 ? 'view remains' : 'views remain'}.'),
+        actionLabel: 'Save opened-ear assessment',
+        actionKey: const Key('save_opened_ear'),
+        isSaving: widget.isSaving,
+        onPressed: _save,
+      ),
+      children: [
+        WorkflowContextHeader(
+          stageLabel: 'R3–R6',
+          title: 'Opened ear · Plant ${widget.selection.plantPosition}',
+          subtitle: widget.selection.initiallySelected
+              ? 'Preselected before damage inspection'
+              : 'Replacement for Plant ${widget.selection.replacesPlantPosition}',
+          completedCount: evidenceCount,
+          totalCount: 3,
+          attentionCount: 3 - evidenceCount,
+        ),
+        const Card(
+          color: Color(0xFFFFF3CD),
+          child: Padding(
+            padding: EdgeInsets.all(12),
+            child: AppText(
+              'Capture the intact ear before husk removal. Then open it, photograph one side, rotate it, and photograph the opposite side.',
+            ),
           ),
         ),
-      ),
-      Expanded(
-        child: ListView(
-          key: const Key('opened_ear_entry_step'),
-          padding: const EdgeInsets.all(16),
+        const WorkflowSectionHeader(
+          title: 'Three-view evidence',
+          subtitle:
+              'Capture in order so the intact and exposed surfaces remain traceable.',
+        ),
+        _OpenedEarEvidencePanel(
+          title: '1 · Whole ear before opening',
+          instruction: 'Show the entire designated ear with husk intact.',
+          viewType: DatabaseCodes.evidenceViewWholeEarBeforeOpening,
+          widget: widget,
+        ),
+        const SizedBox(height: 12),
+        _OpenedEarEvidencePanel(
+          title: '2 · Opened ear, first side',
+          instruction: 'Show the full exposed kernel surface on one side.',
+          viewType: DatabaseCodes.evidenceViewOpenedEarSideA,
+          widget: widget,
+        ),
+        const SizedBox(height: 12),
+        _OpenedEarEvidencePanel(
+          title: '3 · Opened ear, opposite side',
+          instruction: 'Rotate the ear and show the opposite kernel surface.',
+          viewType: DatabaseCodes.evidenceViewOpenedEarSideB,
+          widget: widget,
+        ),
+        const WorkflowSectionHeader(
+          title: 'Physical opening checks',
+          subtitle: 'Record what was observed before and after opening.',
+        ),
+        _OpenedBool(
+          label: 'Was the husk intact before opening?',
+          value: _huskIntact,
+          onChanged: (value) => setState(() => _huskIntact = value),
+        ),
+        _OpenedBool(
+          label: 'Internal feeding damage present?',
+          value: _internalDamage,
+          onChanged: (value) => setState(() => _internalDamage = value),
+        ),
+        _OpenedBool(
+          label: 'Cob damage present?',
+          value: _cobDamage,
+          onChanged: (value) => setState(() => _cobDamage = value),
+        ),
+        _OpenedBool(
+          label:
+              'Broken, missing, or underdeveloped kernels with unclear cause?',
+          value: _unclearKernels,
+          onChanged: (value) => setState(() => _unclearKernels = value),
+        ),
+        const WorkflowSectionHeader(
+          title: 'Measurements',
+          subtitle:
+              'Optional. Enter both kernel counts only when the denominator is reliable.',
+        ),
+        const SizedBox(height: 8),
+        Row(
           children: [
-            const Card(
-              color: Color(0xFFFFF3CD),
-              child: Padding(
-                padding: EdgeInsets.all(12),
-                child: Text(
-                  'Capture the intact ear before husk removal. Then open it, photograph one side, rotate it, and photograph the opposite side.',
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            _OpenedEarEvidencePanel(
-              title: '1 · Whole ear before opening',
-              instruction: 'Show the entire designated ear with husk intact.',
-              viewType: DatabaseCodes.evidenceViewWholeEarBeforeOpening,
-              widget: widget,
-            ),
-            const SizedBox(height: 12),
-            _OpenedEarEvidencePanel(
-              title: '2 · Opened ear, first side',
-              instruction: 'Show the full exposed kernel surface on one side.',
-              viewType: DatabaseCodes.evidenceViewOpenedEarSideA,
-              widget: widget,
-            ),
-            const SizedBox(height: 12),
-            _OpenedEarEvidencePanel(
-              title: '3 · Opened ear, opposite side',
-              instruction:
-                  'Rotate the ear and show the opposite kernel surface.',
-              viewType: DatabaseCodes.evidenceViewOpenedEarSideB,
-              widget: widget,
-            ),
-            const SizedBox(height: 18),
-            _OpenedBool(
-              label: 'Was the husk intact before opening?',
-              value: _huskIntact,
-              onChanged: (value) => setState(() => _huskIntact = value),
-            ),
-            _OpenedBool(
-              label: 'Internal feeding damage present?',
-              value: _internalDamage,
-              onChanged: (value) => setState(() => _internalDamage = value),
-            ),
-            _OpenedBool(
-              label: 'Cob damage present?',
-              value: _cobDamage,
-              onChanged: (value) => setState(() => _cobDamage = value),
-            ),
-            _OpenedBool(
-              label:
-                  'Broken, missing, or underdeveloped kernels with unclear cause?',
-              value: _unclearKernels,
-              onChanged: (value) => setState(() => _unclearKernels = value),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Kernel counts (optional; enter both only when the denominator is reliable)',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    key: const Key('opened_damaged_kernels'),
-                    controller: _damagedKernels,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Damaged',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextField(
-                    key: const Key('opened_total_kernels'),
-                    controller: _totalKernels,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Total assessable',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _kernelMethod,
-              decoration: const InputDecoration(
-                labelText:
-                    'Kernel count method/reference (required with counts)',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _tipLength,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              decoration: const InputDecoration(
-                labelText: 'Ear-tip damage length in mm (only with reference)',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 14),
-            _OpenedBool(
-              label: 'Mold or rot present?',
-              value: _earRot,
-              onChanged: (value) => setState(() => _earRot = value),
-            ),
-            if (_earRot == true) ...[
-              TextField(
-                controller: _rotKernels,
+            Expanded(
+              child: TextField(
+                key: const Key('opened_damaged_kernels'),
+                controller: _damagedKernels,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Mold/rot kernel count (if countable)',
+                decoration: InputDecoration(
+                  labelText: AppWords.of(context).translate('Damaged'),
                   border: OutlineInputBorder(),
                 ),
               ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: _rotType,
-                decoration: const InputDecoration(
-                  labelText: 'Suspected mold/rot type (optional)',
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: TextField(
+                key: const Key('opened_total_kernels'),
+                controller: _totalKernels,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: AppWords.of(context).translate('Total assessable'),
                   border: OutlineInputBorder(),
                 ),
-              ),
-            ],
-            const SizedBox(height: 14),
-            DropdownButtonFormField<String>(
-              key: const Key('opened_internal_classification'),
-              initialValue: _classification,
-              decoration: const InputDecoration(
-                labelText: 'Internal classification',
-                border: OutlineInputBorder(),
-              ),
-              items: const [
-                DropdownMenuItem(
-                  value: DatabaseCodes.earInternalConfirmedFaw,
-                  child: Text('Confirmed FAW'),
-                ),
-                DropdownMenuItem(
-                  value: DatabaseCodes.earInternalFawConsistent,
-                  child: Text('FAW-consistent'),
-                ),
-                DropdownMenuItem(
-                  value: DatabaseCodes.earInternalOtherPest,
-                  child: Text('Other pest'),
-                ),
-                DropdownMenuItem(
-                  value: DatabaseCodes.earInternalNonPest,
-                  child: Text('Likely non-pest'),
-                ),
-                DropdownMenuItem(
-                  value: DatabaseCodes.earInternalUncertain,
-                  child: Text('Uncertain'),
-                ),
-              ],
-              onChanged: (value) => setState(() => _classification = value),
-            ),
-            const SizedBox(height: 14),
-            DropdownButtonFormField<String>(
-              key: const Key('opened_evidence_review'),
-              initialValue: _evidenceReview,
-              decoration: const InputDecoration(
-                labelText: 'Three-view evidence review',
-                border: OutlineInputBorder(),
-              ),
-              items: const [
-                DropdownMenuItem(
-                  value: DatabaseCodes.evidenceReviewSufficient,
-                  child: Text('Sufficient to confirm'),
-                ),
-                DropdownMenuItem(
-                  value: DatabaseCodes.evidenceReviewInsufficient,
-                  child: Text('Insufficient—retake needed'),
-                ),
-              ],
-              onChanged: (value) => setState(() => _evidenceReview = value),
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: _notes,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: 'Opened-ear notes (optional)',
-                border: OutlineInputBorder(),
               ),
             ),
           ],
         ),
-      ),
-      Material(
-        elevation: 8,
-        child: SafeArea(
-          top: false,
-          minimum: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (_error != null) ...[
-                Text(_error!, style: const TextStyle(color: Color(0xFF9D241F))),
-                const SizedBox(height: 8),
-              ],
-              FilledButton(
-                key: const Key('save_opened_ear'),
-                onPressed: widget.isSaving ? null : _save,
-                child: Text(widget.isSaving ? 'Saving…' : 'Save opened ear'),
-              ),
-            ],
+        const SizedBox(height: 10),
+        TextField(
+          controller: _kernelMethod,
+          decoration: InputDecoration(
+            labelText: AppWords.of(
+              context,
+            ).translate('Kernel count method/reference (required with counts)'),
+            border: OutlineInputBorder(),
           ),
         ),
-      ),
-    ],
-  );
+        const SizedBox(height: 10),
+        TextField(
+          controller: _tipLength,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: InputDecoration(
+            labelText: AppWords.of(
+              context,
+            ).translate('Ear-tip damage length in mm (only with reference)'),
+            border: OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 14),
+        _OpenedBool(
+          label: 'Mold or rot present?',
+          value: _earRot,
+          onChanged: (value) => setState(() => _earRot = value),
+        ),
+        if (_earRot == true) ...[
+          TextField(
+            controller: _rotKernels,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              labelText: AppWords.of(
+                context,
+              ).translate('Mold/rot kernel count (if countable)'),
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _rotType,
+            decoration: InputDecoration(
+              labelText: AppWords.of(
+                context,
+              ).translate('Suspected mold/rot type (optional)'),
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ],
+        const WorkflowSectionHeader(
+          title: 'Classification and evidence review',
+          subtitle:
+              'Confirm the interpretation and whether retakes are needed.',
+        ),
+        DropdownButtonFormField<String>(
+          key: const Key('opened_internal_classification'),
+          initialValue: _classification,
+          decoration: InputDecoration(
+            labelText: AppWords.of(
+              context,
+            ).translate('Internal classification'),
+            border: OutlineInputBorder(),
+          ),
+          items: const [
+            DropdownMenuItem(
+              value: DatabaseCodes.earInternalConfirmedFaw,
+              child: AppText('Confirmed FAW'),
+            ),
+            DropdownMenuItem(
+              value: DatabaseCodes.earInternalFawConsistent,
+              child: AppText('FAW-consistent'),
+            ),
+            DropdownMenuItem(
+              value: DatabaseCodes.earInternalOtherPest,
+              child: AppText('Other pest'),
+            ),
+            DropdownMenuItem(
+              value: DatabaseCodes.earInternalNonPest,
+              child: AppText('Likely non-pest'),
+            ),
+            DropdownMenuItem(
+              value: DatabaseCodes.earInternalUncertain,
+              child: AppText('Uncertain'),
+            ),
+          ],
+          onChanged: (value) => setState(() => _classification = value),
+        ),
+        const SizedBox(height: 14),
+        DropdownButtonFormField<String>(
+          key: const Key('opened_evidence_review'),
+          initialValue: _evidenceReview,
+          decoration: InputDecoration(
+            labelText: AppWords.of(
+              context,
+            ).translate('Three-view evidence review'),
+            border: OutlineInputBorder(),
+          ),
+          items: const [
+            DropdownMenuItem(
+              value: DatabaseCodes.evidenceReviewSufficient,
+              child: AppText('Sufficient to confirm'),
+            ),
+            DropdownMenuItem(
+              value: DatabaseCodes.evidenceReviewInsufficient,
+              child: AppText('Insufficient—retake needed'),
+            ),
+          ],
+          onChanged: (value) => setState(() => _evidenceReview = value),
+        ),
+        const SizedBox(height: 14),
+        TextField(
+          controller: _notes,
+          maxLines: 3,
+          decoration: InputDecoration(
+            labelText: AppWords.of(
+              context,
+            ).translate('Opened-ear notes (optional)'),
+            border: OutlineInputBorder(),
+          ),
+        ),
+      ],
+    );
+  }
 
   Future<void> _save() async {
     final total = _optionalInt(_totalKernels.text);
@@ -754,12 +788,12 @@ class _OpenedBool extends StatelessWidget {
         spacing: 8,
         children: [
           ChoiceChip(
-            label: const Text('Yes'),
+            label: const AppText('Yes'),
             selected: value == true,
             onSelected: (_) => onChanged(true),
           ),
           ChoiceChip(
-            label: const Text('No'),
+            label: const AppText('No'),
             selected: value == false,
             onSelected: (_) => onChanged(false),
           ),

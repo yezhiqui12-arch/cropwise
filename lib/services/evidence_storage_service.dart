@@ -41,6 +41,7 @@ class EvidenceStorageService {
     required String scopeKey,
     required String mediaId,
     bool deleteSourceAfterCopy = true,
+    bool stripMetadata = false,
   }) async {
     final source = File(sourcePath);
     if (!await source.exists()) {
@@ -49,7 +50,10 @@ class EvidenceStorageService {
 
     try {
       final sourceBytes = await source.readAsBytes();
-      final prepared = await compute(_prepareEvidenceImage, sourceBytes);
+      final prepared = await compute(
+        stripMetadata ? _preparePrivateEvidenceImage : _prepareEvidenceImage,
+        sourceBytes,
+      );
       final folder = [
         _safeSegment(assessmentId),
         _safeSegment(stationId),
@@ -200,7 +204,13 @@ class _PreparedEvidenceImage {
   final int height;
 }
 
-_PreparedEvidenceImage _prepareEvidenceImage(Uint8List sourceBytes) {
+_PreparedEvidenceImage _preparePrivateEvidenceImage(Uint8List sourceBytes) =>
+    _prepareEvidenceImage(sourceBytes, stripMetadata: true);
+
+_PreparedEvidenceImage _prepareEvidenceImage(
+  Uint8List sourceBytes, {
+  bool stripMetadata = false,
+}) {
   final decoded = image_lib.decodeImage(sourceBytes);
   if (decoded == null) {
     throw const FormatException('The captured file is not a supported image.');
@@ -221,6 +231,17 @@ _PreparedEvidenceImage _prepareEvidenceImage(Uint8List sourceBytes) {
             height: EvidenceStorageService.maximumLongEdgePx,
             interpolation: image_lib.Interpolation.average,
           );
+  }
+  if (stripMetadata) {
+    // New raster contains only visible pixels, without camera GPS/EXIF data.
+    final clean = image_lib.Image(
+      width: evidence.width,
+      height: evidence.height,
+      numChannels: 3,
+    );
+    image_lib.fill(clean, color: image_lib.ColorRgb8(255, 255, 255));
+    image_lib.compositeImage(clean, evidence);
+    evidence = clean;
   }
   final thumbnail = evidence.width >= evidence.height
       ? image_lib.copyResize(

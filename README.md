@@ -1,56 +1,72 @@
 # WormWise
 
 WormWise is an offline-first Flutter application for structured maize fall
-armyworm field assessment. The current pilot is designed for field use in
-Piat, Cagayan and keeps assessment records and accepted photographic evidence
-on the phone.
+armyworm field assessment in Piat, Cagayan. Local Drift/SQLite records and
+private evidence files remain authoritative during fieldwork. Optional
+Supabase services provide identity, account backup, expert review, messaging,
+and AI access.
 
-The scientific source of truth is [`ASSESSMENT_PROTOCOL.md`](ASSESSMENT_PROTOCOL.md).
-Implementation status and product limitations are summarized in
-[`docs/CURRENT_IMPLEMENTATION_STATUS.md`](docs/CURRENT_IMPLEMENTATION_STATUS.md).
+## Current assessment workflow
 
-## Current workflow
+New assessments use protocol `wormwise-da-scattered-20-v1`.
 
-The app uses five destinations:
+- Each confirmed sampling block contains 20 dispersed plant locations.
+- Each location represents one selected plant.
+- Suggested locations stay inside the confirmed block, respect the configured
+  edge margin and obstacles, and may be adjusted with a recorded reason.
+- The app does not generate or require a connecting walking route. The
+  evaluator chooses a safe and accessible path between suggestions.
+- Up to three photographs may be associated with one sampled plant.
+- On-device model output remains a screening suggestion. It does not silently
+  become an evaluator observation, expert finding, Davis score, diagnosis, or
+  treatment decision.
+- Completion validates the required blocks and all 20 plant locations in each
+  block before publishing the assessment result.
 
-- **Home** — selected field, immediate status, and shortcuts.
-- **Assess** — saved assessment records and resume access.
-- **Scan** — the authoritative active field workflow.
-- **Map** — field and boundary context, without active scouting controls.
-- **Bot** — a placeholder for later assistance; it does not currently produce
-  scientific diagnoses.
-
-Implemented assessment stages are:
-
-| Growth stage | Current support |
-| --- | --- |
-| VE, V1, V2 | Five-station establishment/cutting workflow |
-| V3-V6, V7-V12 | Five-station vegetative camera-first workflow |
-| VT-R2 | Setup may be saved as a draft; workflow unavailable |
-| R3-R6 | Setup may be saved as a draft; workflow unavailable |
-
-A confirmed approximate field outline is required before a new assessment can
-enter setup or field collection. The outline supports scouting and is not a
-legal, cadastral, or survey-grade property boundary.
+The four primary destinations are Home, Assess, Map, and Guide. Active
+fieldwork opens in a route-local assessment session from the selected field,
+Home, or Assess.
 
 ## Technical profile
 
 - Flutter and Dart
-- Drift/SQLite schema version 6
-- Private, persistent local evidence storage with checksums and thumbnails
-- Esri World Imagery for the current online Map and Scan background
-- Deterministic illustrated-field fallback when map tiles are unavailable
-- Open-Meteo recent precipitation lookup with an offline/manual fallback
-- Debug-only isolated test-data database for field-workflow shortcuts
+- Drift/SQLite schema version 8
+- Provider-based application and workflow state
+- Private local evidence storage with checksums and thumbnails
+- On-device TFLite screening and pest-species suggestions
+- Approximate field outlines and dispersed sampling-point generation
+- Open-Meteo precipitation context with an offline/manual fallback
+- Optional Supabase identity, backup, synchronization, expert review, and
+  messaging
+- Gemini requests through the authenticated `gemini-advisor` Supabase Edge
+  Function
 
-There is no remote synchronization service, validated pest-detection model,
-general results engine, treatment recommendation engine, or production
-satellite-imagery feed in the current build. Farmer-facing persistence wording
-must therefore remain **Saved on this phone**.
+## Gemini configuration
+
+The mobile app never accepts or stores a Gemini provider credential. It sends
+authenticated requests to the `gemini-advisor` Edge Function. Store
+`GEMINI_API_KEY` only as an Edge Function secret. Flutter builds contain only
+the Supabase URL and publishable key.
+
+```sh
+supabase secrets set GEMINI_API_KEY=your_key
+supabase functions deploy gemini-advisor
+```
+
+## Scientific boundaries
+
+WormWise reports sampled observations with their actual denominators. Damage
+screening, current sampled infestation, expert-reviewed damage incidence, and
+Davis severity are separate measures. The application does not extrapolate a
+sample into a whole-field diagnosis, prescribe pesticide use, or claim an
+independently validated detector.
+
+Approximate field outlines and suggested plant locations support scouting;
+they are not cadastral, survey-grade, or turn-by-turn navigation products.
 
 ## Development
 
-From the project root:
+Typical validation commands, when explicitly requested, are:
 
 ```text
 flutter pub get
@@ -59,19 +75,21 @@ flutter analyze
 flutter test
 ```
 
-For Drift generation after an approved schema change:
-
-```text
-dart run build_runner build --delete-conflicting-outputs
-```
-
-Do not edit generated database code directly. Schema changes require a versioned
-migration and migration tests.
+Do not edit `lib/data/local/app_database.g.dart` directly. Database changes
+must update the Drift schema version, preserve upgrade paths, regenerate the
+generated file, and include migration coverage.
 
 ## Key documentation
 
-- [`docs/ASSESSMENT_SETUP_WORKFLOW.md`](docs/ASSESSMENT_SETUP_WORKFLOW.md)
-- [`docs/FIELD_LOCATION_AND_OPTIONAL_BOUNDARY.md`](docs/FIELD_LOCATION_AND_OPTIONAL_BOUNDARY.md)
-- [`docs/DATABASE_DATA_MODEL.md`](docs/DATABASE_DATA_MODEL.md)
-- [`docs/SCAN_IMAGERY_DEPLOYMENT.md`](docs/SCAN_IMAGERY_DEPLOYMENT.md)
-- [`docs/WEATHER_DATA.md`](docs/WEATHER_DATA.md)
+- `ASSESSMENT_PROTOCOL.md`
+- `docs/ARCHITECTURE.md`
+- `docs/CURRENT_IMPLEMENTATION_STATUS.md`
+- `docs/ASSESSMENT_SETUP_WORKFLOW.md`
+- `docs/DATABASE_DATA_MODEL.md`
+- `docs/DA_GUIDED_SCOUTING_IMPLEMENTATION.md`
+- `docs/GEMINI_MODEL_POLICY.md`
+- `docs/SUPABASE_SETUP.md`
+
+## Reproducible release
+
+Use Flutter 3.44.1, as recorded in .flutter-version and pinned in CI. See docs/REPRODUCIBLE_RELEASE.md for source, configuration, backend deployment, and signing prerequisites.

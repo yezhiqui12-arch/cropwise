@@ -1,0 +1,4 @@
+fall-armyworm-larval-damage
+fall-armyworm-frass
+fall-armyworm-larva
+fall-armyworm-egg

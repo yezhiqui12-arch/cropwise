@@ -1,7 +1,8 @@
+import 'dart:async';
+import '../../localization/app_text.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart' show LatLng;
 
-import '../../data/local/database_codes.dart';
 import '../../services/field_imagery_provider.dart';
 import '../../services/phone_location_service.dart';
 import '../../services/scouting_route_generator.dart';
@@ -17,6 +18,7 @@ class RoutePreparationStep extends StatefulWidget {
     required this.completedStationLocations,
     required this.completedStationNumbers,
     required this.captureLocation,
+    required this.watchLocation,
     required this.isSaving,
     required this.onSavePreparation,
     required this.onGenerate,
@@ -29,6 +31,7 @@ class RoutePreparationStep extends StatefulWidget {
   final Map<int, LatLng> completedStationLocations;
   final Set<int> completedStationNumbers;
   final Future<AveragedPhoneLocation> Function() captureLocation;
+  final Future<Stream<PhoneLocationReading>> Function() watchLocation;
   final bool isSaving;
   final Future<void> Function(RoutePreparationData) onSavePreparation;
   final Future<void> Function() onGenerate;
@@ -42,138 +45,85 @@ class _RoutePreparationStepState extends State<RoutePreparationStep> {
   late RoutePreparationData _preparation;
   String? _localError;
   String? _automaticStartMessage;
-  bool _resolvingAutomaticInputs = false;
   bool _automaticInputsReady = false;
+  bool _savingPreparation = false;
+  StreamSubscription<PhoneLocationReading>? _locationSubscription;
+  PhoneLocationReading? _location;
 
-  bool get _isW => widget.plan.pattern == DatabaseCodes.patternW;
+  bool get _busy => widget.isSaving || _savingPreparation;
 
   @override
   void initState() {
     super.initState();
-    _preparation = widget.plan.preparation;
+    _preparation = _withoutDrawing(widget.plan.preparation);
+    _automaticInputsReady =
+        _preparation.entrance != null && _preparation.rowBearingDegrees != null;
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => _resolveAutomaticInputs(),
     );
+    _startLocation();
+  }
+
+  Future<void> _startLocation() async {
+    try {
+      final stream = await widget.watchLocation();
+      if (!mounted) return;
+      _locationSubscription = stream.listen((reading) {
+        if (mounted) setState(() => _location = reading);
+      });
+    } catch (_) {}
+  }
+
+  @override
+  void dispose() {
+    _locationSubscription?.cancel();
+    super.dispose();
   }
 
   @override
   void didUpdateWidget(RoutePreparationStep oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.plan.updatedAt != widget.plan.updatedAt) {
-      _preparation = widget.plan.preparation;
+    if (oldWidget.plan.updatedAt != widget.plan.updatedAt &&
+        !_savingPreparation &&
+        _preparation.draftGeometry == RouteDraftGeometry.none) {
+      _preparation = _withoutDrawing(widget.plan.preparation);
     }
   }
 
   Future<bool> _save(RoutePreparationData value) async {
+    if (!mounted || _busy) return false;
+    final previous = _preparation;
     setState(() {
+      _savingPreparation = true;
       _preparation = value;
       _localError = null;
     });
     try {
       await widget.onSavePreparation(value);
-      return true;
+      return mounted;
     } catch (error) {
       if (!mounted) return false;
-      setState(() => _localError = _message(error));
+      setState(() {
+        _preparation = previous;
+        _localError = _message(error);
+      });
       return false;
+    } finally {
+      if (mounted) setState(() => _savingPreparation = false);
     }
   }
 
-  Future<void> _resolveAutomaticInputs({bool retry = false}) async {
-    if (_resolvingAutomaticInputs || (_automaticInputsReady && !retry)) return;
-    setState(() {
-      _resolvingAutomaticInputs = true;
-      _localError = null;
-      _automaticStartMessage = null;
-    });
-    late final LatLng start;
-    late final String startSource;
-    double? accuracyMeters;
-    try {
-      final location = await widget.captureLocation();
-      start = LatLng(location.latitude, location.longitude);
-      startSource = routeStartSourcePhoneLocation;
-      accuracyMeters = location.averageAccuracyMeters;
-    } catch (_) {
-      start = ScoutingRouteGenerator.automaticBoundaryStart(
-        widget.boundary,
-        obstacles: _preparation.obstacles,
-      );
-      startSource = routeStartSourceFieldOutlineFallback;
-    }
-    final updated = _preparation.copyWith(
-      entrance: start,
-      startSource: startSource,
-      startAccuracyMeters: accuracyMeters,
-      rowBearingDegrees: ScoutingRouteGenerator.automaticRouteBearingDegrees(
-        widget.boundary,
-      ),
-      orientationSource: routeOrientationSourceFieldShape,
-      draftGeometry: RouteDraftGeometry.none,
-      draftPoints: const [],
-    );
-    final saved = await _save(updated);
+  Future<void> _resolveAutomaticInputs() async {
     if (!mounted) return;
     setState(() {
-      _resolvingAutomaticInputs = false;
-      _automaticInputsReady = saved;
-      _automaticStartMessage = startSource == routeStartSourcePhoneLocation
-          ? 'Starting position taken automatically from this phone${accuracyMeters == null ? '' : ' · reported accuracy ${accuracyMeters.toStringAsFixed(0)} m'}.'
-          : 'Phone location was unavailable. WormWise used a generated field-edge reference; it is not your measured position.';
+      _automaticInputsReady = true;
+      _automaticStartMessage =
+          'Twenty suggested sampling points use the saved field outline. Select a nearby plant at each point, at least 3 m from the edge.';
     });
-  }
-
-  Future<void> _removeObstacle(int index) async {
-    final obstacles = [..._preparation.obstacles]..removeAt(index);
-    await _save(
-      _preparation.copyWith(
-        obstacles: obstacles,
-        obstaclesReviewed: false,
-        draftGeometry: RouteDraftGeometry.none,
-        draftPoints: const [],
-      ),
-    );
-    if (mounted) {
-      setState(() => _automaticInputsReady = false);
-      await _resolveAutomaticInputs(retry: true);
-    }
-  }
-
-  Future<void> _tapMap(LatLng point) async {
-    final mode = _preparation.draftGeometry;
-    if (mode != RouteDraftGeometry.obstacle) return;
-    final points = [..._preparation.draftPoints, point];
-    await _save(_preparation.copyWith(draftPoints: points));
-  }
-
-  Future<void> _startDrawing(RouteDraftGeometry mode) =>
-      _save(_preparation.copyWith(draftGeometry: mode, draftPoints: const []));
-
-  Future<void> _finishObstacle() async {
-    if (_preparation.draftPoints.length < 3) {
-      setState(
-        () => _localError = 'Add at least three points around the obstacle.',
-      );
-      return;
-    }
-    final saved = await _save(
-      _preparation.copyWith(
-        obstacles: [
-          ..._preparation.obstacles,
-          List.unmodifiable(_preparation.draftPoints),
-        ],
-        obstaclesReviewed: true,
-        draftGeometry: RouteDraftGeometry.none,
-        draftPoints: const [],
-      ),
-    );
-    if (saved && mounted) {
-      setState(() => _automaticInputsReady = false);
-      await _resolveAutomaticInputs(retry: true);
-    }
   }
 
   Future<void> _generate() async {
+    if (!await _save(_preparation) || !mounted) return;
     try {
       await widget.onGenerate();
     } catch (error) {
@@ -184,13 +134,12 @@ class _RoutePreparationStepState extends State<RoutePreparationStep> {
 
   @override
   Widget build(BuildContext context) {
-    final drawing = _preparation.draftGeometry;
     final mapPlan = widget.plan.copyWith(preparation: _preparation);
     return ListView(
       key: const Key('route_preparation_step'),
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
       children: [
-        Text(
+        AppText(
           'BLOCK ${widget.blockNumber} · ROUTE PREPARATION',
           style: const TextStyle(
             color: AppColors.primary,
@@ -199,32 +148,31 @@ class _RoutePreparationStepState extends State<RoutePreparationStep> {
         ),
         const SizedBox(height: 8),
         Text(
-          _isW ? 'Prepare W-pattern guidance' : 'Prepare ladder guidance',
+          'Prepare 20 sampling points',
           style: Theme.of(
             context,
           ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
-        Text(
-          _isW
-              ? 'WormWise places five stations across the confirmed block. Use this pattern only where younger maize can be crossed safely.'
-              : 'WormWise generates the central spine and five alternating sampling branches from the confirmed block shape.',
+        AppText(
+          'Review the suggested plant locations before starting.',
           style: const TextStyle(height: 1.4),
         ),
         const SizedBox(height: 14),
         OfflineScoutingRouteMap(
+          height: 400,
           boundary: widget.boundary,
           plan: mapPlan,
           completedStationLocations: widget.completedStationLocations,
           completedStationNumbers: widget.completedStationNumbers,
+          currentLocation: _location,
           imageryProvider: widget.imageryProvider,
-          onTap: drawing == RouteDraftGeometry.none ? null : _tapMap,
         ),
         const SizedBox(height: 8),
-        Text(
-          _drawingInstruction(drawing),
-          key: const Key('route_drawing_instruction'),
-          style: const TextStyle(fontWeight: FontWeight.w600),
+        const AppText(
+          'Pan and zoom to review the automatically prepared pattern area.',
+          key: Key('route_drawing_instruction'),
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
         if (_localError != null) ...[
           const SizedBox(height: 8),
@@ -241,100 +189,16 @@ class _RoutePreparationStepState extends State<RoutePreparationStep> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (_resolvingAutomaticInputs)
-                const Row(
-                  children: [
-                    SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(strokeWidth: 2.5),
-                    ),
-                    SizedBox(width: 10),
-                    Expanded(child: Text('Finding your starting position…')),
-                  ],
-                )
-              else ...[
-                Text(
-                  _automaticStartMessage ??
-                      'WormWise prepares the start and orientation automatically.',
-                  key: const Key('automatic_route_start_status'),
-                  style: const TextStyle(height: 1.4),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Pattern direction is estimated from the saved field shape. It does not claim to detect actual maize rows.',
-                  style: TextStyle(height: 1.4),
-                ),
-                if (_preparation.startSource ==
-                    routeStartSourceFieldOutlineFallback) ...[
-                  const SizedBox(height: 10),
-                  OutlinedButton.icon(
-                    key: const Key('retry_automatic_route_location'),
-                    onPressed: widget.isSaving
-                        ? null
-                        : () => _resolveAutomaticInputs(retry: true),
-                    icon: const Icon(Icons.my_location),
-                    label: const Text('Retry phone location'),
-                  ),
-                ],
-              ],
-            ],
-          ),
-        ),
-        _PreparationCard(
-          title: 'Check obstacles and unsafe areas',
-          complete: _preparation.obstaclesReviewed,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              CheckboxListTile(
-                key: const Key('confirm_route_obstacles_reviewed'),
-                contentPadding: EdgeInsets.zero,
-                value: _preparation.obstaclesReviewed,
-                onChanged: widget.isSaving
-                    ? null
-                    : (value) => _save(
-                        _preparation.copyWith(obstaclesReviewed: value == true),
-                      ),
-                title: const Text(
-                  'I reviewed known obstacles and unsafe areas. None are unmarked.',
-                ),
+              Text(
+                _automaticStartMessage ??
+                    'Review the suggested plant locations.',
+                key: const Key('automatic_route_start_status'),
+                style: const TextStyle(height: 1.4),
               ),
-              OutlinedButton.icon(
-                key: const Key('draw_route_obstacle'),
-                onPressed: widget.isSaving
-                    ? null
-                    : () => _startDrawing(RouteDraftGeometry.obstacle),
-                icon: const Icon(Icons.warning_amber),
-                label: const Text('Mark an obstacle or unsafe area'),
+              const SizedBox(height: 8),
+              const AppText(
+                'Check the suggested points against the actual field.',
               ),
-              if (drawing == RouteDraftGeometry.obstacle)
-                FilledButton(
-                  key: const Key('finish_route_obstacle'),
-                  onPressed: widget.isSaving ? null : _finishObstacle,
-                  child: const Text('Save this obstacle'),
-                ),
-              if (_preparation.obstacles.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (
-                      var index = 0;
-                      index < _preparation.obstacles.length;
-                      index++
-                    )
-                      InputChip(
-                        label: Text('Obstacle ${index + 1}'),
-                        avatar: const Icon(Icons.warning_amber, size: 18),
-                        onDeleted: widget.isSaving
-                            ? null
-                            : () => _removeObstacle(index),
-                      ),
-                  ],
-                ),
-              ],
             ],
           ),
         ),
@@ -342,11 +206,11 @@ class _RoutePreparationStepState extends State<RoutePreparationStep> {
         ExpansionTile(
           key: const Key('route_guidance_limitations_help'),
           tilePadding: EdgeInsets.zero,
-          title: const Text('What this guidance means'),
+          title: const AppText('What this guidance means'),
           children: const [
             Padding(
               padding: EdgeInsets.only(bottom: 12),
-              child: Text(
+              child: AppText(
                 'Targets and lines are editable approximate field guidance. They are not turn-by-turn navigation, validated station-placement geometry, proof that the protocol was followed, or a legal or survey-grade boundary. For an irregular or concave field, WormWise may omit a connecting line rather than claim it is a safe walking path.',
                 style: TextStyle(height: 1.45),
               ),
@@ -354,20 +218,20 @@ class _RoutePreparationStepState extends State<RoutePreparationStep> {
           ],
         ),
         const SizedBox(height: 16),
+        if (!_automaticInputsReady)
+          const Padding(
+            padding: EdgeInsets.only(bottom: 8),
+            child: AppText('Retry automatic setup before generating targets.'),
+          ),
         ConstrainedBox(
           constraints: const BoxConstraints(minHeight: 56),
           child: FilledButton.icon(
             key: const Key('generate_route_targets_button'),
-            onPressed:
-                widget.isSaving ||
-                    !_automaticInputsReady ||
-                    !_preparation.obstaclesReviewed
-                ? null
-                : _generate,
+            onPressed: _busy || !_automaticInputsReady ? null : _generate,
             icon: const Icon(Icons.route),
             label: Text(
               widget.plan.targets.isEmpty
-                  ? 'Generate five station targets'
+                  ? 'Generate 20 plant locations'
                   : 'Recalculate remaining targets',
             ),
           ),
@@ -376,16 +240,11 @@ class _RoutePreparationStepState extends State<RoutePreparationStep> {
     );
   }
 
-  String _drawingInstruction(RouteDraftGeometry mode) => switch (mode) {
-    RouteDraftGeometry.none =>
-      'Pan and zoom to review the automatically prepared pattern area.',
-    RouteDraftGeometry.entrance => 'Legacy entrance drawing is no longer used.',
-    RouteDraftGeometry.rowDirection =>
-      'Legacy row-direction drawing is no longer used.',
-    RouteDraftGeometry.accessiblePath =>
-      'This legacy drawing mode is not used by automatic ladder guidance.',
-    RouteDraftGeometry.obstacle => 'Tap around the unsafe area, then save it.',
-  };
+  RoutePreparationData _withoutDrawing(RoutePreparationData preparation) =>
+      preparation.copyWith(
+        draftGeometry: RouteDraftGeometry.none,
+        draftPoints: const [],
+      );
 }
 
 class _PreparationCard extends StatelessWidget {

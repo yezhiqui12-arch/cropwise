@@ -3,6 +3,7 @@ import 'package:drift/drift.dart';
 import '../local/app_database.dart';
 import '../local/database_codes.dart';
 import '../local/local_id.dart';
+import '../../services/assessment_area_policy.dart';
 import 'local_mutation_recorder.dart';
 
 class CreatedFieldCycle {
@@ -13,7 +14,7 @@ class CreatedFieldCycle {
   });
 
   final FieldRecord field;
-  final BoundaryRecord boundary;
+  final BoundaryRecord? boundary;
   final CropCycleRecord cropCycle;
 }
 
@@ -229,8 +230,8 @@ class FieldRepository {
   Future<void> updateFieldDetails({
     required String fieldId,
     required String name,
+    String? barangay,
     String? varietyName,
-    String? intendedUse,
     DateTime? plantingDate,
     String? actorPersonId,
     String? deviceId,
@@ -254,6 +255,7 @@ class FieldRepository {
       )..where((row) => row.id.equals(fieldId))).write(
         FieldsCompanion(
           name: Value(trimmedName),
+          barangay: Value(_trimmedOrNull(barangay)),
           updatedAt: Value(updatedAt),
           syncState: const Value('queued'),
           deviceId: Value(deviceId),
@@ -265,7 +267,6 @@ class FieldRepository {
         )..where((row) => row.id.equals(cycle.id))).write(
           CropCyclesCompanion(
             varietyName: Value(_trimmedOrNull(varietyName)),
-            intendedUse: Value(_trimmedOrNull(intendedUse)),
             plantingDate: Value(plantingDate?.toUtc()),
             plantingDatePrecision: Value(
               plantingDate == null ? 'unknown' : 'exact_day',
@@ -282,8 +283,8 @@ class FieldRepository {
         action: 'update_details',
         actorPersonId: actorPersonId,
         deviceId: deviceId,
-        before: {'name': previous.name},
-        after: {'name': trimmedName},
+        before: {'name': previous.name, 'barangay': previous.barangay},
+        after: {'name': trimmedName, 'barangay': _trimmedOrNull(barangay)},
       );
     });
   }
@@ -422,16 +423,14 @@ class FieldRepository {
   Future<CreatedFieldCycle> createFieldWithBoundaryAndCycle({
     required String name,
     required String geometryGeojson,
-    required double areaHectares,
+    double? areaHectares,
     required String boundarySourceMethod,
     String? ownerPersonId,
     String? fieldCode,
     String? barangay,
     String? municipalityCity,
     String? province,
-    String? locationDescription,
     String? varietyName,
-    String? intendedUse,
     DateTime? plantingDate,
     String plantingDatePrecision = 'unknown',
     String? waterRegime,
@@ -445,7 +444,7 @@ class FieldRepository {
     String? deviceId,
     String? actorPersonId,
   }) async {
-    if (areaHectares <= 0) {
+    if (areaHectares != null && (!areaHectares.isFinite || areaHectares <= 0)) {
       throw ArgumentError.value(
         areaHectares,
         'areaHectares',
@@ -476,38 +475,40 @@ class FieldRepository {
               barangay: Value(barangay),
               municipalityCity: Value(municipalityCity),
               province: Value(province),
-              locationDescription: Value(locationDescription),
-              activeBoundaryVersionId: Value(boundaryId),
+              activeBoundaryVersionId: Value(
+                areaHectares == null ? null : boundaryId,
+              ),
               deviceId: Value(deviceId),
             ),
           );
 
-      await database
-          .into(database.fieldBoundaryVersions)
-          .insert(
-            FieldBoundaryVersionsCompanion.insert(
-              id: boundaryId,
-              fieldId: fieldId,
-              versionNumber: 1,
-              geometryGeojson: geometryGeojson,
-              sourceMethod: boundarySourceMethod,
-              areaHectares: areaHectares,
-              centroidLatitude: Value(centroidLatitude),
-              centroidLongitude: Value(centroidLongitude),
-              averageAccuracyM: Value(averageAccuracyM),
-              worstAccuracyM: Value(worstAccuracyM),
-              confidenceCode: Value(confidenceCode),
-              confirmationStatus: Value(boundaryConfirmationStatus),
-              confirmedByPersonId: Value(
-                outlineIsConfirmed ? actorPersonId : null,
+      if (areaHectares != null)
+        await database
+            .into(database.fieldBoundaryVersions)
+            .insert(
+              FieldBoundaryVersionsCompanion.insert(
+                id: boundaryId,
+                fieldId: fieldId,
+                versionNumber: 1,
+                geometryGeojson: geometryGeojson,
+                sourceMethod: boundarySourceMethod,
+                areaHectares: areaHectares,
+                centroidLatitude: Value(centroidLatitude),
+                centroidLongitude: Value(centroidLongitude),
+                averageAccuracyM: Value(averageAccuracyM),
+                worstAccuracyM: Value(worstAccuracyM),
+                confidenceCode: Value(confidenceCode),
+                confirmationStatus: Value(boundaryConfirmationStatus),
+                confirmedByPersonId: Value(
+                  outlineIsConfirmed ? actorPersonId : null,
+                ),
+                confirmedAt: Value(
+                  outlineIsConfirmed ? DateTime.now().toUtc() : null,
+                ),
+                notes: Value(boundaryNotes),
+                deviceId: Value(deviceId),
               ),
-              confirmedAt: Value(
-                outlineIsConfirmed ? DateTime.now().toUtc() : null,
-              ),
-              notes: Value(boundaryNotes),
-              deviceId: Value(deviceId),
-            ),
-          );
+            );
 
       await database
           .into(database.cropCycles)
@@ -516,7 +517,6 @@ class FieldRepository {
               id: cropCycleId,
               fieldId: fieldId,
               varietyName: Value(varietyName),
-              intendedUse: Value(intendedUse),
               plantingDate: Value(plantingDate?.toUtc()),
               plantingDatePrecision: Value(plantingDatePrecision),
               waterRegime: Value(waterRegime),
@@ -533,7 +533,7 @@ class FieldRepository {
         after: {
           'name': name,
           'area_hectares': areaHectares,
-          'boundary_version_id': boundaryId,
+          'boundary_version_id': areaHectares == null ? null : boundaryId,
           'crop_cycle_id': cropCycleId,
         },
       );
@@ -544,7 +544,7 @@ class FieldRepository {
     )..where((row) => row.id.equals(fieldId))).getSingle();
     final boundary = await (database.select(
       database.fieldBoundaryVersions,
-    )..where((row) => row.id.equals(boundaryId))).getSingle();
+    )..where((row) => row.id.equals(boundaryId))).getSingleOrNull();
     final cycle = await (database.select(
       database.cropCycles,
     )..where((row) => row.id.equals(cropCycleId))).getSingle();
@@ -652,6 +652,25 @@ class FieldRepository {
     String? actorPersonId,
     String? deviceId,
   }) async {
+    if (!AssessmentAreaPolicy.isValidBlockArea(areaHectares)) {
+      throw ArgumentError.value(
+        areaHectares,
+        'areaHectares',
+        'Each assessment block must be greater than zero and no more than '
+            '${AssessmentAreaPolicy.maxBlockAreaHectares.toStringAsFixed(0)} hectare.',
+      );
+    }
+    if (blockNumber < 1 ||
+        blockNumber >
+            AssessmentAreaPolicy.requiredBlockCount(
+              AssessmentAreaPolicy.maxAssessmentAreaHectares,
+            )) {
+      throw ArgumentError.value(
+        blockNumber,
+        'blockNumber',
+        'Outside the supported assessment block range.',
+      );
+    }
     final id = LocalId.generate();
     await database.transaction(() async {
       await database

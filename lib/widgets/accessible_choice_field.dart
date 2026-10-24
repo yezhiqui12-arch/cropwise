@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../localization/app_language.dart';
+import '../localization/app_text.dart';
 
 import '../theme/app_colors.dart';
 
@@ -98,13 +100,13 @@ class AccessibleChoiceField<T> extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      sheetTitle,
+                      AppWords.of(sheetContext).translate(sheetTitle),
                       style: Theme.of(sheetContext).textTheme.titleLarge
                           ?.copyWith(fontWeight: FontWeight.bold),
                     ),
                   ),
                   IconButton(
-                    tooltip: 'Close',
+                    tooltip: AppWords.of(context).translate('Close'),
                     onPressed: () => Navigator.pop(sheetContext),
                     icon: const Icon(Icons.close),
                   ),
@@ -114,7 +116,7 @@ class AccessibleChoiceField<T> extends StatelessWidget {
             if (showImages)
               const Padding(
                 padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
-                child: Text(
+                child: AppText(
                   'Photos show representative stage groups. Use the description to check collars, tassels, silks, or kernels before selecting.',
                   style: TextStyle(
                     color: AppColors.textSecondary,
@@ -151,8 +153,8 @@ class AccessibleChoiceField<T> extends StatelessWidget {
     final enabled = onChanged != null;
     return Semantics(
       button: enabled,
-      label: label,
-      value: selected?.label ?? hintText,
+      label: AppWords.of(context).translate(label),
+      value: AppWords.of(context).translate(selected?.label ?? hintText),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
@@ -197,7 +199,7 @@ class AccessibleChoiceField<T> extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            label,
+                            AppWords.of(context).translate(label),
                             style: const TextStyle(
                               color: AppColors.textSecondary,
                               fontSize: 14,
@@ -207,7 +209,9 @@ class AccessibleChoiceField<T> extends StatelessWidget {
                           ),
                           const SizedBox(height: 5),
                           Text(
-                            selected?.label ?? hintText,
+                            AppWords.of(
+                              context,
+                            ).translate(selected?.label ?? hintText),
                             style: TextStyle(
                               fontSize: 17,
                               height: 1.25,
@@ -236,7 +240,7 @@ class AccessibleChoiceField<T> extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Text(
-                helperText!,
+                AppWords.of(context).translate(helperText!),
                 style: const TextStyle(
                   color: AppColors.textSecondary,
                   height: 1.3,
@@ -303,7 +307,7 @@ class _ChoiceGroupCard<T> extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          title,
+                          AppWords.of(dialogContext).translate(title),
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
@@ -311,7 +315,7 @@ class _ChoiceGroupCard<T> extends StatelessWidget {
                         ),
                       ),
                       IconButton(
-                        tooltip: 'Close image',
+                        tooltip: AppWords.of(context).translate('Close image'),
                         onPressed: () => Navigator.pop(dialogContext),
                         icon: const Icon(Icons.close),
                       ),
@@ -333,7 +337,7 @@ class _ChoiceGroupCard<T> extends StatelessWidget {
                 ),
                 const Padding(
                   padding: EdgeInsets.all(12),
-                  child: Text(
+                  child: AppText(
                     'Pinch to zoom. Drag while zoomed to inspect the plant.',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: AppColors.textSecondary),
@@ -372,7 +376,9 @@ class _ChoiceGroupCard<T> extends StatelessWidget {
           if (assetPath != null)
             Semantics(
               button: true,
-              label: 'Open and zoom ${group.imageCaption ?? 'stage photo'}',
+              label: AppWords.of(context).format('Open and zoom {caption}', {
+                'caption': AppWords.of(context).translate(group.imageCaption ?? 'stage photo'),
+              }),
               child: InkWell(
                 key: ValueKey('choice_image_${group.key}'),
                 onTap: () => _showImagePreview(context, assetPath),
@@ -406,7 +412,7 @@ class _ChoiceGroupCard<T> extends StatelessWidget {
                         children: [
                           Icon(Icons.zoom_in, color: Colors.white, size: 18),
                           SizedBox(width: 5),
-                          Text(
+                          AppText(
                             'Tap to enlarge',
                             style: TextStyle(
                               color: Colors.white,
@@ -424,7 +430,7 @@ class _ChoiceGroupCard<T> extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
               child: Text(
-                group.imageCaption!,
+                AppWords.of(context).translate(group.imageCaption!),
                 style: const TextStyle(
                   fontWeight: FontWeight.w700,
                   color: AppColors.primary,
@@ -475,7 +481,7 @@ class _ChoiceRow<T> extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    option.label,
+                    AppWords.of(context).translate(option.label),
                     style: const TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w700,
@@ -484,7 +490,7 @@ class _ChoiceRow<T> extends StatelessWidget {
                   if (option.description != null) ...[
                     const SizedBox(height: 5),
                     Text(
-                      option.description!,
+                      AppWords.of(context).translate(option.description!),
                       style: const TextStyle(
                         color: AppColors.textSecondary,
                         height: 1.35,

@@ -31,6 +31,17 @@ subprojects {
             )
         }
     }
+
+    // tflite_flutter compiles its Java sources for JVM 11. With a newer JDK,
+    // Kotlin can otherwise inherit the host JVM target (25), and Gradle rejects
+    // the plugin because its Java and Kotlin targets do not match.
+    if (name == "tflite_flutter") {
+        tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+            compilerOptions.jvmTarget.set(
+                org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11,
+            )
+        }
+    }
 }
 
 tasks.register<Delete>("clean") {

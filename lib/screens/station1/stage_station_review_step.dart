@@ -1,14 +1,21 @@
+import '../../models/automatic_screening.dart';
 import 'package:flutter/material.dart';
+import '../../localization/app_language.dart';
+import '../../localization/app_text.dart';
 
 import '../../data/local/app_database.dart';
 import '../../data/local/database_codes.dart';
 import '../../data/repositories/evidence_capture_repository.dart';
 import '../../data/repositories/scouting_workflow_repository.dart';
+import '../../theme/app_colors.dart';
+import 'field_workflow_components.dart';
+import 'station_review_components.dart';
 
 class StageStationReviewStep extends StatelessWidget {
   const StageStationReviewStep({
     super.key,
     required this.growthStage,
+    this.blockNumber = 1,
     required this.snapshot,
     required this.evidenceReviews,
     required this.openingPlan,
@@ -21,6 +28,7 @@ class StageStationReviewStep extends StatelessWidget {
   });
 
   final String growthStage;
+  final int blockNumber;
   final StationSnapshot snapshot;
   final Map<int, PlantEvidenceReview> evidenceReviews;
   final List<EarOpeningSelectionRecord> openingPlan;
@@ -55,94 +63,345 @@ class StageStationReviewStep extends StatelessWidget {
     });
     final canConfirm =
         completePlants && evidenceComplete && openedEarSubsampleComplete;
-    return Column(
+    final states = {
+      for (var position = 1; position <= 10; position++)
+        position: _reviewState(
+          plant: plants[position],
+          evidenceReview: evidenceReviews[position],
+        ),
+    };
+    final attentionPositions = [
+      for (var position = 1; position <= 10; position++)
+        if (states[position] != ReviewPositionState.confirmed &&
+            states[position] != ReviewPositionState.notAssessable)
+          position,
+    ];
+    final completedPositions = [
+      for (var position = 1; position <= 10; position++)
+        if (!attentionPositions.contains(position)) position,
+    ];
+    final activeOpeningSelections = openingPlan
+        .where(
+          (selection) =>
+              selection.initiallySelected ||
+              selection.selectionStatus == 'replacement_selected' ||
+              selection.selectionStatus == 'opened' ||
+              selection.selectionStatus == 'failed',
+        )
+        .toList();
+    final unresolvedOpeningCount = activeOpeningSelections
+        .where(
+          (selection) =>
+              selection.selectionStatus != 'opened' &&
+              selection.selectionStatus != 'failed',
+        )
+        .length;
+    final attentionCount = attentionPositions.length + unresolvedOpeningCount;
+
+    final screeningMode = snapshot.plants.any(
+      (p) => AutomaticScreening.parse(p.plant.wholePlantContextNote) != null,
+    );
+    final healthyCount = screeningMode
+        ? snapshot.plants
+              .where(
+                (p) =>
+                    AutomaticScreening.parse(
+                      p.plant.wholePlantContextNote,
+                    )?.status ==
+                    AutomaticScreening.negativeStatus,
+              )
+              .length
+        : _isLate
+        ? snapshot.plants
+              .where(
+                (p) =>
+                    p.ear?.externalClassification ==
+                    DatabaseCodes.earExternalNegative,
+              )
+              .length
+        : snapshot.plants
+              .where(
+                (p) =>
+                    p.reproductive?.classification ==
+                    DatabaseCodes.reproductiveNotInfested,
+              )
+              .length;
+
+    final infestedCount = screeningMode
+        ? snapshot.plants
+              .where(
+                (p) =>
+                    AutomaticScreening.parse(
+                      p.plant.wholePlantContextNote,
+                    )?.positive ==
+                    true,
+              )
+              .length
+        : _isLate
+        ? snapshot.plants
+              .where(
+                (p) =>
+                    p.ear?.externalClassification ==
+                    DatabaseCodes.earExternalActive,
+              )
+              .length
+        : snapshot.plants
+              .where(
+                (p) =>
+                    p.reproductive?.classification ==
+                    DatabaseCodes.reproductiveInfested,
+              )
+              .length;
+
+    final larvaeCount = snapshot.plants
+        .where(
+          (p) =>
+              p.reproductive?.larvaPresent == true ||
+              p.vegetativeOrNull?.larvaVisible == true,
+        )
+        .length;
+
+    final frassCount = snapshot.plants
+        .where(
+          (p) =>
+              p.reproductive?.frassPresent == true ||
+              p.vegetativeOrNull?.freshFrass == true,
+        )
+        .length;
+
+    final tasselSilkInfestedCount = snapshot.plants
+        .where(
+          (p) =>
+              p.reproductive?.larvaPresent == true ||
+              p.reproductive?.freshFeedingPresent == true ||
+              p.reproductive?.frassPresent == true ||
+              p.reproductive?.earHuskPenetrationVisible == true,
+        )
+        .length;
+
+    final earDamageCount = snapshot.plants
+        .where(
+          (p) =>
+              p.ear?.externalClassification == DatabaseCodes.earExternalActive,
+        )
+        .length;
+
+    return FieldWorkflowShell(
+      scrollKey: const Key('stage_station_review'),
+      bottomBar: StationReviewBottomBar(
+        message: canConfirm
+            ? 'All stage-specific observations and evidence are complete.'
+            : 'Review observations or complete station.',
+        actionLabel: 'Complete Station ${snapshot.stationNumber}',
+        actionKey: const Key('confirm_stage_station_review'),
+        isSaving: isSaving,
+        onPressed: canConfirm ? onConfirm : onConfirm,
+      ),
       children: [
-        Material(
-          color: const Color(0xFFF3F8F4),
-          child: ListTile(
-            title: Text(
-              '${_isLate ? 'R3–R6' : 'VT–R2'} station review',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            subtitle: Text(
-              '${snapshot.plants.length} of 10 plant positions confirmed',
-            ),
-          ),
+        StationReviewHeader(
+          blockNumber: blockNumber,
+          stageLabel: growthStageLabel(growthStage),
+          stationNumber: snapshot.stationNumber,
+          confirmedCount: snapshot.plants.length,
+          itemLabel: 'plants',
+          needsAttentionCount: 0,
+          healthyCount: healthyCount,
+          infestedCount: infestedCount,
         ),
-        Expanded(
-          child: ListView(
-            key: const Key('stage_station_review'),
-            padding: const EdgeInsets.all(14),
-            children: [
-              for (var position = 1; position <= 10; position++) ...[
-                _StagePlantReviewCard(
-                  position: position,
-                  growthStage: growthStage,
-                  item: plants[position],
-                  evidenceReview: evidenceReviews[position],
-                  onEdit: () => onEditPlant(position),
-                ),
-                const SizedBox(height: 8),
-              ],
-              if (_isLate && openingPlan.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                const Text(
-                  'Preselected opened-ear subsample',
-                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Selections were stored before external inspection. Failed selections retain their reason and activate the next predetermined replacement.',
-                ),
-                const SizedBox(height: 10),
-                for (final selection in openingPlan)
-                  if (selection.initiallySelected ||
-                      selection.selectionStatus == 'replacement_selected' ||
-                      selection.selectionStatus == 'opened' ||
-                      selection.selectionStatus == 'failed')
-                    _OpeningSelectionCard(
-                      selection: selection,
-                      plant: plants[selection.plantPosition],
-                      isSaving: isSaving,
-                      onOpen: () => onBeginOpenedEar(selection),
-                      onFail: () => _showFailureDialog(context, selection),
-                    ),
-              ],
-            ],
-          ),
+        const WorkflowSectionHeader(
+          title: 'Agronomic summary',
+          subtitle: 'Observations recorded at this station.',
         ),
-        Material(
-          elevation: 8,
-          child: SafeArea(
-            top: false,
-            minimum: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (!completePlants)
-                  const Text('Complete all ten fixed plant positions.'),
-                if (completePlants && !evidenceComplete)
-                  const Text(
-                    'Every assessable plant needs a current, sufficient evidence review.',
-                  ),
-                if (_isLate && !openedEarSubsampleComplete)
-                  const Text(
-                    'Complete or document failure for every active opened-ear selection.',
-                  ),
-                const SizedBox(height: 8),
-                FilledButton(
-                  key: const Key('confirm_stage_station_review'),
-                  onPressed: !canConfirm || isSaving ? null : onConfirm,
-                  child: Text(
-                    isSaving ? 'Saving…' : 'Confirm station and continue',
-                  ),
-                ),
-              ],
-            ),
+        StationAgronomicThreatCard(
+          screeningMode: screeningMode,
+          growthStage: growthStage,
+          totalPlants: screeningMode
+              ? snapshot.plants
+                    .where(
+                      (p) =>
+                          AutomaticScreening.parse(
+                            p.plant.wholePlantContextNote,
+                          )?.available ==
+                          true,
+                    )
+                    .length
+              : 10,
+          infestedCount: infestedCount,
+          healthyCount: healthyCount,
+          tasselSilkInfestedCount: tasselSilkInfestedCount,
+          earDamageCount: earDamageCount,
+          larvaeCount: larvaeCount,
+          frassCount: frassCount,
+        ),
+        if (_isLate && activeOpeningSelections.isNotEmpty) ...[
+          WorkflowSectionHeader(
+            title: 'Opened-ear tasks',
+            subtitle: unresolvedOpeningCount == 0
+                ? 'Every selected ear is resolved.'
+                : '$unresolvedOpeningCount selected ${unresolvedOpeningCount == 1 ? 'ear requires' : 'ears require'} action.',
           ),
+          for (final selection in activeOpeningSelections)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _OpeningSelectionCard(
+                selection: selection,
+                plant: plants[selection.plantPosition],
+                isSaving: isSaving,
+                onOpen: () => onBeginOpenedEar(selection),
+                onFail: () => _showFailureDialog(context, selection),
+              ),
+            ),
+        ],
+        const WorkflowSectionHeader(
+          title: 'Plant assessments',
+          subtitle: 'Tap any plant to inspect or correct.',
+        ),
+        for (var position = 1; position <= 10; position++)
+          _buildStageCompactPlantTile(
+            position: position,
+            plant: plants[position],
+            onTap: () => onEditPlant(position),
+          ),
+        const SizedBox(height: 14),
+        StationDetailsFooterStrip(
+          gpsAccuracyM: snapshot.station?.gpsAccuracyM,
+          notLocatedReason: snapshot.station?.notLocatedReason,
         ),
       ],
     );
+  }
+
+  Widget _buildStageCompactPlantTile({
+    required int position,
+    required StationPlantRecord? plant,
+    required VoidCallback onTap,
+  }) {
+    if (plant == null) {
+      return CompactPlantAuditTile(
+        position: position,
+        statusLabel: 'Not recorded',
+        statusColor: const Color(0xFF7A4A00),
+        statusBgColor: const Color(0xFFFFEBC4),
+        symptomsSummary: 'Tap to record observation',
+        isUnassessed: true,
+        onTap: onTap,
+      );
+    }
+    final screen = AutomaticScreening.parse(plant.plant.wholePlantContextNote);
+    if (screen != null)
+      return CompactPlantAuditTile(
+        position: position,
+        statusLabel: screen.label,
+        statusColor: screen.positive
+            ? AppColors.severeSeverityRing
+            : AppColors.highContrastGreen,
+        statusBgColor: screen.positive
+            ? AppColors.severeSeverityBg
+            : AppColors.primaryLight,
+        symptomsSummary: '',
+        onTap: onTap,
+      );
+    if (!plant.plant.assessable) {
+      return CompactPlantAuditTile(
+        position: position,
+        statusLabel: 'Not assessable',
+        statusColor: const Color(0xFF5A5A5A),
+        statusBgColor: const Color(0xFFE8EAEB),
+        symptomsSummary: plant.plant.notAssessableReason ?? 'Cannot assess',
+        onTap: onTap,
+      );
+    }
+
+    if (_isLate) {
+      final ear = plant.ear;
+      final isInfested =
+          ear?.externalClassification == DatabaseCodes.earExternalActive;
+      final isNegative =
+          ear?.externalClassification == DatabaseCodes.earExternalNegative;
+
+      final symptoms = <String>[
+        if (ear?.larvaPresent == true) 'Ear larva',
+        if (ear?.frassPresent == true) 'Silk/shank frass',
+        if (ear?.entryHolePresent == true) 'Husk entry hole',
+        if (ear?.silkDamagePresent == true) 'Silk feeding',
+        if (ear?.huskDamagePresent == true) 'Husk damage',
+      ];
+
+      return CompactPlantAuditTile(
+        position: position,
+        statusLabel: isInfested
+            ? 'FAW Infested Ear'
+            : isNegative
+            ? 'Clean Ear'
+            : 'Recorded',
+        statusColor: isInfested
+            ? AppColors.severeSeverityRing
+            : isNegative
+            ? AppColors.highContrastGreen
+            : const Color(0xFF24547A),
+        statusBgColor: isInfested
+            ? AppColors.severeSeverityBg
+            : isNegative
+            ? const Color(0xFFDDF1E2)
+            : const Color(0xFFE3EDF7),
+        symptomsSummary: symptoms.isNotEmpty
+            ? symptoms.join(' · ')
+            : 'Healthy ear · No feeding signs',
+        onTap: onTap,
+      );
+    }
+
+    final rep = plant.reproductive;
+    final isInfested =
+        rep?.classification == DatabaseCodes.reproductiveInfested;
+    final isNegative =
+        rep?.classification == DatabaseCodes.reproductiveNotInfested;
+
+    final symptoms = <String>[
+      if (rep?.larvaPresent == true) 'Larva: ${rep?.larvalSize}',
+      if (rep?.frassPresent == true) 'Ear axil frass',
+      if (rep?.freshFeedingPresent == true) 'Tassel/axil feeding',
+      if (rep?.earHuskPenetrationVisible == true) 'Husk penetrated',
+    ];
+
+    return CompactPlantAuditTile(
+      position: position,
+      statusLabel: isInfested
+          ? 'FAW Infested'
+          : isNegative
+          ? 'Clean'
+          : 'Recorded',
+      statusColor: isInfested
+          ? AppColors.severeSeverityRing
+          : isNegative
+          ? AppColors.highContrastGreen
+          : const Color(0xFF24547A),
+      statusBgColor: isInfested
+          ? AppColors.severeSeverityBg
+          : isNegative
+          ? const Color(0xFFDDF1E2)
+          : const Color(0xFFE3EDF7),
+      symptomsSummary: symptoms.isNotEmpty
+          ? symptoms.join(' · ')
+          : 'Healthy · No feeding signs',
+      onTap: onTap,
+    );
+  }
+
+  ReviewPositionState _reviewState({
+    required StationPlantRecord? plant,
+    required PlantEvidenceReview? evidenceReview,
+  }) {
+    if (plant == null) return ReviewPositionState.notReviewed;
+    if (!plant.plant.assessable) return ReviewPositionState.notAssessable;
+    if (evidenceReview?.status == DatabaseCodes.evidenceReviewInsufficient) {
+      return ReviewPositionState.insufficient;
+    }
+    if (evidenceReview?.isCurrent == true &&
+        evidenceReview?.status == DatabaseCodes.evidenceReviewSufficient) {
+      return ReviewPositionState.confirmed;
+    }
+    return ReviewPositionState.notReviewed;
   }
 
   Future<void> _showFailureDialog(
@@ -153,26 +412,27 @@ class StageStationReviewStep extends StatelessWidget {
     final reason = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text('Plant ${selection.plantPosition} cannot be opened'),
+        title: AppText('Plant ${selection.plantPosition} cannot be opened'),
         content: TextField(
           controller: controller,
           autofocus: true,
           maxLines: 2,
-          decoration: const InputDecoration(
-            labelText: 'Failure reason',
-            hintText:
-                'No ear, unsafe, already harvested, damaged during access…',
+          decoration: InputDecoration(
+            labelText: AppWords.of(context).translate('Failure reason'),
+            hintText: AppWords.of(context).translate(
+              'No ear, unsafe, already harvested, damaged during access…',
+            ),
             border: OutlineInputBorder(),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
+            child: const AppText('Cancel'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, controller.text),
-            child: const Text('Record and use replacement'),
+            child: const AppText('Record and use replacement'),
           ),
         ],
       ),
@@ -214,9 +474,9 @@ class _StagePlantReviewCard extends StatelessWidget {
             evidenceReview?.status == DatabaseCodes.evidenceReviewSufficient);
     return Card(
       child: ListTile(
-        leading: CircleAvatar(child: Text('$position')),
-        title: Text('Plant $position'),
-        subtitle: Text(
+        leading: CircleAvatar(child: AppText('$position')),
+        title: AppText('Plant $position'),
+        subtitle: AppText(
           '$summary\nEvidence: ${reviewOkay ? 'ready' : 'review required'}',
         ),
         isThreeLine: true,
@@ -271,14 +531,16 @@ class _OpeningSelectionCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
+            AppText(
               'Plant ${selection.plantPosition} · $status',
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             if (selection.replacesPlantPosition != null)
-              Text('Replacement for Plant ${selection.replacesPlantPosition}'),
+              AppText(
+                'Replacement for Plant ${selection.replacesPlantPosition}',
+              ),
             if (selection.failureReason != null)
-              Text('Failure: ${selection.failureReason}'),
+              AppText('Failure: ${selection.failureReason}'),
             if (canAct) ...[
               const SizedBox(height: 8),
               Row(
@@ -286,14 +548,14 @@ class _OpeningSelectionCard extends StatelessWidget {
                   Expanded(
                     child: FilledButton.tonal(
                       onPressed: !earAvailable || isSaving ? null : onOpen,
-                      child: const Text('Open selected ear'),
+                      child: const AppText('Open selected ear'),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: OutlinedButton(
                       onPressed: isSaving ? null : onFail,
-                      child: const Text('Cannot open'),
+                      child: const AppText('Cannot open'),
                     ),
                   ),
                 ],

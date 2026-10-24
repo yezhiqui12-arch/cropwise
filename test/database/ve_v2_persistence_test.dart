@@ -301,6 +301,35 @@ void main() {
         expect(recovered.session.plantObservationId, isNull);
       },
     );
+
+    test(
+      'camera-first seedling photo session links to its planting unit',
+      () async {
+        final evidence = EvidenceCaptureRepository(database);
+        final plantSession = await evidence.ensurePlantSession(
+          assessmentId: fixture.prepared.run.assessmentId,
+          stationId: fixture.station.id,
+          plantPosition: 1,
+          actorPersonId: fixture.actorId,
+          requirementsVersion:
+              DatabaseCodes.evidencePolicyVeV2ModelReadyCaptureV1,
+        );
+        final unit = await units.saveCaptureRouting(
+          VeV2CaptureRoutingSave(
+            stationId: fixture.station.id,
+            sequenceNumber: 1,
+            occupancyStatus: DatabaseCodes.veOccupancySeedling,
+            observedSeedlingCount: 1,
+            inspectionDurationMs: 0,
+            evidenceCaptureSessionId: plantSession.id,
+            requiredEvidenceViewTypes: const {},
+            actorPersonId: fixture.actorId,
+          ),
+        );
+        final restored = await evidence.loadBundle(plantSession.id);
+        expect(restored.session.sourcePlantingUnitObservationId, unit.id);
+      },
+    );
   });
 }
 

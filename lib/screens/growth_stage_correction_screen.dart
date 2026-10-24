@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../localization/app_text.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/assessment_workspace_provider.dart';
@@ -37,7 +38,7 @@ class _GrowthStageCorrectionScreenState
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Growth stage could not be changed: $error')),
+        SnackBar(content: AppText('Growth stage could not be changed: $error')),
       );
     }
   }
@@ -46,7 +47,7 @@ class _GrowthStageCorrectionScreenState
   Widget build(BuildContext context) {
     final provider = context.watch<AssessmentWorkspaceProvider>();
     return Scaffold(
-      appBar: AppBar(title: const Text('Change Growth Stage')),
+      appBar: AppBar(title: const AppText('Change Growth Stage')),
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -63,7 +64,7 @@ class _GrowthStageCorrectionScreenState
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const Text(
+          const AppText(
             'Choose the stage that best matches the maize now.',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
@@ -73,7 +74,7 @@ class _GrowthStageCorrectionScreenState
             label: 'Growth stage',
             sheetTitle: 'Compare maize growth stages',
             value: _stage,
-            leadingIcon: Icons.eco_outlined,
+            leadingIcon: Icons.timeline_outlined,
             showImages: true,
             options: AssessmentProtocolSelector.growthStages
                 .map(
@@ -89,7 +90,7 @@ class _GrowthStageCorrectionScreenState
             onChanged: (value) => setState(() => _stage = value),
           ),
           const SizedBox(height: 12),
-          const Text(
+          const AppText(
             'If that stage is not supported yet, the assessment stays safely saved as a draft.',
           ),
         ],

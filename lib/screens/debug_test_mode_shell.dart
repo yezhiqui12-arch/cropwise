@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import '../localization/app_text.dart';
 import 'package:flutter/material.dart';
 
 import '../data/local/app_database.dart';
@@ -38,9 +39,9 @@ class _DebugTestModeShellState extends State<DebugTestModeShell> {
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return Scaffold(
-            appBar: AppBar(title: const Text('TEST DATA')),
+            appBar: AppBar(title: const AppText('TEST DATA')),
             body: Center(
-              child: Text('Could not open test data: ${snapshot.error}'),
+              child: AppText('Could not open test data: ${snapshot.error}'),
             ),
           );
         }
@@ -53,13 +54,13 @@ class _DebugTestModeShellState extends State<DebugTestModeShell> {
           database: _database,
           dataMode: const AppDataMode(isTestMode: true),
           // Test mode needs its own Navigator. Without it, routes pushed from
-          // Scan attach to the outer production Navigator and lose the
+          // Assess routes attach to the outer production Navigator and lose the
           // isolated database and AppDataMode providers.
           child: Navigator(
             onGenerateRoute: (settings) => MaterialPageRoute<void>(
               settings: settings,
               builder: (_) => MainNavigationScreen(
-                initialIndex: 2,
+                initialIndex: 1,
                 onExitTestMode: () => Navigator.pop(context),
                 onClearTestMode: () async {
                   final mode = const AppDataMode(isTestMode: true);

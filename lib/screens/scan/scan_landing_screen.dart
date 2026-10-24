@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import '../../localization/app_language.dart';
+import '../../localization/app_text.dart';
 import 'package:provider/provider.dart';
 
 import '../../data/local/database_codes.dart';
 import '../../providers/assessment_workspace_provider.dart';
 import '../../providers/app_data_mode.dart';
 import '../../providers/field_workspace_provider.dart';
+import '../../services/assessment_area_policy.dart';
 import '../../theme/app_colors.dart';
 import '../assessment_session_screen.dart';
 import '../assessment_setup_screen.dart';
@@ -29,12 +32,14 @@ class ScanLandingScreen extends StatelessWidget {
         context.watch<AppDataMode?>() ?? const AppDataMode.production();
     return Scaffold(
       appBar: AppBar(
-        title: Text(mode.isTestMode ? 'Scan · TEST DATA' : 'Scan'),
+        title: Text(mode.isTestMode ? 'Scout · TEST DATA' : 'Scout'),
         actions: [
           if (mode.canEnterTestMode)
             IconButton(
               key: const Key('open_test_mode_button'),
-              tooltip: 'Open isolated test mode',
+              tooltip: AppWords.of(
+                context,
+              ).translate('Open isolated test mode'),
               onPressed: () => Navigator.push<void>(
                 context,
                 MaterialPageRoute(builder: (_) => const DebugTestModeShell()),
@@ -111,6 +116,26 @@ class ScanLandingScreen extends StatelessWidget {
       );
     }
 
+    final areaHectares = workspace.boundary!.areaHectares;
+    final requiredBlocks = AssessmentAreaPolicy.requiredBlockCount(
+      areaHectares,
+    );
+    if (!AssessmentAreaPolicy.isWithinAssessmentLimit(areaHectares)) {
+      return _ScanMessage(
+        fieldName: workspace.field.name,
+        icon: Icons.warning_amber_rounded,
+        warning: true,
+        status: 'ASSESSMENT LIMIT',
+        title: 'Field is above the current limit',
+        message:
+            'The confirmed outline is ${areaHectares.toStringAsFixed(2)} ha. '
+            'Formal assessment currently supports up to '
+            '${AssessmentAreaPolicy.maxAssessmentAreaHectares.toStringAsFixed(0)} ha.',
+        supportingMessage:
+            'The field remains saved. Divide it into smaller management fields before starting a formal assessment.',
+      );
+    }
+
     if (assessment == null) {
       return _ScanMessage(
         fieldName: workspace.field.name,
@@ -119,7 +144,11 @@ class ScanLandingScreen extends StatelessWidget {
         title: 'Set up an assessment',
         message:
             'Confirm the evaluator, maize growth stage, scouting route, field conditions, and field-entry safety.',
-        supportingMessage: 'Field outline confirmed. Saved on this phone.',
+        supportingMessage: requiredBlocks == 1
+            ? '1 block · 20 plants. Saved on this phone.'
+            : '$requiredBlocks blocks · '
+                  '${requiredBlocks * 20} plants. '
+                  'Block outlines must be confirmed before scouting.',
         actionKey: const Key('setup_assessment_from_scan_button'),
         actionLabel: 'Set up assessment',
         onAction: () => _openSetup(context),
@@ -148,7 +177,9 @@ class ScanLandingScreen extends StatelessWidget {
         icon: Icons.play_circle_outline,
         status: 'ASSESSMENT ACTIVE',
         title: 'Resume assessment',
-        message: 'Continue Block 1, Station 1 from the next required step.',
+        message: requiredBlocks == 1
+            ? 'Continue from the next required step.'
+            : 'Continue the $requiredBlocks-block assessment from the next required step.',
         supportingMessage: 'Saved on this phone.',
         actionKey: const Key('resume_assessment_from_scan_button'),
         actionLabel: 'Resume assessment',
@@ -178,9 +209,15 @@ class ScanLandingScreen extends StatelessWidget {
   }
 
   void _openSession(BuildContext context) {
+    final assessmentId = context
+        .read<AssessmentWorkspaceProvider>()
+        .currentAssessment
+        ?.id;
     Navigator.push<void>(
       context,
-      MaterialPageRoute(builder: (_) => const AssessmentSessionScreen()),
+      MaterialPageRoute(
+        builder: (_) => AssessmentSessionScreen(assessmentId: assessmentId),
+      ),
     );
   }
 }
@@ -222,7 +259,7 @@ class _ScanMessage extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 24),
       children: [
         if (fieldName != null) ...[
-          const Text(
+          const AppText(
             'CURRENT FIELD',
             style: TextStyle(
               color: AppColors.textMuted,

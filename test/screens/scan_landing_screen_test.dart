@@ -14,7 +14,7 @@ import 'package:wormwise/screens/scan/scan_landing_screen.dart';
 import 'package:wormwise/widgets/bottom_nav_bar.dart';
 
 void main() {
-  testWidgets('Scan no-field state supports 200 percent text scaling', (
+  testWidgets('Scout no-field state supports 200 percent text scaling', (
     WidgetTester tester,
   ) async {
     tester.view.physicalSize = const Size(390, 844);
@@ -66,7 +66,7 @@ void main() {
     await _closeApp(tester, database);
   });
 
-  testWidgets('Scan bottom destination remains usable at 200 percent text', (
+  testWidgets('Scout bottom destination remains usable at 200 percent text', (
     WidgetTester tester,
   ) async {
     tester.view.physicalSize = const Size(390, 844);
@@ -92,11 +92,11 @@ void main() {
     expect(scanTab, findsOneWidget);
     expect(tester.getSize(scanTab).width, greaterThanOrEqualTo(48));
     expect(tester.getSize(scanTab).height, greaterThanOrEqualTo(48));
-    expect(find.text('Scan'), findsOneWidget);
+    expect(find.text('Scout'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Scan requires an outline and preserves an existing draft', (
+  testWidgets('Scout requires an outline and preserves an existing draft', (
     WidgetTester tester,
   ) async {
     final database = AppDatabase(NativeDatabase.memory());
@@ -129,7 +129,7 @@ void main() {
     await _closeApp(tester, database);
   });
 
-  testWidgets('Scan opens existing setup for a confirmed field', (
+  testWidgets('Scout opens existing setup for a confirmed field', (
     WidgetTester tester,
   ) async {
     final database = AppDatabase(NativeDatabase.memory());
@@ -158,7 +158,7 @@ void main() {
     await _closeApp(tester, database);
   });
 
-  testWidgets('Scan shows and resumes a saved draft setup', (
+  testWidgets('Scout shows and resumes a saved draft setup', (
     WidgetTester tester,
   ) async {
     final database = AppDatabase(NativeDatabase.memory());
@@ -182,7 +182,7 @@ void main() {
     await _closeApp(tester, database);
   });
 
-  testWidgets('Scan keeps a safety-blocked assessment out of fieldwork', (
+  testWidgets('Scout keeps a safety-blocked assessment out of fieldwork', (
     WidgetTester tester,
   ) async {
     final database = AppDatabase(NativeDatabase.memory());
@@ -211,7 +211,7 @@ void main() {
     await _closeApp(tester, database);
   });
 
-  testWidgets('Scan opens Station 1 preparation for an active assessment', (
+  testWidgets('Scout opens Station 1 preparation for an active assessment', (
     WidgetTester tester,
   ) async {
     final database = AppDatabase(NativeDatabase.memory());
@@ -254,7 +254,7 @@ Future<_AssessmentFixture> _createAssessmentFixture(
 }) async {
   final fields = FieldRepository(database);
   final created = await fields.createFieldWithBoundaryAndCycle(
-    name: 'Scan Test Field',
+    name: 'Scout Test Field',
     geometryGeojson: '{"type":"Polygon","coordinates":[]}',
     areaHectares: 0.8,
     boundarySourceMethod: confirmationStatus == 'user_confirmed'
@@ -269,7 +269,7 @@ Future<_AssessmentFixture> _createAssessmentFixture(
   }
 
   final people = PeopleRepository(database);
-  final evaluator = await people.findOrCreateEvaluator('Scan Test Evaluator');
+  final evaluator = await people.findOrCreateEvaluator('Scout Test Evaluator');
   final assessments = AssessmentRepository(database);
   final assessment = await assessments.createDraft(
     cropCycleId: created.cropCycle.id,

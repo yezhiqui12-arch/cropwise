@@ -1,12 +1,22 @@
+import 'dart:async';
+import '../../localization/app_language.dart';
+import '../../localization/app_text.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart' show LatLng;
 
 import '../../data/local/app_database.dart';
 import '../../data/local/database_codes.dart';
 import '../../data/repositories/evidence_capture_repository.dart';
 import '../../services/computer_vision/faw_computer_vision_service.dart';
 import '../../services/station_evidence_policy.dart';
+import '../../services/field_imagery_provider.dart';
+import '../../services/phone_location_service.dart';
+import '../../services/scouting_route_generator.dart';
+import '../../widgets/offline_scouting_route_map.dart';
+import 'station_batch_upload_screen.dart' show EvidenceSlot;
 
 class PlantCaptureBoardStep extends StatefulWidget {
   const PlantCaptureBoardStep({
@@ -16,6 +26,12 @@ class PlantCaptureBoardStep extends StatefulWidget {
     this.isVeV2 = false,
     this.evidencePolicy = StationEvidencePolicy.cameraFirstOverviewConditional,
     required this.selectedPosition,
+    required this.boundary,
+    required this.plan,
+    required this.watchLocation,
+    this.completedStationLocations = const {},
+    this.completedStationNumbers = const {},
+    this.imageryProvider,
     required this.capturedPlantCount,
     required this.stationBundles,
     this.veV2Units = const [],
@@ -23,6 +39,7 @@ class PlantCaptureBoardStep extends StatefulWidget {
     required this.resolveFile,
     required this.onSelectPlant,
     required this.onCapture,
+    this.onBatchUpload,
     required this.onInspect,
     required this.onAccept,
     required this.onRetake,
@@ -31,7 +48,7 @@ class PlantCaptureBoardStep extends StatefulWidget {
     required this.onCompleteStationCapture,
     required this.onCannotAssess,
     this.onSaveVeV2UnitException,
-    this.onMarkAllHealthy,
+    this.onQuickOverride,
     this.cvDiagnoses = const {},
     this.primaryViewType,
   });
@@ -41,6 +58,12 @@ class PlantCaptureBoardStep extends StatefulWidget {
   final bool isVeV2;
   final StationEvidencePolicy evidencePolicy;
   final int selectedPosition;
+  final List<LatLng> boundary;
+  final ScoutingRoutePlan plan;
+  final Future<Stream<PhoneLocationReading>> Function() watchLocation;
+  final Map<int, LatLng> completedStationLocations;
+  final Set<int> completedStationNumbers;
+  final FieldImageryProvider? imageryProvider;
   final int capturedPlantCount;
   final List<EvidenceCaptureBundle> stationBundles;
   final List<PlantingUnitObservationRecord> veV2Units;
@@ -48,6 +71,7 @@ class PlantCaptureBoardStep extends StatefulWidget {
   final Future<File> Function(String localUri) resolveFile;
   final ValueChanged<int> onSelectPlant;
   final Future<String?> Function(int position, String viewType) onCapture;
+  final VoidCallback? onBatchUpload;
   final Future<String?> Function(EvidenceMediaRecord media) onInspect;
   final Future<bool> Function(EvidenceMediaRecord media) onAccept;
   final Future<String?> Function(EvidenceMediaRecord media) onRetake;
@@ -63,7 +87,7 @@ class PlantCaptureBoardStep extends StatefulWidget {
   final Future<void> Function(int position, String reason) onCannotAssess;
   final Future<void> Function(int position, String occupancy, String? reason)?
   onSaveVeV2UnitException;
-  final VoidCallback? onMarkAllHealthy;
+  final Future<void> Function(int position, String status)? onQuickOverride;
   final Map<int, PlantDiagnosisResult> cvDiagnoses;
   final String? primaryViewType;
 
@@ -73,6 +97,9 @@ class PlantCaptureBoardStep extends StatefulWidget {
 
 class _PlantCaptureBoardStepState extends State<PlantCaptureBoardStep> {
   int? _expandedPosition;
+  StreamSubscription<PhoneLocationReading>? _locationSubscription;
+  PhoneLocationReading? _location;
+  bool _locationPromptShown = false;
 
   String get _primaryViewType => widget.isVeV2
       ? DatabaseCodes.evidenceViewWholeSeedling
@@ -82,6 +109,65 @@ class _PlantCaptureBoardStepState extends State<PlantCaptureBoardStep> {
   void initState() {
     super.initState();
     _expandedPosition = widget.selectedPosition;
+    _startLocation();
+  }
+
+  Future<void> _startLocation() async {
+    try {
+      final stream = await widget.watchLocation();
+      _locationSubscription = stream.listen((reading) {
+        if (mounted) setState(() => _location = reading);
+      });
+    } on PhoneLocationException catch (error) {
+      if (mounted) _offerLocationFix(error);
+    } catch (_) {
+      // Plant capture remains usable when the device cannot provide GPS.
+    }
+  }
+
+  Future<void> _offerLocationFix(PhoneLocationException error) async {
+    if (_locationPromptShown || !mounted) return;
+    _locationPromptShown = true;
+    final openSettings = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        icon: const Icon(Icons.location_off_outlined),
+        title: const AppText('Location needed'),
+        content: AppText(
+          '${error.message}\n\nTurn on location so WormWise can show where you are inside the field.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const AppText('Not now'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            icon: const Icon(Icons.settings_outlined),
+            label: AppText(
+              error.code == PhoneLocationFailureCode.servicesDisabled
+                  ? 'Turn on location'
+                  : 'Open settings',
+            ),
+          ),
+        ],
+      ),
+    );
+    if (openSettings == true) {
+      if (error.code == PhoneLocationFailureCode.servicesDisabled) {
+        await Geolocator.openLocationSettings();
+      } else {
+        await Geolocator.openAppSettings();
+      }
+      _locationPromptShown = false;
+      await _startLocation();
+    }
+  }
+
+  @override
+  void dispose() {
+    _locationSubscription?.cancel();
+    super.dispose();
   }
 
   @override
@@ -93,6 +179,9 @@ class _PlantCaptureBoardStepState extends State<PlantCaptureBoardStep> {
   }
 
   void _togglePlant(int position) {
+    if (widget.capturedPlantCount < 10 && position > _firstIncompletePosition) {
+      return;
+    }
     setState(() {
       if (_expandedPosition == position) {
         _expandedPosition = null; // Close card if already open!
@@ -159,7 +248,6 @@ class _PlantCaptureBoardStepState extends State<PlantCaptureBoardStep> {
           stationNumber: widget.stationNumber,
           isVeV2: widget.isVeV2,
           capturedCount: widget.capturedPlantCount,
-          onMarkAllHealthy: widget.onMarkAllHealthy,
           isSaving: widget.isSaving,
         ),
         Expanded(
@@ -202,6 +290,9 @@ class _PlantCaptureBoardStepState extends State<PlantCaptureBoardStep> {
                     widget.onSaveVeV2UnitException == null
                     ? null
                     : () => _showVeV2PositionExceptionDialog(position),
+                onQuickOverride: widget.onQuickOverride == null
+                    ? null
+                    : (status) => widget.onQuickOverride!(position, status),
                 onNextPlant: () {
                   final nextPos = position < 10 ? position + 1 : 1;
                   _togglePlant(nextPos);
@@ -210,11 +301,34 @@ class _PlantCaptureBoardStepState extends State<PlantCaptureBoardStep> {
             },
           ),
         ),
+        if (!widget.isVeV2 && !allComplete && widget.onBatchUpload != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+            child: SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                key: const Key('open_station_batch_upload'),
+                onPressed: widget.isSaving ? null : widget.onBatchUpload,
+                icon: const Icon(Icons.photo_library_outlined),
+                label: const AppText('Import station photos together'),
+              ),
+            ),
+          ),
         _BoardBottomBar(
           allComplete: allComplete,
           isVeV2: widget.isVeV2,
           selectedPosition: activeTarget,
           isSaving: widget.isSaving,
+          mapAction: _PlantPositionMiniMap(
+            boundary: widget.boundary,
+            plan: widget.plan,
+            stationNumber: widget.stationNumber,
+            completedStationLocations: widget.completedStationLocations,
+            completedStationNumbers: widget.completedStationNumbers,
+            currentLocation: _location,
+            watchLocation: widget.watchLocation,
+            imageryProvider: widget.imageryProvider,
+          ),
           onAction: () {
             if (allComplete) {
               widget.onCompleteStationCapture();
@@ -246,15 +360,15 @@ class _PlantCaptureBoardStepState extends State<PlantCaptureBoardStep> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
+                AppText(
                   'What is at Seedling Position $position?',
                   style: Theme.of(sheetContext).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 12),
                 ListTile(
                   leading: const Icon(Icons.grass_outlined),
-                  title: const Text('Empty spot'),
-                  subtitle: const Text('No emerged seedling at this spot.'),
+                  title: const AppText('Empty spot'),
+                  subtitle: const AppText('No emerged seedling at this spot.'),
                   onTap: () => Navigator.pop(
                     sheetContext,
                     DatabaseCodes.veOccupancyEmpty,
@@ -262,8 +376,8 @@ class _PlantCaptureBoardStepState extends State<PlantCaptureBoardStep> {
                 ),
                 ListTile(
                   leading: const Icon(Icons.content_cut_outlined),
-                  title: const Text('Seedling remnant'),
-                  subtitle: const Text('Dead or cut seedling stem remnant.'),
+                  title: const AppText('Seedling remnant'),
+                  subtitle: const AppText('Dead or cut seedling stem remnant.'),
                   onTap: () => Navigator.pop(
                     sheetContext,
                     DatabaseCodes.veOccupancyRemnant,
@@ -271,8 +385,8 @@ class _PlantCaptureBoardStepState extends State<PlantCaptureBoardStep> {
                 ),
                 ListTile(
                   leading: const Icon(Icons.check_circle_outline),
-                  title: const Text('Living seedling'),
-                  subtitle: const Text('Living maize seedling present.'),
+                  title: const AppText('Living seedling'),
+                  subtitle: const AppText('Living maize seedling present.'),
                   onTap: () => Navigator.pop(
                     sheetContext,
                     DatabaseCodes.veOccupancySeedling,
@@ -294,21 +408,23 @@ class _PlantCaptureBoardStepState extends State<PlantCaptureBoardStep> {
     final reason = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text('Cannot assess Plant $position'),
+        title: AppText('Cannot assess Plant $position'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            const AppText(
               'Document why this plant cannot be assessed (e.g. missing plant, animal damage, flooded spot).',
               style: TextStyle(fontSize: 13),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: controller,
-              decoration: const InputDecoration(
-                labelText: 'Reason',
-                hintText: 'e.g. Broken stem / Missing seedling',
+              decoration: InputDecoration(
+                labelText: AppWords.of(context).translate('Reason'),
+                hintText: AppWords.of(
+                  context,
+                ).translate('e.g. Broken stem / Missing seedling'),
                 border: OutlineInputBorder(),
               ),
               autofocus: true,
@@ -318,7 +434,7 @@ class _PlantCaptureBoardStepState extends State<PlantCaptureBoardStep> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
+            child: const AppText('Cancel'),
           ),
           FilledButton(
             onPressed: () {
@@ -328,7 +444,7 @@ class _PlantCaptureBoardStepState extends State<PlantCaptureBoardStep> {
                 text.isEmpty ? 'Cannot assess plant' : text,
               );
             },
-            child: const Text('Confirm'),
+            child: const AppText('Confirm'),
           ),
         ],
       ),
@@ -339,13 +455,198 @@ class _PlantCaptureBoardStepState extends State<PlantCaptureBoardStep> {
   }
 }
 
+class _PlantPositionMiniMap extends StatefulWidget {
+  const _PlantPositionMiniMap({
+    required this.boundary,
+    required this.plan,
+    required this.stationNumber,
+    required this.completedStationLocations,
+    required this.completedStationNumbers,
+    required this.currentLocation,
+    required this.watchLocation,
+    required this.imageryProvider,
+  });
+
+  final List<LatLng> boundary;
+  final ScoutingRoutePlan plan;
+  final int stationNumber;
+  final Map<int, LatLng> completedStationLocations;
+  final Set<int> completedStationNumbers;
+  final PhoneLocationReading? currentLocation;
+  final Future<Stream<PhoneLocationReading>> Function() watchLocation;
+  final FieldImageryProvider? imageryProvider;
+
+  @override
+  State<_PlantPositionMiniMap> createState() => _PlantPositionMiniMapState();
+}
+
+class _PlantPositionMiniMapState extends State<_PlantPositionMiniMap> {
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 52,
+      child: OutlinedButton.icon(
+        key: const Key('open_plant_position_map'),
+        onPressed: _openExpandedMap,
+        icon: const Icon(Icons.map_outlined, size: 20),
+        label: const AppText(
+          'View map',
+          maxLines: 1,
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 13),
+          side: const BorderSide(color: Color(0xFFB8CDBE)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openExpandedMap() async {
+    var fieldRevision = 0;
+    var locationRevision = 0;
+    Stream<PhoneLocationReading>? locationStream;
+    try {
+      locationStream = await widget.watchLocation();
+    } catch (_) {
+      // The parent screen already offers the relevant location settings.
+    }
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: .72),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) =>
+            StreamBuilder<PhoneLocationReading>(
+              stream: locationStream,
+              initialData: widget.currentLocation,
+              builder: (context, locationSnapshot) => Dialog(
+                insetPadding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 34,
+                ),
+                elevation: 16,
+                shadowColor: Colors.black.withValues(alpha: .28),
+                backgroundColor: Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(26),
+                ),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxWidth: 560,
+                    maxHeight: 650,
+                  ),
+                  child: SizedBox(
+                    height: MediaQuery.sizeOf(context).height * .70,
+                    child: Material(
+                      color: const Color(0xFFF7F9F5),
+                      borderRadius: BorderRadius.circular(26),
+                      clipBehavior: Clip.antiAlias,
+                      child: Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 12, 10, 8),
+                            child: Row(
+                              children: [
+                                const Expanded(
+                                  child: AppText(
+                                    'Field position',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                                IconButton.filledTonal(
+                                  key: const Key('close_expanded_plant_map'),
+                                  tooltip: AppWords.of(
+                                    context,
+                                  ).translate('Close map'),
+                                  onPressed: () => Navigator.pop(dialogContext),
+                                  icon: const Icon(Icons.close),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
+                            child: Wrap(
+                              spacing: 8,
+                              runSpacing: 4,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                TextButton.icon(
+                                  key: const Key(
+                                    'center_expanded_plant_map_on_field',
+                                  ),
+                                  onPressed: () =>
+                                      setDialogState(() => fieldRevision++),
+                                  icon: const Icon(Icons.center_focus_strong),
+                                  label: const AppText('Field'),
+                                ),
+                                TextButton.icon(
+                                  key: const Key(
+                                    'center_expanded_plant_map_on_user',
+                                  ),
+                                  onPressed: locationSnapshot.data == null
+                                      ? null
+                                      : () => setDialogState(
+                                          () => locationRevision++,
+                                        ),
+                                  icon: const Icon(Icons.my_location),
+                                  label: const AppText('My location'),
+                                ),
+                                if (locationSnapshot.data == null)
+                                  const AppText('Waiting for GPS'),
+                              ],
+                            ),
+                          ),
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                              child: Material(
+                                borderRadius: BorderRadius.circular(20),
+                                clipBehavior: Clip.antiAlias,
+                                child: OfflineScoutingRouteMap(
+                                  boundary: widget.boundary,
+                                  plan: widget.plan,
+                                  activeStation: widget.stationNumber,
+                                  completedStationLocations:
+                                      widget.completedStationLocations,
+                                  completedStationNumbers:
+                                      widget.completedStationNumbers,
+                                  currentLocation: locationSnapshot.data,
+                                  animateAssessmentStation:
+                                      widget.stationNumber,
+                                  imageryProvider: widget.imageryProvider,
+                                  recenterFieldRevision: fieldRevision,
+                                  recenterLocationRevision: locationRevision,
+                                  height: double.infinity,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+      ),
+    );
+  }
+}
+
 class _BoardHeader extends StatelessWidget {
   const _BoardHeader({
     required this.blockNumber,
     required this.stationNumber,
     this.isVeV2 = false,
     required this.capturedCount,
-    this.onMarkAllHealthy,
     required this.isSaving,
   });
 
@@ -353,7 +654,6 @@ class _BoardHeader extends StatelessWidget {
   final int stationNumber;
   final bool isVeV2;
   final int capturedCount;
-  final VoidCallback? onMarkAllHealthy;
   final bool isSaving;
 
   @override
@@ -364,8 +664,11 @@ class _BoardHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 4,
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -376,8 +679,8 @@ class _BoardHeader extends StatelessWidget {
                   color: const Color(0xFF176B3A),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text(
-                  'BLOCK $blockNumber · STATION $stationNumber',
+                child: AppText(
+                  'BLOCK $blockNumber Â· STATION $stationNumber',
                   style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
@@ -386,7 +689,7 @@ class _BoardHeader extends StatelessWidget {
                   ),
                 ),
               ),
-              Text(
+              AppText(
                 '$capturedCount/10 Captured',
                 style: TextStyle(
                   fontSize: 13,
@@ -399,26 +702,19 @@ class _BoardHeader extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 2,
             children: [
-              Text(
-                isVeV2 ? 'Capture Seedlings 1–10' : 'Capture Plants 1–10',
+              AppText(
+                isVeV2 ? 'Capture Seedlings 1â€“10' : 'Capture Plants 1â€“10',
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              if (onMarkAllHealthy != null && capturedCount < 10)
-                TextButton.icon(
-                  key: const Key('mark_all_healthy_button'),
-                  onPressed: isSaving ? null : onMarkAllHealthy,
-                  icon: const Icon(Icons.check_circle_outline, size: 16),
-                  label: const Text(
-                    'All Clean',
-                    style: TextStyle(fontSize: 12),
-                  ),
-                ),
             ],
           ),
         ],
@@ -450,6 +746,7 @@ class _PlantTile extends StatelessWidget {
     required this.onManualFallback,
     required this.onCannotAssess,
     this.onChoosePositionException,
+    this.onQuickOverride,
     required this.onNextPlant,
   });
 
@@ -479,6 +776,7 @@ class _PlantTile extends StatelessWidget {
   onManualFallback;
   final VoidCallback onCannotAssess;
   final VoidCallback? onChoosePositionException;
+  final Future<void> Function(String status)? onQuickOverride;
   final VoidCallback onNextPlant;
 
   String get _primaryViewType =>
@@ -526,11 +824,11 @@ class _PlantTile extends StatelessWidget {
     } else if (isWaived) {
       statusSubtitle = 'Manual fallback documented';
     } else if (hasPrimary && hasCloseUp && hasDetail) {
-      statusSubtitle = '$_primaryViewLabel ✓ · Close-up ✓ · Detail ✓';
+      statusSubtitle = '$_primaryViewLabel âœ“ Â· Close-up âœ“ Â· Detail âœ“';
     } else if (hasPrimary && hasCloseUp) {
-      statusSubtitle = '$_primaryViewLabel ✓ · Close-up ✓';
+      statusSubtitle = '$_primaryViewLabel âœ“ Â· Close-up âœ“';
     } else if (hasPrimary) {
-      statusSubtitle = '$_primaryViewLabel ✓ · Close-up optional';
+      statusSubtitle = '$_primaryViewLabel âœ“ Â· Close-up optional';
     } else {
       statusSubtitle = '$_primaryViewLabel needed';
     }
@@ -567,184 +865,223 @@ class _PlantTile extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  CircleAvatar(
-                    radius: 13,
-                    backgroundColor: isSatisfied
-                        ? const Color(0xFF176B3A)
-                        : isSelected
-                        ? Theme.of(context).colorScheme.primary
-                        : Colors.black12,
-                    foregroundColor: isSatisfied || isSelected
-                        ? Colors.white
-                        : Colors.black54,
-                    child: Text(
-                      isSatisfied ? '✓' : '$position',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
-                      ),
-                    ),
+                  _PlantNumberBadge(
+                    position: position,
+                    done: isSatisfied,
+                    active: isSelected,
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        AppText(
                           titleLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
                           ),
                         ),
-                        Text(
-                          statusSubtitle,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: isSatisfied
-                                ? const Color(0xFF176B3A)
-                                : Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                            fontWeight: isSatisfied
-                                ? FontWeight.w600
-                                : FontWeight.normal,
-                          ),
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            if (isEmptySpot || isRemnant || isWaived)
+                              _StatusChip(
+                                label: statusSubtitle,
+                                icon: Icons.info_outline,
+                                filled: true,
+                              )
+                            else ...[
+                              _StatusChip(
+                                label: _primaryViewLabel,
+                                icon: Icons.local_florist_outlined,
+                                filled: hasPrimary,
+                              ),
+                              _StatusChip(
+                                label: 'Close-up',
+                                icon: Icons.zoom_in,
+                                filled: hasCloseUp,
+                              ),
+                              _StatusChip(
+                                label: 'Detail',
+                                icon: Icons.biotech_outlined,
+                                filled: hasDetail,
+                              ),
+                            ],
+                            if (diagnosis != null)
+                              _DiagnosisPill(diagnosis: diagnosis!),
+                          ],
                         ),
                       ],
                     ),
                   ),
-                  if (!isSelected &&
-                      (primaryMedia != null ||
-                          closeUpMedia != null ||
-                          detailMedia != null)) ...[
-                    if (primaryMedia != null)
-                      _MiniPhotoThumb(
-                        media: primaryMedia,
-                        resolveFile: resolveFile,
-                      ),
-                    if (closeUpMedia != null) ...[
-                      const SizedBox(width: 4),
-                      _MiniPhotoThumb(
-                        media: closeUpMedia,
-                        resolveFile: resolveFile,
-                      ),
-                    ],
-                    if (detailMedia != null) ...[
-                      const SizedBox(width: 4),
-                      _MiniPhotoThumb(
-                        media: detailMedia,
-                        resolveFile: resolveFile,
-                      ),
-                    ],
-                    const SizedBox(width: 8),
-                  ],
-                  if (diagnosis != null) ...[
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 7,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: diagnosis!.isInfested
-                            ? const Color(0xFFFDE8E8)
-                            : const Color(0xFFEAF6EE),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        diagnosis!.isInfested ? 'Infested' : 'Clean',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: diagnosis!.isInfested
-                              ? const Color(0xFFB3261E)
-                              : const Color(0xFF176B3A),
-                        ),
-                      ),
+                  if (!isSelected)
+                    _ThumbStack(
+                      media: [
+                        ?primaryMedia,
+                        ?closeUpMedia,
+                        ?detailMedia,
+                      ],
+                      resolveFile: resolveFile,
                     ),
-                    const SizedBox(width: 4),
-                  ],
+                  const SizedBox(width: 4),
                   Icon(
                     isSelected
                         ? Icons.keyboard_arrow_up
                         : Icons.keyboard_arrow_down,
                     color: Colors.black45,
-                    size: 18,
+                    size: 20,
                   ),
                 ],
               ),
               if (isSelected) ...[
-                const SizedBox(height: 10),
-                const Divider(height: 1),
-                const SizedBox(height: 10),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      if (primaryMedia != null)
-                        _PhotoThumbnailCard(
-                          media: primaryMedia,
-                          label: _primaryViewLabel,
-                          resolveFile: resolveFile,
-                          onInspect: onInspect,
-                          onRetake: onRetake,
-                          onRemove: onRemove,
-                        )
-                      else
-                        _AddPhotoCard(
-                          label: isVeV2 ? 'Add Seedling' : 'Add Overview',
-                          subtitle: 'Required',
-                          icon: Icons.camera_alt,
-                          isRequired: true,
-                          onTap: () => onCapture(position, _primaryViewType),
-                        ),
-                      const SizedBox(width: 10),
-                      if (closeUpMedia != null)
-                        _PhotoThumbnailCard(
-                          media: closeUpMedia,
-                          label: 'Close-up',
-                          resolveFile: resolveFile,
-                          onInspect: onInspect,
-                          onRetake: onRetake,
-                          onRemove: onRemove,
-                        )
-                      else
-                        _AddPhotoCard(
-                          label: '+ Close-up',
-                          subtitle: 'Optional',
-                          icon: Icons.zoom_in,
-                          isRequired: false,
-                          onTap: () => onCapture(
-                            position,
-                            DatabaseCodes.evidenceViewCloseUp,
-                          ),
-                        ),
-                      if (detailMedia != null) ...[
-                        const SizedBox(width: 10),
-                        _PhotoThumbnailCard(
-                          media: detailMedia,
-                          label: 'Detail',
-                          resolveFile: resolveFile,
-                          onInspect: onInspect,
-                          onRetake: onRetake,
-                          onRemove: onRemove,
-                        ),
-                      ] else if (hasCloseUp) ...[
-                        const SizedBox(width: 10),
-                        _AddPhotoCard(
-                          label: '+ Detail',
-                          subtitle: 'Optional',
-                          icon: Icons.biotech,
-                          isRequired: false,
-                          onTap: () => onCapture(
-                            position,
-                            DatabaseCodes.evidenceViewDiagnosticDetail,
-                          ),
-                        ),
-                      ],
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    for (final (index, slot) in [
+                      (
+                        _primaryViewType,
+                        _primaryViewLabel,
+                        Icons.local_florist_outlined,
+                        primaryMedia,
+                        true,
+                      ),
+                      (
+                        DatabaseCodes.evidenceViewCloseUp,
+                        'Close-up',
+                        Icons.zoom_in,
+                        closeUpMedia,
+                        false,
+                      ),
+                      (
+                        DatabaseCodes.evidenceViewDiagnosticDetail,
+                        'Detail',
+                        Icons.biotech_outlined,
+                        detailMedia,
+                        false,
+                      ),
+                    ].indexed) ...[
+                      if (index > 0) const SizedBox(width: 8),
+                      Expanded(
+                        child: slot.$4 == null
+                            ? EvidenceSlot(
+                                label: slot.$2,
+                                icon: slot.$3,
+                                required: slot.$5,
+                                onTap: () => onCapture(position, slot.$1),
+                              )
+                            : EvidenceSlot(
+                                key: ValueKey(slot.$4!.id),
+                                label: slot.$2,
+                                icon: slot.$3,
+                                image: _MediaImage(
+                                  media: slot.$4!,
+                                  resolveFile: resolveFile,
+                                ),
+                                trailing: Column(
+                                  children: [
+                                    _MicroActionButton(
+                                      icon: Icons.refresh,
+                                      tooltip: AppWords.of(
+                                        context,
+                                      ).translate('Retake'),
+                                      onTap: () => onRetake(slot.$4!),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    _MicroActionButton(
+                                      icon: Icons.delete_outline,
+                                      tooltip: AppWords.of(
+                                        context,
+                                      ).translate('Remove'),
+                                      onTap: () => onRemove(slot.$4!),
+                                    ),
+                                  ],
+                                ),
+                                onTap: () => onInspect(slot.$4!),
+                              ),
+                      ),
                     ],
-                  ),
+                  ],
                 ),
+                if (diagnosis != null || hasPrimary) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color:
+                          (diagnosis?.classificationLabel == 'FAW damage' ||
+                              diagnosis?.isInfested == true)
+                          ? const Color(0xFFFDE8E8)
+                          : const Color(0xFFEAF6EE),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color:
+                            (diagnosis?.classificationLabel == 'FAW damage' ||
+                                diagnosis?.isInfested == true)
+                            ? const Color(0xFFB3261E).withValues(alpha: 0.3)
+                            : const Color(0xFF176B3A).withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              (diagnosis?.classificationLabel == 'FAW damage' ||
+                                      diagnosis?.isInfested == true)
+                                  ? Icons.bug_report
+                                  : Icons.check_circle,
+                              size: 16,
+                              color:
+                                  (diagnosis?.classificationLabel ==
+                                          'FAW damage' ||
+                                      diagnosis?.isInfested == true)
+                                  ? const Color(0xFFB3261E)
+                                  : const Color(0xFF176B3A),
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: AppText(
+                                diagnosis != null
+                                    ? '${diagnosis!.pestLabel} Â· ${(diagnosis!.confidenceScore * 100).toInt()}% confidence'
+                                    : 'Photo ready for review',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color:
+                                      (diagnosis?.classificationLabel ==
+                                              'FAW damage' ||
+                                          diagnosis?.isInfested == true)
+                                      ? const Color(0xFFB3261E)
+                                      : const Color(0xFF176B3A),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (diagnosis?.detectedSigns.isNotEmpty == true) ...[
+                          const SizedBox(height: 4),
+                          AppText(
+                            'Signs detected: ${diagnosis!.detectedSigns.map((s) => s.replaceAll('_', ' ')).join(', ')}',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 10),
                 Wrap(
                   alignment: WrapAlignment.spaceBetween,
@@ -752,59 +1089,50 @@ class _PlantTile extends StatelessWidget {
                   spacing: 6,
                   runSpacing: 4,
                   children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        TextButton.icon(
-                          key: const Key('capture_cannot_assess'),
-                          onPressed: isSaving ? null : onCannotAssess,
-                          icon: const Icon(Icons.report_outlined, size: 14),
-                          label: const Text(
-                            'Cannot assess',
-                            style: TextStyle(fontSize: 11),
-                          ),
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 4,
-                            ),
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
+                    TextButton.icon(
+                      key: const Key('capture_cannot_assess'),
+                      onPressed: isSaving ? null : onCannotAssess,
+                      icon: const Icon(Icons.report_outlined, size: 14),
+                      label: const AppText(
+                        'Cannot assess',
+                        style: TextStyle(fontSize: 11),
+                      ),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 4,
                         ),
-                        if (isVeV2 && onChoosePositionException != null) ...[
-                          const SizedBox(width: 4),
-                          TextButton.icon(
-                            key: ValueKey('ve_spot_exception_$position'),
-                            onPressed: isSaving
-                                ? null
-                                : onChoosePositionException,
-                            icon: const Icon(Icons.more_horiz, size: 14),
-                            label: Text(
-                              isEmptySpot
-                                  ? 'Empty'
-                                  : isRemnant
-                                  ? 'Remnant'
-                                  : 'Spot status',
-                              style: const TextStyle(fontSize: 11),
-                            ),
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 4,
-                              ),
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                          ),
-                        ],
-                      ],
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
                     ),
+                    if (isVeV2 && onChoosePositionException != null)
+                      TextButton.icon(
+                        key: ValueKey('ve_spot_exception_$position'),
+                        onPressed: isSaving ? null : onChoosePositionException,
+                        icon: const Icon(Icons.more_horiz, size: 14),
+                        label: AppText(
+                          isEmptySpot
+                              ? 'Empty'
+                              : isRemnant
+                              ? 'Remnant'
+                              : 'Spot status',
+                          style: const TextStyle(fontSize: 11),
+                        ),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 4,
+                          ),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ),
                     if (isSatisfied && position < 10)
                       FilledButton.tonalIcon(
                         onPressed: onNextPlant,
                         icon: const Icon(Icons.arrow_forward, size: 13),
-                        label: Text(
+                        label: AppText(
                           'Next (${isVeV2 ? "Seedling" : "Plant"} ${position + 1})',
                           style: const TextStyle(fontSize: 11),
                         ),
@@ -834,6 +1162,7 @@ class _BoardBottomBar extends StatelessWidget {
     this.isVeV2 = false,
     required this.selectedPosition,
     required this.isSaving,
+    required this.mapAction,
     required this.onAction,
   });
 
@@ -841,6 +1170,7 @@ class _BoardBottomBar extends StatelessWidget {
   final bool isVeV2;
   final int selectedPosition;
   final bool isSaving;
+  final Widget mapAction;
   final VoidCallback onAction;
 
   @override
@@ -849,189 +1179,34 @@ class _BoardBottomBar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
       color: Colors.transparent,
-      child: SizedBox(
-        width: double.infinity,
-        height: 52,
-        child: FilledButton.icon(
-          key: const Key('finish_plant_capture'),
-          onPressed: isSaving ? null : onAction,
-          icon: Icon(
-            allComplete ? Icons.fact_check_outlined : Icons.camera_alt_outlined,
-          ),
-          label: Text(
-            allComplete
-                ? 'Proceed to Station Review'
-                : 'Capture $noun $selectedPosition',
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _MiniPhotoThumb extends StatelessWidget {
-  const _MiniPhotoThumb({required this.media, required this.resolveFile});
-
-  final EvidenceMediaRecord media;
-  final Future<File> Function(String localUri) resolveFile;
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(6),
-      child: SizedBox(
-        width: 30,
-        height: 30,
-        child: FutureBuilder<File>(
-          future: resolveFile(media.thumbnailLocalUri ?? media.localUri),
-          builder: (context, snapshot) {
-            if (snapshot.hasData) {
-              return Image.file(snapshot.data!, fit: BoxFit.cover);
-            }
-            return const ColoredBox(color: Colors.black12);
-          },
-        ),
-      ),
-    );
-  }
-}
-
-class _PhotoThumbnailCard extends StatefulWidget {
-  const _PhotoThumbnailCard({
-    required this.media,
-    required this.label,
-    required this.resolveFile,
-    required this.onInspect,
-    required this.onRetake,
-    required this.onRemove,
-  });
-
-  final EvidenceMediaRecord media;
-  final String label;
-  final Future<File> Function(String localUri) resolveFile;
-  final Future<String?> Function(EvidenceMediaRecord media) onInspect;
-  final Future<String?> Function(EvidenceMediaRecord media) onRetake;
-  final Future<void> Function(EvidenceMediaRecord media) onRemove;
-
-  @override
-  State<_PhotoThumbnailCard> createState() => _PhotoThumbnailCardState();
-}
-
-class _PhotoThumbnailCardState extends State<_PhotoThumbnailCard> {
-  late Future<File> _fileFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _fileFuture = widget.resolveFile(
-      widget.media.thumbnailLocalUri ?? widget.media.localUri,
-    );
-  }
-
-  @override
-  void didUpdateWidget(covariant _PhotoThumbnailCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.media.localUri != widget.media.localUri ||
-        oldWidget.media.thumbnailLocalUri != widget.media.thumbnailLocalUri) {
-      _fileFuture = widget.resolveFile(
-        widget.media.thumbnailLocalUri ?? widget.media.localUri,
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 104,
-      height: 104,
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF176B3A), width: 1.5),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 3, offset: Offset(0, 1)),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8.5),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            FutureBuilder<File>(
-              future: _fileFuture,
-              builder: (context, snapshot) {
-                if (snapshot.hasData) {
-                  return Image.file(
-                    snapshot.data!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => const Center(
-                      child: Icon(
-                        Icons.broken_image,
-                        color: Colors.white70,
-                        size: 24,
-                      ),
-                    ),
-                  );
-                }
-                if (snapshot.hasError) {
-                  return const Center(
-                    child: Icon(
-                      Icons.broken_image,
-                      color: Colors.white70,
-                      size: 24,
-                    ),
-                  );
-                }
-                return const ColoredBox(color: Color(0xFF2C2C2C));
-              },
-            ),
-            Material(
-              color: Colors.transparent,
-              child: InkWell(onTap: () => widget.onInspect(widget.media)),
-            ),
-            Positioned(
-              top: 3,
-              right: 3,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _MicroActionButton(
-                    icon: Icons.refresh,
-                    tooltip: 'Retake',
-                    onTap: () => widget.onRetake(widget.media),
-                  ),
-                  const SizedBox(width: 3),
-                  _MicroActionButton(
-                    icon: Icons.delete_outline,
-                    tooltip: 'Remove',
-                    onTap: () => widget.onRemove(widget.media),
-                  ),
-                ],
-              ),
-            ),
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
-                color: Colors.black.withValues(alpha: 0.75),
-                child: Text(
-                  '✓ ${widget.label}',
+      child: Row(
+        children: [
+          mapAction,
+          const SizedBox(width: 10),
+          Expanded(
+            child: SizedBox(
+              height: 52,
+              child: FilledButton.icon(
+                key: const Key('finish_plant_capture'),
+                onPressed: isSaving ? null : onAction,
+                icon: Icon(
+                  allComplete
+                      ? Icons.fact_check_outlined
+                      : Icons.camera_alt_outlined,
+                ),
+                label: AppText(
+                  allComplete
+                      ? 'Review station'
+                      : 'Capture $noun $selectedPosition',
                   style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
                     fontWeight: FontWeight.bold,
+                    fontSize: 15,
                   ),
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -1069,78 +1244,241 @@ class _MicroActionButton extends StatelessWidget {
   }
 }
 
-class _AddPhotoCard extends StatelessWidget {
-  const _AddPhotoCard({
-    required this.label,
-    required this.subtitle,
-    required this.icon,
-    required this.isRequired,
-    required this.onTap,
+
+class _PlantNumberBadge extends StatelessWidget {
+  const _PlantNumberBadge({
+    required this.position,
+    required this.done,
+    required this.active,
   });
 
-  final String label;
-  final String subtitle;
-  final IconData icon;
-  final bool isRequired;
-  final VoidCallback onTap;
+  final int position;
+  final bool done;
+  final bool active;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final borderColor = isRequired
-        ? theme.colorScheme.primary.withValues(alpha: 0.5)
-        : Colors.black26;
-    final bgColor = isRequired
-        ? theme.colorScheme.primaryContainer.withValues(alpha: 0.25)
-        : const Color(0xFFF9F9F9);
+    const green = Color(0xFF176B3A);
+    return Container(
+      width: 34,
+      height: 34,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: done
+            ? green
+            : active
+            ? green.withValues(alpha: .12)
+            : const Color(0xFFEFF1EE),
+        border: active && !done ? Border.all(color: green, width: 1.5) : null,
+      ),
+      child: done
+          ? const Icon(Icons.check, size: 18, color: Colors.white)
+          : Text(
+              '$position',
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 13,
+                color: active ? green : Colors.black54,
+              ),
+            ),
+    );
+  }
+}
 
-    return Material(
-      color: bgColor,
-      borderRadius: BorderRadius.circular(10),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          width: 104,
-          height: 104,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: borderColor, width: isRequired ? 1.5 : 1),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 26,
-                color: isRequired ? theme.colorScheme.primary : Colors.black54,
-              ),
-              const SizedBox(height: 5),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: isRequired
-                      ? theme.colorScheme.primary
-                      : Colors.black87,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 1),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 10,
-                  color: isRequired
-                      ? theme.colorScheme.primary
-                      : Colors.black45,
-                ),
-              ),
-            ],
-          ),
+/// Small per-view indicator: filled green when that view has a photo.
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({
+    required this.label,
+    required this.icon,
+    required this.filled,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) {
+    const green = Color(0xFF176B3A);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: filled ? const Color(0xFFE3F1E7) : Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: filled ? Colors.transparent : Colors.black12,
         ),
       ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            filled ? Icons.check_circle : icon,
+            size: 12,
+            color: filled ? green : Colors.black38,
+          ),
+          const SizedBox(width: 4),
+          AppText(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: filled ? green : Colors.black45,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DiagnosisPill extends StatelessWidget {
+  const _DiagnosisPill({required this.diagnosis});
+
+  final PlantDiagnosisResult diagnosis;
+
+  @override
+  Widget build(BuildContext context) {
+    final notAssessed =
+        diagnosis.modelName.startsWith('WormWise-AutoScreen-v1:') &&
+        diagnosis.classificationLabel == null;
+    final damage =
+        diagnosis.classificationLabel == 'FAW damage' || diagnosis.isInfested;
+    final color = notAssessed
+        ? Colors.black54
+        : damage
+        ? const Color(0xFFB3261E)
+        : const Color(0xFF176B3A);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            damage ? Icons.bug_report_outlined : Icons.check_circle_outline_rounded,
+            size: 12,
+            color: color,
+          ),
+          const SizedBox(width: 4),
+          AppText(
+            notAssessed
+                ? 'Not assessed'
+                : damage
+                ? 'Damage'
+                : 'No damage',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Overlapping thumbnails: 1 photo = single square, 2â€“3 = fanned stack.
+class _ThumbStack extends StatelessWidget {
+  const _ThumbStack({required this.media, required this.resolveFile});
+
+  final List<EvidenceMediaRecord> media;
+  final Future<File> Function(String localUri) resolveFile;
+
+  static const _size = 40.0;
+  static const _step = 20.0;
+
+  @override
+  Widget build(BuildContext context) {
+    if (media.isEmpty) return const SizedBox.shrink();
+    return SizedBox(
+      width: _size + _step * (media.length - 1),
+      height: _size,
+      child: Stack(
+        children: [
+          for (var i = 0; i < media.length; i++)
+            Positioned(
+              left: _step * i,
+              child: Container(
+                width: _size,
+                height: _size,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.white, width: 2),
+                  boxShadow: const [
+                    BoxShadow(color: Colors.black26, blurRadius: 3),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: _MediaImage(
+                    media: media[i],
+                    resolveFile: resolveFile,
+                    cacheWidth: 120,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MediaImage extends StatefulWidget {
+  const _MediaImage({
+    required this.media,
+    required this.resolveFile,
+    this.cacheWidth = 320,
+  });
+
+  final EvidenceMediaRecord media;
+  final Future<File> Function(String localUri) resolveFile;
+  final int cacheWidth;
+
+  @override
+  State<_MediaImage> createState() => _MediaImageState();
+}
+
+class _MediaImageState extends State<_MediaImage> {
+  late Future<File> _file = _resolve();
+
+  Future<File> _resolve() => widget.resolveFile(
+    widget.media.thumbnailLocalUri ?? widget.media.localUri,
+  );
+
+  @override
+  void didUpdateWidget(covariant _MediaImage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.media.localUri != widget.media.localUri ||
+        oldWidget.media.thumbnailLocalUri != widget.media.thumbnailLocalUri) {
+      _file = _resolve();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<File>(
+      future: _file,
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          return Image.file(
+            snapshot.data!,
+            fit: BoxFit.cover,
+            cacheWidth: widget.cacheWidth,
+            errorBuilder: (_, _, _) => const ColoredBox(
+              color: Color(0xFF2C2C2C),
+              child: Icon(Icons.broken_image, color: Colors.white54),
+            ),
+          );
+        }
+        return const ColoredBox(color: Color(0xFFE6E8E5));
+      },
     );
   }
 }

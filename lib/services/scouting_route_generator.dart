@@ -1,14 +1,12 @@
 import 'dart:convert';
+import 'scouting_sampling_protocol.dart';
 import 'dart:math' as math;
 
 import 'package:latlong2/latlong.dart' show LatLng;
 
-import '../data/local/database_codes.dart';
-
 const scoutingRouteDocumentVersion = 'scan_route_guidance_v1';
 const scoutingRouteAlgorithmVersion = 'automatic_field_geometry_v3';
-const previousScoutingRouteAlgorithmVersion = 'automatic_ladder_progress_v2';
-const legacyScoutingRouteAlgorithmVersion = 'manual_ladder_v1';
+const retiredRouteAlgorithmVersion = 'retired_sampling_route';
 
 const routeStartSourcePhoneLocation = 'phone_location';
 const routeStartSourceFieldOutlineFallback = 'field_outline_fallback';
@@ -144,6 +142,7 @@ class ScoutingStationTarget {
   final String? sideHint;
 
   ScoutingStationTarget copyWith({
+    int? stationNumber,
     LatLng? location,
     String? source,
     bool? adjusted,
@@ -152,7 +151,7 @@ class ScoutingStationTarget {
     Object? sideHint = _absent,
   }) {
     return ScoutingStationTarget(
-      stationNumber: stationNumber,
+      stationNumber: stationNumber ?? this.stationNumber,
       location: location ?? this.location,
       source: source ?? this.source,
       adjusted: adjusted ?? this.adjusted,
@@ -283,7 +282,9 @@ class ScoutingRoutePlan {
   final DateTime updatedAt;
 
   bool get isReady =>
-      status == ScoutingRouteStatus.ready && targets.length == 5;
+      status == ScoutingRouteStatus.ready &&
+      pattern == ScoutingSamplingProtocol.daPattern &&
+      targets.length == ScoutingSamplingProtocol.plantsPerBlock;
 
   ScoutingStationTarget targetFor(int stationNumber) =>
       targets.singleWhere((target) => target.stationNumber == stationNumber);
@@ -423,7 +424,7 @@ class ScoutingRoutePlan {
       preparation: RoutePreparationData.fromJson(preparation),
       algorithmVersion:
           metadata['algorithm_version'] as String? ??
-          legacyScoutingRouteAlgorithmVersion,
+          retiredRouteAlgorithmVersion,
       targets: _objectList(
         metadata['targets'],
       ).map(ScoutingStationTarget.fromJson).toList(growable: false),
@@ -520,144 +521,231 @@ class ScoutingRouteGenerator {
         'The confirmed assessment-block outline is not usable for route guidance.',
       );
     }
-    final savedPreparation = draft.preparation;
-    if (!savedPreparation.obstaclesReviewed) {
+    if (draft.pattern != ScoutingSamplingProtocol.daPattern) {
       throw const RouteGenerationException(
-        'Review obstacles and unsafe areas before generating the pattern.',
+        'This scouting method is no longer supported. Start a new assessment with 20 plants per sampling block.',
       );
     }
-    final automaticBearing = automaticRouteBearingDegrees(boundary);
-    final preparation = savedPreparation.copyWith(
-      entrance:
-          savedPreparation.entrance ??
-          automaticBoundaryStart(
+    return _generateDaPlants(draft, boundary, completedStations);
+  }
+
+  /// Fits the booklet's dispersed point arrangement to the local field frame.
+  /// This is an app sampling aid; the booklet does not give surveyed coordinates
+  /// or prescribe the numbered order in which the farmer walks to the plants.
+  static ScoutingRoutePlan _generateDaPlants(
+    ScoutingRoutePlan draft,
+    List<LatLng> boundary,
+    Map<int, LatLng?> completed,
+  ) {
+    final frame = _LocalFrame(boundary);
+    const layout = <(double, double)>[
+      (.10, .70),
+      (.10, .56),
+      (.16, .42),
+      (.22, .27),
+      (.28, .12),
+      (.34, .25),
+      (.39, .42),
+      (.45, .56),
+      (.45, .71),
+      (.45, .85),
+      (.28, .85),
+      (.70, .85),
+      (.57, .56),
+      (.57, .42),
+      (.63, .27),
+      (.70, .12),
+      (.76, .27),
+      (.83, .42),
+      (.89, .56),
+      (.89, .70),
+    ];
+    final candidates = <LatLng>[
+      for (var u = 1; u < 60; u++)
+        for (var v = 1; v < 60; v++)
+          if (validDaTarget(
+            frame.at(u / 60, v / 60),
             boundary,
-            obstacles: savedPreparation.obstacles,
-          ),
-      startSource: savedPreparation.entrance == null
-          ? routeStartSourceFieldOutlineFallback
-          : savedPreparation.startSource ?? routeStartSourceLegacySaved,
-      rowBearingDegrees: automaticBearing,
-      orientationSource: routeOrientationSourceFieldShape,
-      draftGeometry: RouteDraftGeometry.none,
-      draftPoints: const [],
-    );
-
-    late final List<ScoutingStationTarget> generated;
-    if (draft.pattern == DatabaseCodes.patternW) {
-      generated = _generateWTargets(
-        boundary,
-        preparation.entrance!,
-        preparation.obstacles,
-      );
-    } else if (draft.pattern == DatabaseCodes.patternLadder) {
-      generated = _generateAutomaticLadder(
-        boundary,
-        preparation.entrance!,
-        preparation.rowBearingDegrees!,
-        preparation.obstacles,
-      ).targets;
-    } else {
-      throw const RouteGenerationException('Select a W or ladder pattern.');
-    }
-
-    final oldTargets = {
-      for (final target in draft.targets) target.stationNumber: target,
-    };
+            draft.preparation.obstacles,
+          ))
+            frame.at(u / 60, v / 60),
+    ];
     final targets = <ScoutingStationTarget>[];
-    for (final target in generated) {
-      final completed = completedStations.containsKey(target.stationNumber);
-      final recorded = completedStations[target.stationNumber];
-      final old = oldTargets[target.stationNumber];
-      if (completed) {
-        targets.add(
-          (old ?? target).copyWith(
-            location: recorded ?? old?.location ?? target.location,
-            source: recorded == null
-                ? 'completed_station_target_preserved'
-                : 'recorded_station_location',
-            lockedCompleted: true,
-          ),
-        );
-      } else if (old?.adjusted == true &&
-          validTarget(old!.location, boundary, preparation.obstacles)) {
+    final used = <LatLng>[];
+    // A minimum separation prevents multiple suggestions pointing to the same
+    // plant after fitting a concave/narrow boundary. It is an app rule, not DA's.
+    const minimumSeparation = 2.0;
+    for (var index = 0; index < layout.length; index++) {
+      final number = index + 1;
+      final old = draft.targets
+          .where((t) => t.stationNumber == number)
+          .firstOrNull;
+      if (completed.containsKey(number) && old != null) {
+        targets.add(old.copyWith(lockedCompleted: true));
+        used.add(old.location);
+        continue;
+      }
+      if (old?.adjusted == true &&
+          validDaTarget(old!.location, boundary, draft.preparation.obstacles)) {
         targets.add(old.copyWith(lockedCompleted: false));
-      } else {
-        targets.add(target);
+        used.add(old.location);
+        continue;
+      }
+      final desired = frame.at(layout[index].$1, layout[index].$2);
+      final available = candidates
+          .where(
+            (p) => used.every(
+              (previous) => distanceMeters(p, previous) >= minimumSeparation,
+            ),
+          )
+          .toList();
+      if (available.isEmpty) {
+        throw const RouteGenerationException(
+          'The outline cannot fit 20 separate suggestions at least 3 m from the edge. Check the outline or choose a larger accessible sampling block.',
+        );
+      }
+      available.sort(
+        (a, b) =>
+            distanceMeters(a, desired).compareTo(distanceMeters(b, desired)),
+      );
+      final point =
+          validDaTarget(desired, boundary, draft.preparation.obstacles) &&
+              used.every((p) => distanceMeters(p, desired) >= minimumSeparation)
+          ? desired
+          : available.first;
+      used.add(point);
+      targets.add(
+        ScoutingStationTarget(
+          stationNumber: number,
+          location: point,
+          source: 'da_booklet_layout_app_suggestion',
+          lockedCompleted: completed.containsKey(number),
+        ),
+      );
+    }
+    final generated = draft.copyWith(
+      status: ScoutingRouteStatus.ready,
+      algorithmVersion: ScoutingSamplingProtocol.daAlgorithm,
+      targets: List.unmodifiable(targets),
+      // No connected route is claimed safe across rows, obstacles or concavities.
+      segments: const [],
+      warnings: const [
+        'Suggested plant locations. Choose an actual nearby plant at least 3 m from the edge; use a safe accessible path.',
+      ],
+      preparation: draft.preparation.copyWith(
+        rowBearingDegrees: automaticRouteBearingDegrees(boundary),
+        orientationSource: routeOrientationSourceFieldShape,
+      ),
+      pendingAdjustment: null,
+      updatedAt: DateTime.now().toUtc(),
+    );
+    final fixedThrough = completed.keys.fold<int>(0, math.max);
+    return orderDaTargetsForWalk(generated, fixedThrough: fixedThrough);
+  }
+
+  /// Reorders only untouched suggestions. Sampling coverage and coordinates
+  /// stay unchanged. Distances are straight-line aids, not surveyed safe paths.
+  static ScoutingRoutePlan orderDaTargetsForWalk(
+    ScoutingRoutePlan plan, {
+    int fixedThrough = 0,
+  }) {
+    if (plan.pattern != ScoutingSamplingProtocol.daPattern || !plan.isReady) {
+      return plan;
+    }
+    final original = [...plan.targets]
+      ..sort((a, b) => a.stationNumber.compareTo(b.stationNumber));
+    // Keep Plant 1 as the starting point, and every saved/arrived/adjusted
+    // number through the highest fixed position. Never relabel captured data.
+    var prefixLength = math.max(1, fixedThrough);
+    prefixLength = math.max(prefixLength, plan.arrivalConfirmedStation ?? 0);
+    for (final target in original) {
+      if (target.lockedCompleted || target.adjusted) {
+        prefixLength = math.max(prefixLength, target.stationNumber);
       }
     }
-
-    final warnings = <String>[];
-    late final List<ScoutingRouteSegment> segments;
-    if (draft.pattern == DatabaseCodes.patternW) {
-      segments = _wSegments(
-        preparation.entrance!,
-        targets,
-        boundary,
-        preparation.obstacles,
-        warnings,
-      );
-    } else {
-      final ladder = _generateAutomaticLadder(
-        boundary,
-        preparation.entrance!,
-        preparation.rowBearingDegrees!,
-        preparation.obstacles,
-      );
-      segments = _retargetLadderSegments(ladder.segments, targets);
-      warnings.addAll(ladder.warnings);
+    prefixLength = prefixLength.clamp(1, original.length);
+    final pending = original.sublist(prefixLength);
+    final nearest = original.sublist(0, prefixLength);
+    while (pending.isNotEmpty) {
+      final from = nearest.last.location;
+      var best = 0;
+      for (var i = 1; i < pending.length; i++) {
+        if (distanceMeters(from, pending[i].location) <
+            distanceMeters(from, pending[best].location))
+          best = i;
+      }
+      nearest.add(pending.removeAt(best));
     }
-    return draft.copyWith(
-      algorithmVersion: scoutingRouteAlgorithmVersion,
-      status: ScoutingRouteStatus.ready,
-      preparation: preparation,
-      targets: List.unmodifiable(targets),
-      segments: List.unmodifiable(segments),
-      warnings: List.unmodifiable(warnings),
-      pendingAdjustment: null,
-      arrivalConfirmedStation: null,
+    double length(List<ScoutingStationTarget> points) {
+      var total = 0.0;
+      for (var i = 1; i < points.length; i++) {
+        total += distanceMeters(points[i - 1].location, points[i].location);
+      }
+      return total;
+    }
+
+    var ordered = length(nearest) < length(original) ? nearest : original;
+    // Remove avoidable crossings and backtracking from the open walking order.
+    var improved = true;
+    while (improved) {
+      improved = false;
+      for (var i = prefixLength; i < ordered.length - 1; i++) {
+        for (var j = i + 1; j < ordered.length; j++) {
+          final candidate = [
+            ...ordered.take(i),
+            ...ordered.sublist(i, j + 1).reversed,
+            ...ordered.skip(j + 1),
+          ];
+          if (length(candidate) < length(ordered) - .01) {
+            ordered = candidate;
+            improved = true;
+          }
+        }
+      }
+    }
+    return plan.copyWith(
+      algorithmVersion: ScoutingSamplingProtocol.daAlgorithm,
+      targets: List.unmodifiable([
+        for (var i = 0; i < ordered.length; i++)
+          ordered[i].copyWith(stationNumber: i + 1),
+      ]),
       updatedAt: DateTime.now().toUtc(),
     );
   }
 
-  static List<ScoutingStationTarget> _generateWTargets(
+  static bool validDaTarget(
+    LatLng point,
     List<LatLng> boundary,
-    LatLng entrance,
     List<List<LatLng>> obstacles,
-  ) {
+  ) =>
+      validTarget(point, boundary, obstacles) &&
+      distanceToBoundaryMeters(point, boundary) >=
+          ScoutingSamplingProtocol.edgeMarginMeters;
+
+  static double distanceToBoundaryMeters(LatLng point, List<LatLng> boundary) {
+    if (boundary.length < 3) return 0;
     final frame = _LocalFrame(boundary);
-    final desired = const [
-      (0.14, 0.20),
-      (0.32, 0.78),
-      (0.50, 0.34),
-      (0.68, 0.78),
-      (0.86, 0.20),
-    ];
-    final chosen = <LatLng>[];
-    for (final (u, v) in desired) {
-      chosen.add(
-        _nearestInteriorGridPoint(
-          frame: frame,
-          desiredU: u,
-          desiredV: v,
-          boundary: boundary,
-          obstacles: obstacles,
-          alreadyChosen: chosen,
+    final p = frame._project(point);
+    var nearest = double.infinity;
+    for (var i = 0; i < boundary.length; i++) {
+      final a = frame._project(boundary[i]);
+      final b = frame._project(boundary[(i + 1) % boundary.length]);
+      final dx = b.x - a.x, dy = b.y - a.y;
+      final lengthSquared = dx * dx + dy * dy;
+      final t = lengthSquared == 0
+          ? 0.0
+          : (((p.x - a.x) * dx + (p.y - a.y) * dy) / lengthSquared).clamp(
+              0.0,
+              1.0,
+            );
+      nearest = math.min(
+        nearest,
+        math.sqrt(
+          math.pow(p.x - a.x - t * dx, 2) + math.pow(p.y - a.y - t * dy, 2),
         ),
       );
     }
-    if (distanceMeters(entrance, chosen.last) <
-        distanceMeters(entrance, chosen.first)) {
-      final reversed = chosen.reversed.toList(growable: false);
-      chosen.setAll(0, reversed);
-    }
-    return [
-      for (var index = 0; index < chosen.length; index++)
-        ScoutingStationTarget(
-          stationNumber: index + 1,
-          location: chosen[index],
-        ),
-    ];
+    return nearest;
   }
 
   static double automaticRouteBearingDegrees(List<LatLng> boundary) {
@@ -667,338 +755,6 @@ class ScoutingRouteGenerator {
       );
     }
     return _LocalFrame(boundary).majorAxisBearingDegrees;
-  }
-
-  static LatLng automaticBoundaryStart(
-    List<LatLng> boundary, {
-    List<List<LatLng>> obstacles = const [],
-  }) {
-    if (boundary.length < 3) {
-      throw const RouteGenerationException(
-        'The confirmed assessment-block outline is not usable for route guidance.',
-      );
-    }
-    final frame = _LocalFrame(boundary);
-    return _nearestInteriorGridPoint(
-      frame: frame,
-      desiredU: 0.06,
-      desiredV: 0.18,
-      boundary: boundary,
-      obstacles: obstacles,
-      alreadyChosen: const [],
-    );
-  }
-
-  static _LadderGeneration _generateAutomaticLadder(
-    List<LatLng> boundary,
-    LatLng entrance,
-    double rowBearingDegrees,
-    List<List<LatLng>> obstacles,
-  ) {
-    final projection = _RouteMetricProjection(boundary);
-    final center = polygonCenter(boundary);
-    final radians = _radians(rowBearingDegrees);
-    final along = _MetricVector(math.sin(radians), math.cos(radians));
-    final diagonal = projection.diagonalMeters;
-    final samples = <LatLng>[];
-    List<LatLng> bestRun = const [];
-    for (var step = -240; step <= 240; step++) {
-      final point = projection.offset(
-        center,
-        along.east * diagonal * step / 240,
-        along.north * diagonal * step / 240,
-      );
-      if (validTarget(point, boundary, obstacles)) {
-        samples.add(point);
-      } else {
-        if (samples.length > bestRun.length) bestRun = List.of(samples);
-        samples.clear();
-      }
-    }
-    if (samples.length > bestRun.length) bestRun = List.of(samples);
-    if (bestRun.length < 10) {
-      throw const RouteGenerationException(
-        'WormWise could not generate a usable central ladder spine from this outline and row direction. Adjust the row direction or a station target.',
-      );
-    }
-    var spineStart = bestRun.first;
-    var spineEnd = bestRun.last;
-    if (distanceMeters(entrance, spineEnd) <
-        distanceMeters(entrance, spineStart)) {
-      final swap = spineStart;
-      spineStart = spineEnd;
-      spineEnd = swap;
-    }
-    final fractions = const [0.10, 0.30, 0.50, 0.70, 0.90];
-    final anchors = <LatLng>[];
-    final targets = <ScoutingStationTarget>[];
-    final warnings = <String>[
-      'The ladder spine and branches are automatically generated approximate guidance from the current phone start, saved block outline, and field-shape orientation. They are not observed crop rows or validated walking paths.',
-    ];
-    for (var index = 0; index < fractions.length; index++) {
-      final anchor = _interpolate(spineStart, spineEnd, fractions[index]);
-      anchors.add(anchor);
-      final desiredRight = index.isEven;
-      var branchBearing = rowBearingDegrees + (desiredRight ? 90 : -90);
-      var available = _availableRayDistance(
-        anchor,
-        branchBearing,
-        diagonal,
-        projection,
-        boundary,
-        obstacles,
-      );
-      var usedRight = desiredRight;
-      if (available <= 0) {
-        branchBearing = rowBearingDegrees + (desiredRight ? -90 : 90);
-        available = _availableRayDistance(
-          anchor,
-          branchBearing,
-          diagonal,
-          projection,
-          boundary,
-          obstacles,
-        );
-        usedRight = !desiredRight;
-      }
-      if (available <= 0) {
-        throw RouteGenerationException(
-          'Station ${index + 1} has no usable automatic ladder branch inside the outline.',
-        );
-      }
-      final branchRadians = _radians(branchBearing);
-      final location = projection.offset(
-        anchor,
-        math.sin(branchRadians) * available * 0.55,
-        math.cos(branchRadians) * available * 0.55,
-      );
-      if (usedRight != desiredRight) {
-        warnings.add(
-          'Station ${index + 1} used the opposite side because the intended alternating side had no usable space in the saved outline.',
-        );
-      }
-      targets.add(
-        ScoutingStationTarget(
-          stationNumber: index + 1,
-          location: location,
-          source: 'automatic_ladder_geometry_v2',
-          sideHint: usedRight
-              ? 'right_when_accessible'
-              : 'left_when_accessible',
-        ),
-      );
-    }
-    final entryDrawable = _segmentInside(
-      entrance,
-      spineStart,
-      boundary,
-      obstacles,
-    );
-    if (!entryDrawable) {
-      warnings.add(
-        'The direct line from the entrance to the generated central spine leaves the usable outline or crosses saved legacy obstacle geometry. It is marked invalid, not asserted as a walking path.',
-      );
-    }
-    final segments = <ScoutingRouteSegment>[
-      ScoutingRouteSegment(
-        points: [entrance, spineStart],
-        kind: 'ladder_entry_to_spine',
-        drawable: entryDrawable,
-        stationNumber: 1,
-        warning: entryDrawable
-            ? null
-            : 'Entrance-to-spine line is orientation only and is not a confirmed safe path.',
-      ),
-    ];
-    for (var index = 0; index < anchors.length; index++) {
-      segments.add(
-        ScoutingRouteSegment(
-          points: [
-            index == 0 ? spineStart : anchors[index - 1],
-            anchors[index],
-          ],
-          kind: 'ladder_spine_approach',
-          drawable: true,
-          stationNumber: index + 1,
-        ),
-      );
-      segments.add(
-        ScoutingRouteSegment(
-          points: [anchors[index], targets[index].location],
-          kind: 'ladder_branch_outbound',
-          drawable: true,
-          stationNumber: index + 1,
-        ),
-      );
-      segments.add(
-        ScoutingRouteSegment(
-          points: [targets[index].location, anchors[index]],
-          kind: 'ladder_branch_return',
-          drawable: true,
-          stationNumber: index + 1,
-        ),
-      );
-    }
-    return _LadderGeneration(
-      targets: List.unmodifiable(targets),
-      segments: List.unmodifiable(segments),
-      warnings: List.unmodifiable(warnings),
-    );
-  }
-
-  static List<ScoutingRouteSegment> _wSegments(
-    LatLng entrance,
-    List<ScoutingStationTarget> targets,
-    List<LatLng> boundary,
-    List<List<LatLng>> obstacles,
-    List<String> warnings,
-  ) {
-    final result = <ScoutingRouteSegment>[];
-    for (var index = 0; index < targets.length; index++) {
-      final points = [
-        index == 0 ? entrance : targets[index - 1].location,
-        targets[index].location,
-      ];
-      final drawable = _segmentInside(
-        points.first,
-        points.last,
-        boundary,
-        obstacles,
-      );
-      final warning = drawable
-          ? null
-          : index == 0
-          ? 'The direct orientation line from the entrance to Station 1 leaves the usable outline or crosses a marked obstacle; it is marked invalid, not asserted as a walking path.'
-          : 'The direct orientation line between Stations $index and ${index + 1} leaves the usable outline or crosses a marked obstacle; it is marked invalid, not asserted as a walking path.';
-      if (warning != null) warnings.add(warning);
-      result.add(
-        ScoutingRouteSegment(
-          points: points,
-          kind: 'suggested_orientation_only',
-          drawable: drawable,
-          stationNumber: index + 1,
-          warning: warning,
-        ),
-      );
-    }
-    return result;
-  }
-
-  static List<ScoutingRouteSegment> _retargetLadderSegments(
-    List<ScoutingRouteSegment> segments,
-    List<ScoutingStationTarget> targets,
-  ) {
-    final byStation = {
-      for (final target in targets) target.stationNumber: target,
-    };
-    return [
-      for (final segment in segments)
-        if (segment.kind == 'ladder_branch_outbound')
-          ScoutingRouteSegment(
-            points: [
-              segment.points.first,
-              byStation[segment.stationNumber]!.location,
-            ],
-            kind: segment.kind,
-            drawable: segment.drawable,
-            stationNumber: segment.stationNumber,
-            warning: segment.warning,
-          )
-        else if (segment.kind == 'ladder_branch_return')
-          ScoutingRouteSegment(
-            points: [
-              byStation[segment.stationNumber]!.location,
-              segment.points.last,
-            ],
-            kind: segment.kind,
-            drawable: segment.drawable,
-            stationNumber: segment.stationNumber,
-            warning: segment.warning,
-          )
-        else
-          segment,
-    ];
-  }
-
-  static double _availableRayDistance(
-    LatLng start,
-    double bearingDegrees,
-    double maximum,
-    _RouteMetricProjection projection,
-    List<LatLng> boundary,
-    List<List<LatLng>> obstacles,
-  ) {
-    final radians = _radians(bearingDegrees);
-    var lastValid = 0.0;
-    for (var step = 1; step <= 180; step++) {
-      final distance = maximum * step / 180;
-      final point = projection.offset(
-        start,
-        math.sin(radians) * distance,
-        math.cos(radians) * distance,
-      );
-      if (!validTarget(point, boundary, obstacles)) break;
-      lastValid = distance;
-    }
-    return lastValid;
-  }
-
-  static LatLng _interpolate(LatLng start, LatLng end, double fraction) =>
-      LatLng(
-        start.latitude + (end.latitude - start.latitude) * fraction,
-        start.longitude + (end.longitude - start.longitude) * fraction,
-      );
-
-  static bool _segmentInside(
-    LatLng start,
-    LatLng end,
-    List<LatLng> boundary,
-    List<List<LatLng>> obstacles,
-  ) {
-    for (var step = 0; step <= 24; step++) {
-      final t = step / 24;
-      final point = LatLng(
-        start.latitude + (end.latitude - start.latitude) * t,
-        start.longitude + (end.longitude - start.longitude) * t,
-      );
-      if (!validTarget(point, boundary, obstacles)) return false;
-    }
-    return true;
-  }
-
-  static LatLng _nearestInteriorGridPoint({
-    required _LocalFrame frame,
-    required double desiredU,
-    required double desiredV,
-    required List<LatLng> boundary,
-    required List<List<LatLng>> obstacles,
-    required List<LatLng> alreadyChosen,
-  }) {
-    LatLng? best;
-    var bestScore = double.infinity;
-    for (var uIndex = 2; uIndex <= 38; uIndex++) {
-      for (var vIndex = 2; vIndex <= 38; vIndex++) {
-        final u = uIndex / 40;
-        final v = vIndex / 40;
-        final point = frame.at(u, v);
-        if (!validTarget(point, boundary, obstacles)) continue;
-        var score = math.pow(u - desiredU, 2) + math.pow(v - desiredV, 2);
-        for (final chosen in alreadyChosen) {
-          final separation = distanceMeters(point, chosen);
-          if (separation < frame.diagonalMeters * 0.08) score += 10;
-        }
-        if (score < bestScore) {
-          best = point;
-          bestScore = score.toDouble();
-        }
-      }
-    }
-    if (best == null) {
-      throw const RouteGenerationException(
-        'Five usable interior targets could not be generated. Review the marked obstacles and try generating the pattern again.',
-      );
-    }
-    return best;
   }
 
   static double distanceMeters(LatLng first, LatLng second) {
@@ -1033,69 +789,6 @@ class ScoutingRouteGenerator {
   }
 
   static double _radians(double degrees) => degrees * math.pi / 180;
-}
-
-class _LadderGeneration {
-  const _LadderGeneration({
-    required this.targets,
-    required this.segments,
-    required this.warnings,
-  });
-
-  final List<ScoutingStationTarget> targets;
-  final List<ScoutingRouteSegment> segments;
-  final List<String> warnings;
-}
-
-class _MetricVector {
-  const _MetricVector(this.east, this.north);
-
-  final double east;
-  final double north;
-}
-
-class _RouteMetricProjection {
-  _RouteMetricProjection(List<LatLng> boundary)
-    : origin = ScoutingRouteGenerator.polygonCenter(boundary) {
-    _points = boundary.map(_project).toList(growable: false);
-    final minEast = _points.map((point) => point.east).reduce(math.min);
-    final maxEast = _points.map((point) => point.east).reduce(math.max);
-    final minNorth = _points.map((point) => point.north).reduce(math.min);
-    final maxNorth = _points.map((point) => point.north).reduce(math.max);
-    diagonalMeters = math.sqrt(
-      math.pow(maxEast - minEast, 2) + math.pow(maxNorth - minNorth, 2),
-    );
-  }
-
-  final LatLng origin;
-  late List<_MetricVector> _points;
-  late final double diagonalMeters;
-
-  _MetricVector _project(LatLng point) {
-    const earthRadius = 6371000.0;
-    final latitudeRadians = origin.latitude * math.pi / 180;
-    return _MetricVector(
-      (point.longitude - origin.longitude) *
-          math.pi /
-          180 *
-          earthRadius *
-          math.cos(latitudeRadians),
-      (point.latitude - origin.latitude) * math.pi / 180 * earthRadius,
-    );
-  }
-
-  LatLng offset(LatLng point, double eastMeters, double northMeters) {
-    const earthRadius = 6371000.0;
-    final latitudeRadians = origin.latitude * math.pi / 180;
-    return LatLng(
-      point.latitude + northMeters / earthRadius * 180 / math.pi,
-      point.longitude +
-          eastMeters /
-              (earthRadius * math.cos(latitudeRadians)) *
-              180 /
-              math.pi,
-    );
-  }
 }
 
 class _LocalFrame {

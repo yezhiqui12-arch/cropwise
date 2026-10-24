@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../localization/app_text.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../models/assessment_state.dart';
@@ -39,7 +40,7 @@ class ResultSummaryCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              const AppText(
                 'Latest Assessment',
                 style: TextStyle(
                   fontSize: 18,
@@ -65,7 +66,7 @@ class ResultSummaryCard extends StatelessWidget {
                       color: AppColors.textSecondary,
                     ),
                     SizedBox(width: 4),
-                    Text(
+                    AppText(
                       'Stable',
                       style: TextStyle(
                         fontSize: 11,
@@ -114,7 +115,7 @@ class ResultSummaryCard extends StatelessWidget {
                   const Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
+                      AppText(
                         '35%',
                         style: TextStyle(
                           fontSize: 22,
@@ -122,7 +123,7 @@ class ResultSummaryCard extends StatelessWidget {
                           color: AppColors.moderateSeverityRing,
                         ),
                       ),
-                      Text(
+                      AppText(
                         'Moderate',
                         style: TextStyle(
                           fontSize: 11,
@@ -146,7 +147,7 @@ class ResultSummaryCard extends StatelessWidget {
                 children: [
                   CircleAvatar(radius: 4, backgroundColor: AppColors.primary),
                   SizedBox(width: 4),
-                  Text(
+                  AppText(
                     'Low',
                     style: TextStyle(fontSize: 11, color: AppColors.textMuted),
                   ),
@@ -159,7 +160,7 @@ class ResultSummaryCard extends StatelessWidget {
                     backgroundColor: AppColors.moderateSeverityRing,
                   ),
                   SizedBox(width: 4),
-                  Text(
+                  AppText(
                     'Mod',
                     style: TextStyle(fontSize: 11, color: AppColors.textMuted),
                   ),
@@ -172,7 +173,7 @@ class ResultSummaryCard extends StatelessWidget {
                     backgroundColor: AppColors.severeSeverityRing,
                   ),
                   SizedBox(width: 4),
-                  Text(
+                  AppText(
                     'High',
                     style: TextStyle(fontSize: 11, color: AppColors.textMuted),
                   ),
@@ -188,7 +189,7 @@ class ResultSummaryCard extends StatelessWidget {
           const Center(
             child: Column(
               children: [
-                Text(
+                AppText(
                   'Based on previous assessment',
                   style: TextStyle(
                     fontSize: 13,
@@ -197,7 +198,7 @@ class ResultSummaryCard extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: 2),
-                Text(
+                AppText(
                   'Last assessed: 2 days ago',
                   style: TextStyle(fontSize: 11, color: AppColors.textMuted),
                 ),
@@ -228,7 +229,7 @@ class ResultSummaryCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              const AppText(
                 'Today\'s Result Summary',
                 style: TextStyle(
                   fontSize: 18,
@@ -238,7 +239,7 @@ class ResultSummaryCard extends StatelessWidget {
               ),
               GestureDetector(
                 onTap: () {},
-                child: const Text(
+                child: const AppText(
                   'Share',
                   style: TextStyle(
                     fontSize: 14,
@@ -286,7 +287,7 @@ class ResultSummaryCard extends StatelessWidget {
                     Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
+                        AppText(
                           '${provider.infestationPercent}%',
                           style: const TextStyle(
                             fontSize: 20,
@@ -294,7 +295,7 @@ class ResultSummaryCard extends StatelessWidget {
                             color: AppColors.textPrimary,
                           ),
                         ),
-                        const Text(
+                        const AppText(
                           'LOW',
                           style: TextStyle(
                             fontSize: 10,
@@ -376,7 +377,7 @@ class ResultSummaryCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          const AppText(
             'Ongoing Assessment Summary',
             style: TextStyle(
               fontSize: 18,
@@ -422,7 +423,7 @@ class ResultSummaryCard extends StatelessWidget {
                     Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
+                        AppText(
                           '${provider.currentStops}/${provider.totalStops}',
                           style: const TextStyle(
                             fontSize: 18,
@@ -430,7 +431,7 @@ class ResultSummaryCard extends StatelessWidget {
                             color: AppColors.textPrimary,
                           ),
                         ),
-                        const Text(
+                        const AppText(
                           'STOPS',
                           style: TextStyle(
                             fontSize: 9,
@@ -471,7 +472,7 @@ class ResultSummaryCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           const Center(
-            child: Text(
+            child: AppText(
               'Started Today, 9:14 AM',
               style: TextStyle(fontSize: 12, color: AppColors.textMuted),
             ),

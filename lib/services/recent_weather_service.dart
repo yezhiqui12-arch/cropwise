@@ -6,6 +6,95 @@ import 'polygon_calculator.dart';
 
 typedef WeatherHttpGet = Future<String> Function(Uri uri);
 
+class CurrentFieldWeather {
+  const CurrentFieldWeather({
+    required this.temperatureC,
+    required this.weatherCode,
+    required this.isDay,
+    required this.soilMoisture,
+    required this.observedAt,
+  });
+
+  final double temperatureC;
+  final int weatherCode;
+  final bool isDay;
+  final double? soilMoisture;
+  final DateTime observedAt;
+}
+
+String weatherLabelForCode(int code) => switch (code) {
+  0 => 'Clear sky',
+  1 => 'Mostly clear',
+  2 => 'Partly cloudy',
+  3 => 'Overcast',
+  45 || 48 => 'Foggy',
+  51 || 53 || 55 || 56 || 57 => 'Drizzle',
+  61 || 63 || 65 || 66 || 67 => 'Rain',
+  71 || 73 || 75 || 77 => 'Snow',
+  80 || 81 || 82 => 'Rain showers',
+  85 || 86 => 'Snow showers',
+  95 || 96 || 99 => 'Thunderstorm',
+  _ => 'Current weather',
+};
+
+class OpenMeteoCurrentWeatherService {
+  const OpenMeteoCurrentWeatherService();
+
+  Future<CurrentFieldWeather> current({
+    required double latitude,
+    required double longitude,
+  }) async {
+    final uri = Uri.https('api.open-meteo.com', '/v1/forecast', {
+      'latitude': latitude.toStringAsFixed(6),
+      'longitude': longitude.toStringAsFixed(6),
+      'current': 'temperature_2m,weather_code,is_day,soil_moisture_0_to_1cm',
+      'temperature_unit': 'celsius',
+      'timezone': 'auto',
+      'forecast_days': '1',
+    });
+    final client = HttpClient()..connectionTimeout = const Duration(seconds: 5);
+    try {
+      final request = await client
+          .getUrl(uri)
+          .timeout(const Duration(seconds: 6));
+      request.headers.set(HttpHeaders.acceptHeader, 'application/json');
+      request.headers.set(HttpHeaders.userAgentHeader, 'WormWise/1.0');
+      final response = await request.close().timeout(
+        const Duration(seconds: 8),
+      );
+      if (response.statusCode != HttpStatus.ok) {
+        throw HttpException('Weather service returned ${response.statusCode}.');
+      }
+      final body = await utf8.decoder.bind(response).join();
+      final decoded = jsonDecode(body);
+      if (decoded is! Map<String, dynamic>) {
+        throw const FormatException('Invalid current weather response.');
+      }
+      final values = decoded['current'];
+      if (values is! Map<String, dynamic>) {
+        throw const FormatException('Current weather is unavailable.');
+      }
+      final temperature = values['temperature_2m'];
+      final weatherCode = values['weather_code'];
+      final isDay = values['is_day'];
+      if (temperature is! num || weatherCode is! num || isDay is! num) {
+        throw const FormatException('Current weather is incomplete.');
+      }
+      return CurrentFieldWeather(
+        temperatureC: temperature.toDouble(),
+        weatherCode: weatherCode.toInt(),
+        isDay: isDay.toInt() == 1,
+        soilMoisture: (values['soil_moisture_0_to_1cm'] as num?)?.toDouble(),
+        observedAt:
+            DateTime.tryParse(values['time']?.toString() ?? '') ??
+            DateTime.now(),
+      );
+    } finally {
+      client.close(force: true);
+    }
+  }
+}
+
 class RecentWeatherCoordinates {
   const RecentWeatherCoordinates(this.latitude, this.longitude);
 

@@ -69,6 +69,20 @@ enum PhoneLocationFailureCode {
 class PhoneLocationService {
   const PhoneLocationService();
 
+  static PhoneLocationReading? _latestLiveReading;
+
+  /// A recent device reading shared by route guidance and photo capture.
+  /// Never use a last-known cached fix as a photo location.
+  PhoneLocationReading? recentLiveReading({
+    Duration maximumAge = const Duration(seconds: 15),
+  }) {
+    final reading = _latestLiveReading;
+    if (reading == null) return null;
+    final age = DateTime.now().toUtc().difference(reading.capturedAt.toUtc());
+    if (age.isNegative || age > maximumAge) return null;
+    return reading;
+  }
+
   Future<Stream<PhoneLocationReading>> watchPosition() async {
     await _ensurePermission();
     final controller = StreamController<PhoneLocationReading>();
@@ -78,7 +92,9 @@ class PhoneLocationService {
     controller.onListen = () async {
       try {
         final initial = await Geolocator.getLastKnownPosition();
-        if (!closed && initial != null && _isUsable(initial)) {
+        if (!closed &&
+            initial != null &&
+            _isUsable(initial, maximumAcceptedAccuracyMeters: null)) {
           controller.add(_toReading(initial, isCached: true));
         }
 
@@ -91,8 +107,11 @@ class PhoneLocationService {
                 distanceFilter: 0,
               ),
             ).listen((position) {
-              if (!closed && _isUsable(position)) {
-                controller.add(_toReading(position));
+              if (!closed &&
+                  _isUsable(position, maximumAcceptedAccuracyMeters: null)) {
+                final reading = _toReading(position);
+                _latestLiveReading = reading;
+                controller.add(reading);
               }
             }, onError: controller.addError);
       } catch (error, stackTrace) {
@@ -119,6 +138,7 @@ class PhoneLocationService {
     int targetSamples = 5,
     Duration maximumWait = const Duration(seconds: 12),
     double? maximumAcceptedAccuracyMeters = 100,
+    bool fallbackToCurrentPosition = true,
   }) async {
     if (targetSamples < 1) {
       throw ArgumentError.value(
@@ -130,6 +150,10 @@ class PhoneLocationService {
 
     await _ensurePermission();
 
+    final captureStarted = DateTime.now().toUtc();
+    bool isFresh(Position position) => !position.timestamp.toUtc().isBefore(
+      captureStarted.subtract(const Duration(seconds: 5)),
+    );
     final samples = <Position>[];
     final completion = Completer<void>();
     Object? streamError;
@@ -146,10 +170,11 @@ class PhoneLocationService {
           ),
         ).listen(
           (position) {
-            if (_isUsable(
-              position,
-              maximumAcceptedAccuracyMeters: maximumAcceptedAccuracyMeters,
-            )) {
+            if (isFresh(position) &&
+                _isUsable(
+                  position,
+                  maximumAcceptedAccuracyMeters: maximumAcceptedAccuracyMeters,
+                )) {
               samples.add(position);
             }
             if (samples.length >= targetSamples && !completion.isCompleted) {
@@ -166,7 +191,7 @@ class PhoneLocationService {
     timer.cancel();
     await subscription.cancel();
 
-    if (samples.isEmpty) {
+    if (samples.isEmpty && fallbackToCurrentPosition) {
       try {
         final single = await Geolocator.getCurrentPosition(
           locationSettings: const LocationSettings(
@@ -174,10 +199,11 @@ class PhoneLocationService {
             timeLimit: Duration(seconds: 10),
           ),
         );
-        if (_isUsable(
-          single,
-          maximumAcceptedAccuracyMeters: maximumAcceptedAccuracyMeters,
-        )) {
+        if (isFresh(single) &&
+            _isUsable(
+              single,
+              maximumAcceptedAccuracyMeters: maximumAcceptedAccuracyMeters,
+            )) {
           samples.add(single);
         }
       } on TimeoutException {
@@ -267,7 +293,9 @@ class PhoneLocationService {
       averageAccuracyMeters: accuracyTotal / samples.length,
       worstAccuracyMeters: worstAccuracy,
       sampleCount: samples.length,
-      capturedAt: DateTime.now().toUtc(),
+      capturedAt: samples
+          .map((sample) => sample.timestamp.toUtc())
+          .reduce((latest, value) => value.isAfter(latest) ? value : latest),
     );
   }
 }

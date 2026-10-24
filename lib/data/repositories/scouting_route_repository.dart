@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:latlong2/latlong.dart' show LatLng;
 
 import '../../services/scouting_route_generator.dart';
+import '../../services/scouting_sampling_protocol.dart';
 import '../local/app_database.dart';
 import '../local/database_codes.dart';
 import 'local_mutation_recorder.dart';
@@ -83,7 +84,9 @@ class ScoutingRouteRepository {
     bool recalculated = false,
   }) {
     if (!plan.isReady) {
-      throw StateError('Generated route plan must contain five targets.');
+      throw StateError(
+        'Generated plan does not contain all required sampling targets.',
+      );
     }
     return savePlan(
       plan,
@@ -160,6 +163,30 @@ class ScoutingRouteRepository {
     )) {
       throw StateError(
         'The adjusted target must remain inside the assessment block and outside marked obstacles.',
+      );
+    }
+    if (plan.pattern == ScoutingSamplingProtocol.daPattern &&
+        !ScoutingRouteGenerator.validDaTarget(
+          pending.candidate!,
+          boundary,
+          plan.preparation.obstacles,
+        )) {
+      throw StateError(
+        'Select a plant location at least 3 m from the field edge.',
+      );
+    }
+    if (plan.pattern == ScoutingSamplingProtocol.daPattern &&
+        plan.targets.any(
+          (t) =>
+              t.stationNumber != pending.stationNumber &&
+              ScoutingRouteGenerator.distanceMeters(
+                    t.location,
+                    pending.candidate!,
+                  ) <
+                  2,
+        )) {
+      throw StateError(
+        'Choose a separate location from the other sampled plants.',
       );
     }
     final before = plan.targetFor(pending.stationNumber);

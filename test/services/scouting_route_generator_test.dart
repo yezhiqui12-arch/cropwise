@@ -1,275 +1,48 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:wormwise/data/local/database_codes.dart';
+import 'package:wormwise/services/assessment_protocol_selector.dart';
 import 'package:wormwise/services/scouting_route_generator.dart';
+import 'package:wormwise/services/scouting_sampling_protocol.dart';
 
 void main() {
   const boundary = [
-    LatLng(17.0000, 121.0000),
-    LatLng(17.0000, 121.0100),
-    LatLng(17.0100, 121.0100),
-    LatLng(17.0100, 121.0000),
+    LatLng(17, 121),
+    LatLng(17, 121.001),
+    LatLng(17.001, 121.001),
+    LatLng(17.001, 121),
   ];
-
-  test('W guidance creates five editable interior targets', () {
-    final plan = ScoutingRouteGenerator.generate(
-      draft: _draft(
-        pattern: DatabaseCodes.patternW,
-        preparation: const RoutePreparationData(
-          entrance: LatLng(17.0002, 121.0002),
-          rowBearingDegrees: 0,
-          obstaclesReviewed: true,
-          wCrossingConfirmed: true,
-        ),
-      ),
-      boundary: boundary,
-    );
-
-    expect(plan.targets, hasLength(5));
-    expect(
-      plan.targets.map((target) => target.stationNumber),
-      orderedEquals([1, 2, 3, 4, 5]),
-    );
-    expect(
-      plan.targets.every(
-        (target) => ScoutingRouteGenerator.pointInsidePolygon(
-          target.location,
-          boundary,
-        ),
-      ),
-      isTrue,
-    );
-    expect(
-      ScoutingRouteGenerator.distanceMeters(
-        plan.preparation.entrance!,
-        plan.targets.first.location,
-      ),
-      lessThan(
-        ScoutingRouteGenerator.distanceMeters(
-          plan.preparation.entrance!,
-          plan.targets.last.location,
-        ),
-      ),
-    );
-  });
-
-  test('ladder is automatic and alternates right and left branches', () {
-    final plan = ScoutingRouteGenerator.generate(
-      draft: _draft(
-        pattern: DatabaseCodes.patternLadder,
-        preparation: const RoutePreparationData(
-          entrance: LatLng(17.0002, 121.0002),
-          rowBearingDegrees: 0,
-          obstaclesReviewed: true,
-        ),
-      ),
-      boundary: boundary,
-    );
-
-    expect(plan.targets, hasLength(5));
-    expect(
-      plan.targets.map((target) => target.sideHint),
-      orderedEquals([
-        'right_when_accessible',
-        'left_when_accessible',
-        'right_when_accessible',
-        'left_when_accessible',
-        'right_when_accessible',
-      ]),
-    );
-    expect(
-      plan.segments.where(
-        (segment) => segment.kind == 'ladder_branch_outbound',
-      ),
-      hasLength(5),
-    );
-    expect(
-      plan.segments.where((segment) => segment.kind == 'ladder_branch_return'),
-      hasLength(5),
-    );
-    expect(
-      plan.segments.where((segment) => segment.kind == 'ladder_spine_approach'),
-      hasLength(5),
-    );
-  });
-
-  test('legacy manually drawn passes do not control automatic ladder', () {
-    final plan = ScoutingRouteGenerator.generate(
-      draft: _draft(
-        pattern: DatabaseCodes.patternLadder,
-        preparation: const RoutePreparationData(
-          entrance: LatLng(17.0002, 121.0002),
-          rowBearingDegrees: 0,
-          obstaclesReviewed: true,
-          accessiblePaths: [
-            [LatLng(17.001, 121.005), LatLng(17.02, 121.005)],
-          ],
-        ),
-      ),
-      boundary: boundary,
-    );
-
-    expect(plan.targets, hasLength(5));
-    expect(
-      plan.segments.any(
-        (segment) => segment.kind == 'evaluator_confirmed_accessible_path',
-      ),
-      isFalse,
-    );
-  });
-
-  test('concave fields do not receive unsafe connecting lines', () {
-    const concave = [
-      LatLng(17.000, 121.000),
-      LatLng(17.000, 121.010),
-      LatLng(17.010, 121.010),
-      LatLng(17.010, 121.006),
-      LatLng(17.004, 121.006),
-      LatLng(17.004, 121.004),
-      LatLng(17.010, 121.004),
-      LatLng(17.010, 121.000),
-    ];
-    final plan = ScoutingRouteGenerator.generate(
-      draft: _draft(
-        pattern: DatabaseCodes.patternW,
-        preparation: const RoutePreparationData(
-          entrance: LatLng(17.0002, 121.0002),
-          rowBearingDegrees: 0,
-          obstaclesReviewed: true,
-          wCrossingConfirmed: true,
-        ),
-      ),
-      boundary: concave,
-    );
-
-    expect(plan.targets, hasLength(5));
-    expect(plan.segments.any((segment) => !segment.drawable), isTrue);
-    expect(plan.warnings, isNotEmpty);
-  });
-
-  test('recalculation locks completed locations and preserves valid edits', () {
-    final first = ScoutingRouteGenerator.generate(
-      draft: _draft(
-        pattern: DatabaseCodes.patternW,
-        preparation: const RoutePreparationData(
-          entrance: LatLng(17.0002, 121.0002),
-          rowBearingDegrees: 0,
-          obstaclesReviewed: true,
-          wCrossingConfirmed: true,
-        ),
-      ),
-      boundary: boundary,
-    );
-    final edited = first.copyWith(
-      targets: [
-        first.targets.first,
-        first.targets[1].copyWith(
-          location: const LatLng(17.004, 121.004),
-          source: 'evaluator_adjusted',
-          adjusted: true,
-          adjustmentReason: 'Ditch beside generated target',
-        ),
-        ...first.targets.skip(2),
-      ],
-    );
-    const recorded = LatLng(17.002, 121.002);
-    final recalculated = ScoutingRouteGenerator.generate(
-      draft: edited,
-      boundary: boundary,
-      completedStations: const {1: recorded},
-    );
-
-    expect(recalculated.targetFor(1).location, recorded);
-    expect(recalculated.targetFor(1).lockedCompleted, isTrue);
-    expect(recalculated.targetFor(2).location, const LatLng(17.004, 121.004));
-    expect(recalculated.targetFor(2).adjusted, isTrue);
-  });
-
-  test('route document round trip preserves unfinished workflow state', () {
-    final plan =
-        _draft(
-          pattern: DatabaseCodes.patternW,
-          preparation: const RoutePreparationData(
-            entrance: LatLng(17.0002, 121.0002),
-            rowBearingDegrees: 0,
-            obstaclesReviewed: true,
-            wCrossingConfirmed: true,
-            draftGeometry: RouteDraftGeometry.obstacle,
-            draftPoints: [LatLng(17.003, 121.003), LatLng(17.003, 121.004)],
-          ),
-        ).copyWith(
-          pendingAdjustment: const PendingTargetAdjustment(
-            stationNumber: 3,
-            candidate: LatLng(17.006, 121.006),
-            reason: 'Dense unsafe growth',
-          ),
-          arrivalConfirmedStation: 2,
-        );
-
-    final restored = ScoutingRoutePlan.fromGeoJson(plan.toGeoJson());
-    expect(restored.preparation.draftGeometry, RouteDraftGeometry.obstacle);
-    expect(restored.preparation.draftPoints, hasLength(2));
-    expect(restored.pendingAdjustment?.stationNumber, 3);
-    expect(restored.pendingAdjustment?.reason, 'Dense unsafe growth');
-    expect(restored.arrivalConfirmedStation, 2);
-  });
-
-  test('both patterns generate without manual entrance or row points', () {
-    for (final pattern in [
-      DatabaseCodes.patternW,
-      DatabaseCodes.patternLadder,
-    ]) {
-      final plan = ScoutingRouteGenerator.generate(
-        draft: _draft(
-          pattern: pattern,
-          preparation: const RoutePreparationData(obstaclesReviewed: true),
-        ),
-        boundary: boundary,
+  for (final pattern in ['w', 'ladder']) {
+    test('$pattern cannot generate or reuse a ready retired route', () {
+      final plan = ScoutingRoutePlan(
+        assessmentId: 'old',
+        blockRunId: 'block',
+        blockId: 'field-block',
+        boundaryVersionId: 'boundary',
+        pattern: pattern,
+        status: ScoutingRouteStatus.ready,
+        preparation: const RoutePreparationData(),
+        targets: [
+          for (var i = 1; i <= 5; i++)
+            ScoutingStationTarget(stationNumber: i, location: boundary.first),
+        ],
+        updatedAt: DateTime.utc(2026),
       );
-
-      expect(plan.targets, hasLength(5));
-      expect(plan.preparation.entrance, isNotNull);
+      expect(plan.isReady, isFalse);
       expect(
-        plan.preparation.startSource,
-        routeStartSourceFieldOutlineFallback,
+        () => ScoutingRouteGenerator.generate(draft: plan, boundary: boundary),
+        throwsA(isA<RouteGenerationException>()),
       );
-      expect(plan.preparation.rowBearingDegrees, isNotNull);
+      final decoded = ScoutingRoutePlan.fromGeoJson(plan.toGeoJson());
+      expect(decoded.pattern, pattern);
+      expect(decoded.isReady, isFalse);
+    });
+  }
+  test('every supported growth stage recommends the current DA pattern', () {
+    for (final stage in AssessmentProtocolSelector.growthStages) {
       expect(
-        plan.preparation.orientationSource,
-        routeOrientationSourceFieldShape,
+        AssessmentProtocolSelector.recommendedPatternFor(stage.code),
+        ScoutingSamplingProtocol.daPattern,
       );
     }
   });
-
-  test('completed target stays locked when station GPS is unavailable', () {
-    final first = ScoutingRouteGenerator.generate(
-      draft: _draft(
-        pattern: DatabaseCodes.patternW,
-        preparation: const RoutePreparationData(obstaclesReviewed: true),
-      ),
-      boundary: boundary,
-    );
-    final recalculated = ScoutingRouteGenerator.generate(
-      draft: first,
-      boundary: boundary,
-      completedStations: const {1: null},
-    );
-
-    expect(recalculated.targetFor(1).lockedCompleted, isTrue);
-    expect(recalculated.targetFor(1).location, first.targetFor(1).location);
-  });
 }
-
-ScoutingRoutePlan _draft({
-  required String pattern,
-  required RoutePreparationData preparation,
-}) => ScoutingRoutePlan(
-  assessmentId: 'assessment-1',
-  blockRunId: 'run-1',
-  blockId: 'block-1',
-  boundaryVersionId: 'boundary-1',
-  pattern: pattern,
-  status: ScoutingRouteStatus.draft,
-  preparation: preparation,
-  updatedAt: DateTime.utc(2026, 8, 14),
-);

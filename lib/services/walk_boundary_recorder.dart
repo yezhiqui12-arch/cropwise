@@ -50,11 +50,48 @@ class WalkBoundaryRecorder {
   final double maximumWalkingSpeedMetersPerSecond;
 
   final List<WalkBoundaryPoint> _points = [];
+  final List<WalkBoundaryPoint> _corners = [];
   WalkBoundarySample? _latestSample;
   int _rejectedAccuracyCount = 0;
   int _rejectedMovementCount = 0;
 
   List<WalkBoundaryPoint> get points => List.unmodifiable(_points);
+  List<WalkBoundaryPoint> get corners => List.unmodifiable(_corners);
+
+  /// Confirmed averaged corners define straight edges independently of GPS trace noise.
+  WalkSampleDecision markCorner(WalkBoundarySample sample) {
+    if (!_isValid(sample)) return WalkSampleDecision.invalid;
+    if (sample.accuracyMeters > maximumAccuracyMeters) {
+      return WalkSampleDecision.poorAccuracy;
+    }
+    final corner = WalkBoundaryPoint(
+      position: sample.position,
+      accuracyMeters: sample.accuracyMeters,
+      capturedAt: sample.capturedAt,
+      isMarkedCorner: true,
+    );
+    if (_corners.length >= 3 &&
+        const Distance().as(
+              LengthUnit.Meter,
+              _corners.first.position,
+              sample.position,
+            ) <
+            minimumPointDistanceMeters) {
+      return WalkSampleDecision.tooClose;
+    }
+    if (_corners.isNotEmpty &&
+        const Distance().as(
+              LengthUnit.Meter,
+              _corners.last.position,
+              sample.position,
+            ) <
+            minimumPointDistanceMeters) {
+      return WalkSampleDecision.tooClose;
+    }
+    _corners.add(corner);
+    return WalkSampleDecision.acceptedCorner;
+  }
+
   WalkBoundarySample? get latestSample => _latestSample;
   int get rejectedAccuracyCount => _rejectedAccuracyCount;
   int get rejectedMovementCount => _rejectedMovementCount;
@@ -63,10 +100,10 @@ class WalkBoundaryRecorder {
 
   double? get distanceToStartMeters {
     final latest = _latestSample;
-    if (latest == null || _points.isEmpty) return null;
+    if (latest == null || (_corners.isEmpty && _points.isEmpty)) return null;
     return const Distance().as(
       LengthUnit.Meter,
-      _points.first.position,
+      _corners.isNotEmpty ? _corners.first.position : _points.first.position,
       latest.position,
     );
   }
@@ -151,6 +188,7 @@ class WalkBoundaryRecorder {
 
   void reset() {
     _points.clear();
+    _corners.clear();
     _latestSample = null;
     _rejectedAccuracyCount = 0;
     _rejectedMovementCount = 0;
@@ -184,8 +222,8 @@ class WalkBoundaryRecorder {
   bool _isValid(WalkBoundarySample sample) {
     return sample.position.latitude.isFinite &&
         sample.position.longitude.isFinite &&
-        sample.position.latitude >= -90 &&
-        sample.position.latitude <= 90 &&
+        sample.position.latitude >= -85.05112878 &&
+        sample.position.latitude <= 85.05112878 &&
         sample.position.longitude >= -180 &&
         sample.position.longitude <= 180 &&
         sample.accuracyMeters.isFinite &&

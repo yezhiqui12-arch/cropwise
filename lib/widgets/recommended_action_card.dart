@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../localization/app_text.dart';
 import '../theme/app_colors.dart';
 
 class RecommendedActionCard extends StatelessWidget {
@@ -34,7 +35,7 @@ class RecommendedActionCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              const Text(
+              const AppText(
                 'Recommended Action',
                 style: TextStyle(
                   fontSize: 18,
@@ -45,7 +46,7 @@ class RecommendedActionCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          const Text(
+          const AppText(
             'Continue weekly monitoring. No immediate pesticide application is recommended based on today\'s low severity rating.',
             style: TextStyle(
               fontSize: 14,
@@ -79,7 +80,7 @@ class RecommendedActionCard extends StatelessWidget {
                     size: 18,
                   ),
                   SizedBox(width: 8),
-                  Text(
+                  AppText(
                     'View AI Recommendation',
                     style: TextStyle(
                       fontSize: 14,

@@ -1,11 +1,16 @@
 import 'dart:io';
+import '../../localization/app_language.dart';
+import '../../localization/app_text.dart';
 
 import 'package:flutter/material.dart';
 
 import '../../data/local/app_database.dart';
 import '../../data/local/database_codes.dart';
 import '../../data/repositories/evidence_capture_repository.dart';
+import '../../theme/app_colors.dart';
+import '../../theme/design_tokens.dart';
 import 'evidence_photo_viewer.dart';
+import 'field_workflow_components.dart';
 
 class EvidenceCapturePanel extends StatelessWidget {
   const EvidenceCapturePanel({
@@ -43,22 +48,33 @@ class EvidenceCapturePanel extends StatelessWidget {
     final waived = bundle.waivedViewTypes.contains(viewType);
     return Card(
       key: Key('evidence_panel_$viewType'),
-      elevation: 0,
-      color: const Color(0xFFF3F8F4),
+      elevation: AppElevation.card,
+      color: AppColors.surfaceCard,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 3),
-            Text(
-              '$scopeLabel · ${evidenceViewLabel(viewType)}',
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.xs,
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(title, style: Theme.of(context).textTheme.titleMedium),
+                WorkflowBadge(
+                  label: _stateLabel(media, waived),
+                  icon: _stateIcon(media, waived),
+                  foreground: _stateColor(media, waived),
+                  background: _stateBackground(media, waived),
+                ),
+              ],
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: AppSpacing.xxs),
+            AppText('$scopeLabel · ${evidenceViewLabel(viewType)}'),
+            const SizedBox(height: AppSpacing.xs),
             Text(instruction, style: const TextStyle(height: 1.4)),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm),
             if (media != null) ...[
               _EvidencePreview(
                 media: media,
@@ -82,27 +98,24 @@ class EvidenceCapturePanel extends StatelessWidget {
               if (media.storageState == DatabaseCodes.evidenceStorageReady ||
                   media.storageState == DatabaseCodes.evidenceStorageStaged ||
                   media.storageState == DatabaseCodes.evidenceStorageMissing)
-                Row(
+                Wrap(
+                  spacing: AppSpacing.xs,
+                  runSpacing: AppSpacing.xs,
                   children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        key: Key('retake_$viewType'),
-                        onPressed: () => _retake(context, media),
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('Retake'),
-                      ),
+                    OutlinedButton.icon(
+                      key: Key('retake_$viewType'),
+                      onPressed: () => _retake(context, media),
+                      icon: const Icon(Icons.refresh),
+                      label: const AppText('Retake'),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        key: Key('remove_$viewType'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFFB3261E),
-                        ),
-                        onPressed: () => _remove(context, media),
-                        icon: const Icon(Icons.delete_outline),
-                        label: const Text('Remove'),
+                    OutlinedButton.icon(
+                      key: Key('remove_$viewType'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.severeSeverityRing,
                       ),
+                      onPressed: () => _remove(context, media),
+                      icon: const Icon(Icons.delete_outline),
+                      label: const AppText('Remove'),
                     ),
                   ],
                 ),
@@ -129,13 +142,53 @@ class EvidenceCapturePanel extends StatelessWidget {
               TextButton(
                 key: Key('manual_fallback_$viewType'),
                 onPressed: () => _manualFallback(context),
-                child: const Text('Camera unavailable'),
+                child: const AppText('Camera unavailable'),
               ),
             ],
           ],
         ),
       ),
     );
+  }
+
+  String _stateLabel(EvidenceMediaRecord? media, bool waived) {
+    if (waived) return 'Fallback recorded';
+    return switch (media?.storageState) {
+      DatabaseCodes.evidenceStorageReady => 'Photo ready',
+      DatabaseCodes.evidenceStorageStaged => 'Review photo',
+      DatabaseCodes.evidenceStorageMissing => 'Photo missing',
+      _ => 'Photo required',
+    };
+  }
+
+  IconData _stateIcon(EvidenceMediaRecord? media, bool waived) {
+    if (waived) return Icons.assignment_turned_in_outlined;
+    return switch (media?.storageState) {
+      DatabaseCodes.evidenceStorageReady => Icons.check_circle_outline,
+      DatabaseCodes.evidenceStorageMissing => Icons.warning_amber_rounded,
+      DatabaseCodes.evidenceStorageStaged => Icons.preview_outlined,
+      _ => Icons.camera_alt_outlined,
+    };
+  }
+
+  Color _stateColor(EvidenceMediaRecord? media, bool waived) {
+    if (waived || media?.storageState == DatabaseCodes.evidenceStorageReady) {
+      return AppColors.highContrastGreen;
+    }
+    if (media?.storageState == DatabaseCodes.evidenceStorageMissing) {
+      return AppColors.severeSeverityRing;
+    }
+    return AppColors.textSecondary;
+  }
+
+  Color _stateBackground(EvidenceMediaRecord? media, bool waived) {
+    if (waived || media?.storageState == DatabaseCodes.evidenceStorageReady) {
+      return AppColors.lowSeverityBg;
+    }
+    if (media?.storageState == DatabaseCodes.evidenceStorageMissing) {
+      return AppColors.severeSeverityBg;
+    }
+    return AppColors.surfaceContainer;
   }
 
   Future<void> _retake(BuildContext context, EvidenceMediaRecord media) async {
@@ -155,13 +208,13 @@ class EvidenceCapturePanel extends StatelessWidget {
           context: context,
           builder: (context) => AlertDialog(
             title: Text(retake ? 'Retake this photo?' : 'Remove this photo?'),
-            content: const Text(
+            content: const AppText(
               'The image file will be deleted. WormWise keeps only an audited metadata tombstone and checksum.',
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel'),
+                child: const AppText('Cancel'),
               ),
               FilledButton(
                 key: const Key('confirm_evidence_removal'),
@@ -221,14 +274,14 @@ class _EvidencePreviewState extends State<_EvidencePreview> {
   @override
   Widget build(BuildContext context) {
     if (widget.media.storageState == DatabaseCodes.evidenceStorageMissing) {
-      return const SizedBox.shrink();
+      return const _MissingEvidencePreview();
     }
     return FutureBuilder<File>(
       future: _file,
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const SizedBox(
-            height: 120,
+            height: AppSizes.evidencePreviewHeight,
             child: Center(child: CircularProgressIndicator()),
           );
         }
@@ -239,39 +292,33 @@ class _EvidencePreviewState extends State<_EvidencePreview> {
             key: Key('inspect_evidence_${widget.media.viewType}'),
             onTap: widget.onInspect,
             borderRadius: BorderRadius.circular(12),
-            child: Wrap(
-              spacing: 12,
-              runSpacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              alignment: WrapAlignment.center,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 SizedBox(
-                  width: 144,
+                  height: AppSizes.evidencePreviewHeight,
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: AspectRatio(
-                      aspectRatio: 4 / 3,
-                      child: Image.file(
-                        snapshot.data!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => const ColoredBox(
-                          color: Color(0xFFE6E6E6),
-                          child: Center(child: Text('Preview unavailable')),
-                        ),
+                    child: Image.file(
+                      snapshot.data!,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => const ColoredBox(
+                        color: Color(0xFFE6E6E6),
+                        child: Center(child: AppText('Preview unavailable')),
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(
-                  width: 170,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.zoom_in, size: 18),
-                      SizedBox(width: 4),
-                      Flexible(child: Text('Tap to inspect evidence')),
-                    ],
-                  ),
+                const SizedBox(height: AppSpacing.xs),
+                const Row(
+                  children: [
+                    Icon(Icons.zoom_in, size: 18),
+                    SizedBox(width: 4),
+                    Expanded(
+                      child: AppText('Tap to inspect full-resolution evidence'),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -280,6 +327,33 @@ class _EvidencePreviewState extends State<_EvidencePreview> {
       },
     );
   }
+}
+
+class _MissingEvidencePreview extends StatelessWidget {
+  const _MissingEvidencePreview();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    constraints: const BoxConstraints(minHeight: 128),
+    decoration: BoxDecoration(
+      color: AppColors.severeSeverityBg,
+      borderRadius: AppRadii.cardBorder,
+      border: Border.all(color: AppColors.severeSeverityRing),
+    ),
+    child: const Center(
+      child: Padding(
+        padding: EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.broken_image_outlined, size: 36),
+            SizedBox(height: AppSpacing.xs),
+            AppText('Photo file missing', textAlign: TextAlign.center),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 class _EvidenceStatus extends StatelessWidget {
@@ -335,7 +409,7 @@ class _FallbackNotice extends StatelessWidget {
         Icon(Icons.assignment_turned_in_outlined, color: Color(0xFF176B3A)),
         SizedBox(width: 8),
         Expanded(
-          child: Text(
+          child: AppText(
             'Manual fallback documented. Continue the physical assessment and structured observations.',
             style: TextStyle(height: 1.4, fontWeight: FontWeight.w600),
           ),
@@ -391,13 +465,13 @@ Future<EvidenceFallbackChoice?> showEvidenceFallbackDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: const Text('Camera unavailable'),
+          title: const AppText('Camera unavailable'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
+                const AppText(
                   'Photography failure does not invalidate a careful physical assessment. Record why the required image cannot be collected.',
                   style: TextStyle(height: 1.4),
                 ),
@@ -406,46 +480,46 @@ Future<EvidenceFallbackChoice?> showEvidenceFallbackDialog(
                   key: const Key('evidence_fallback_reason'),
                   initialValue: reason,
                   isExpanded: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Reason',
+                  decoration: InputDecoration(
+                    labelText: AppWords.of(context).translate('Reason'),
                     border: OutlineInputBorder(),
                   ),
                   items: const [
                     DropdownMenuItem(
                       value: DatabaseCodes.evidenceFallbackPermissionDenied,
-                      child: Text('Camera permission denied'),
+                      child: AppText('Camera permission denied'),
                     ),
                     DropdownMenuItem(
                       value: DatabaseCodes.evidenceFallbackPermissionBlocked,
-                      child: Text('Camera blocked in settings'),
+                      child: AppText('Camera blocked in settings'),
                     ),
                     DropdownMenuItem(
                       value: DatabaseCodes.evidenceFallbackNoCamera,
-                      child: Text('No usable camera'),
+                      child: AppText('No usable camera'),
                     ),
                     DropdownMenuItem(
                       value: DatabaseCodes.evidenceFallbackStorage,
-                      child: Text('Phone storage unavailable'),
+                      child: AppText('Phone storage unavailable'),
                     ),
                     DropdownMenuItem(
                       value: DatabaseCodes.evidenceFallbackCaptureFailure,
-                      child: Text('Camera or capture failure'),
+                      child: AppText('Camera or capture failure'),
                     ),
                     DropdownMenuItem(
                       value: DatabaseCodes.evidenceFallbackUnsafe,
-                      child: Text('Unsafe to photograph'),
+                      child: AppText('Unsafe to photograph'),
                     ),
                     DropdownMenuItem(
                       value: DatabaseCodes.evidenceFallbackPrivacy,
-                      child: Text('Privacy or consent concern'),
+                      child: AppText('Privacy or consent concern'),
                     ),
                     DropdownMenuItem(
                       value: DatabaseCodes.evidenceFallbackFraming,
-                      child: Text('Unable to frame useful evidence'),
+                      child: AppText('Unable to frame useful evidence'),
                     ),
                     DropdownMenuItem(
                       value: DatabaseCodes.evidenceFallbackOther,
-                      child: Text('Other recorded reason'),
+                      child: AppText('Other recorded reason'),
                     ),
                   ],
                   onChanged: (value) => setState(() => reason = value),
@@ -455,8 +529,10 @@ Future<EvidenceFallbackChoice?> showEvidenceFallbackDialog(
                   key: const Key('evidence_fallback_note'),
                   controller: note,
                   maxLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: 'Short note (optional)',
+                  decoration: InputDecoration(
+                    labelText: AppWords.of(
+                      context,
+                    ).translate('Short note (optional)'),
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -466,7 +542,7 @@ Future<EvidenceFallbackChoice?> showEvidenceFallbackDialog(
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: const AppText('Cancel'),
             ),
             FilledButton(
               key: const Key('save_evidence_fallback'),
@@ -481,7 +557,7 @@ Future<EvidenceFallbackChoice?> showEvidenceFallbackDialog(
                             : note.text.trim(),
                       ),
                     ),
-              child: const Text('Save fallback'),
+              child: const AppText('Save fallback'),
             ),
           ],
         ),

@@ -115,8 +115,9 @@ class EvidenceCaptureCoordinator {
     required String sourcePath,
     required String actorPersonId,
     bool deleteSourceAfterCopy = true,
+    String? stableMediaId,
   }) async {
-    final mediaId = LocalId.generate();
+    final mediaId = stableMediaId ?? LocalId.generate();
     StoredEvidenceFile? stored;
     try {
       stored = await _storage.stageCapturedFile(
@@ -229,7 +230,7 @@ class EvidenceCaptureCoordinator {
     required EvidenceCaptureSessionRecord session,
     required String actorPersonId,
     required Duration activeDuration,
-    required int newestLeavesInspectedCount,
+    required int? newestLeavesInspectedCount,
     Set<String> requiredViewTypes = const {
       DatabaseCodes.evidenceViewWhorlOverview,
       DatabaseCodes.evidenceViewCloseUp,

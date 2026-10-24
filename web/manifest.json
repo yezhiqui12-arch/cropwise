@@ -1,11 +1,11 @@
 {
-    "name": "wormwise",
-    "short_name": "wormwise",
+    "name": "WormWise",
+    "short_name": "WormWise",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#F5F7F2",
+    "theme_color": "#0D631B",
+    "description": "Offline-first maize fall armyworm field assessment.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

@@ -196,79 +196,80 @@ void main() {
     expect(custom.localUtcOffsetMinutes, 480);
   });
 
-  test(
-    'validates 5x10 vegetative sample and calculates block metrics',
-    () async {
-      final setup = await _createAssessmentFixture(
-        people: people,
-        fields: fields,
-        assessments: assessments,
-      );
-      await assessments.recordSafetyCheck(
-        assessmentId: setup.assessment.id,
-        checkedByPersonId: setup.evaluator.id,
-        resultStatus: DatabaseCodes.noRecentTreatment,
-      );
-      await assessments.startAssessment(setup.assessment.id);
+  test('validates 5x10 vegetative sample and calculates block metrics', () async {
+    final setup = await _createAssessmentFixture(
+      people: people,
+      fields: fields,
+      assessments: assessments,
+    );
+    await assessments.recordSafetyCheck(
+      assessmentId: setup.assessment.id,
+      checkedByPersonId: setup.evaluator.id,
+      resultStatus: DatabaseCodes.noRecentTreatment,
+    );
+    await assessments.startAssessment(setup.assessment.id);
 
-      final run = await assessments.addBlockRun(
-        assessmentId: setup.assessment.id,
-        fieldBlockId: setup.block.id,
-        blockSequence: 1,
-        scoutingPattern: DatabaseCodes.patternW,
-      );
+    final run = await assessments.addBlockRun(
+      assessmentId: setup.assessment.id,
+      fieldBlockId: setup.block.id,
+      blockSequence: 1,
+      scoutingPattern: DatabaseCodes.patternW,
+    );
 
-      var overallPlant = 0;
-      for (var stationNumber = 1; stationNumber <= 5; stationNumber++) {
-        final station = await assessments.addStation(
-          assessmentBlockRunId: run.id,
-          stationNumber: stationNumber,
+    var overallPlant = 0;
+    for (var stationNumber = 1; stationNumber <= 5; stationNumber++) {
+      final station = await assessments.addStation(
+        assessmentBlockRunId: run.id,
+        stationNumber: stationNumber,
+      );
+      for (var sequence = 1; sequence <= 10; sequence++) {
+        overallPlant++;
+        final currentPositive = overallPlant <= 8;
+        final plant = await assessments.savePlant(
+          stationId: station.id,
+          sequenceNumber: sequence,
+          plantStatus: currentPositive
+              ? DatabaseCodes.plantCurrentPositive
+              : DatabaseCodes.plantNegative,
+          currentFawEvidence: currentPositive,
+          naturalEnemyQuickStatus: DatabaseCodes.naturalEnemyNoneSeen,
         );
-        for (var sequence = 1; sequence <= 10; sequence++) {
-          overallPlant++;
-          final currentPositive = overallPlant <= 8;
-          final plant = await assessments.savePlant(
-            stationId: station.id,
-            sequenceNumber: sequence,
-            plantStatus: currentPositive
-                ? DatabaseCodes.plantCurrentPositive
-                : DatabaseCodes.plantNegative,
-            currentFawEvidence: currentPositive,
-            naturalEnemyQuickStatus: DatabaseCodes.naturalEnemyNoneSeen,
-          );
-          await assessments.saveVegetativeObservation(
-            plantObservationId: plant.id,
-            newestLeavesInspectedCount: 4,
-            smallFreshWindowpanes: overallPlant <= 5,
-            infestedWhorl: overallPlant <= 3,
-            freshFrass: overallPlant <= 3,
-            daBafsLeafDamageScore: currentPositive ? 2 : 0,
-          );
-        }
+        await assessments.saveVegetativeObservation(
+          plantObservationId: plant.id,
+          newestLeavesInspectedCount: 4,
+          smallFreshWindowpanes: overallPlant <= 5,
+          infestedWhorl: overallPlant <= 3,
+          freshFrass: overallPlant <= 3,
+          daBafsLeafDamageScore: currentPositive ? 2 : 0,
+        );
       }
+    }
 
-      final validator = AssessmentCompletionValidator(database);
-      final validation = await validator.validateBlock(run.id);
-      expect(validation.issues, isEmpty);
+    final validator = AssessmentCompletionValidator(database);
+    final validation = await validator.validateBlock(run.id);
+    expect(validation.issues, isEmpty);
 
-      final metrics = await AssessmentMetricsService(
-        database,
-      ).recalculateBlock(run.id);
-      final byCode = {for (final metric in metrics) metric.metricCode: metric};
-      expect(
-        byCode[DatabaseCodes.vegetativeCurrentInfestationPercent]?.value,
-        16,
-      );
-      expect(byCode[DatabaseCodes.smallFreshWindowpanePercent]?.value, 10);
-      expect(byCode[DatabaseCodes.infestedWhorlPercent]?.value, 6);
+    final metrics = await AssessmentMetricsService(
+      database,
+    ).recalculateBlock(run.id);
+    final byCode = {for (final metric in metrics) metric.metricCode: metric};
+    expect(
+      byCode[DatabaseCodes.vegetativeCurrentInfestationPercent]?.value,
+      16,
+    );
+    expect(byCode[DatabaseCodes.smallFreshWindowpanePercent]?.value, 10);
+    expect(byCode[DatabaseCodes.infestedWhorlPercent]?.value, 6);
 
-      await validator.completeAssessment(setup.assessment.id);
-      final completed = await (database.select(
-        database.assessments,
-      )..where((row) => row.id.equals(setup.assessment.id))).getSingle();
-      expect(completed.status, DatabaseCodes.completed);
-    },
-  );
+    // Raw observations can produce metrics, but are not sufficient for completion.
+    await expectLater(
+      validator.completeAssessment(setup.assessment.id),
+      throwsA(isA<AssessmentValidationException>()),
+    );
+    final completed = await (database.select(
+      database.assessments,
+    )..where((row) => row.id.equals(setup.assessment.id))).getSingle();
+    expect(completed.status, DatabaseCodes.inProgress);
+  });
 
   test(
     'VE-V2 requires a separate 10-position planting-unit sequence',

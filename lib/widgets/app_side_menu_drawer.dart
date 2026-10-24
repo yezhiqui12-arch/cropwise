@@ -1,11 +1,26 @@
 import 'package:flutter/material.dart';
+import '../localization/app_text.dart';
 import 'package:provider/provider.dart';
+import '../localization/app_language.dart';
 import '../providers/field_workspace_provider.dart';
 import '../screens/fields_screen.dart';
+import '../screens/my_profile_screen.dart';
+import '../screens/language_screen.dart';
+import '../screens/help_support_screen.dart';
+import '../screens/advisor/guidelines_redesign.dart';
+import '../screens/signed_out_screen.dart';
+import '../services/cloud/wormwise_identity_service.dart';
+import '../services/recent_weather_service.dart';
 import '../theme/app_colors.dart';
 
 class AppSideMenuDrawer extends StatelessWidget {
   const AppSideMenuDrawer({super.key});
+
+  void _openLanguage(BuildContext context) {
+    final navigator = Navigator.of(context);
+    navigator.pop();
+    navigator.push(MaterialPageRoute(builder: (_) => const LanguageScreen()));
+  }
 
   void _openFields(BuildContext context) {
     final navigator = Navigator.of(context);
@@ -13,8 +28,74 @@ class AppSideMenuDrawer extends StatelessWidget {
     navigator.push(MaterialPageRoute(builder: (_) => const FieldsScreen()));
   }
 
+  void _openGuides(BuildContext context) {
+    final navigator = Navigator.of(context);
+    navigator.pop();
+    navigator.push(
+      MaterialPageRoute(builder: (_) => const AdvisorOfflineGuidesScreen()),
+    );
+  }
+
+  void _openAccount(BuildContext context) {
+    final navigator = Navigator.of(context);
+    navigator.pop();
+    navigator.push(MaterialPageRoute(builder: (_) => const MyProfileScreen()));
+  }
+
+  void _openHelp(BuildContext context) {
+    final navigator = Navigator.of(context);
+    navigator.pop();
+    navigator.push(
+      MaterialPageRoute(builder: (_) => const HelpSupportScreen()),
+    );
+  }
+
+  Future<void> _signOut(BuildContext context) async {
+    final navigator = Navigator.of(context);
+    final identity = context.read<WormWiseIdentityService>();
+    final words = AppWords.of(context);
+    final shouldSignOut = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(words.signOutQuestion),
+        content: Text(words.signOutRetention),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(words.cancel),
+          ),
+          FilledButton(
+            key: const Key('confirm_sign_out_button'),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFD32F2F),
+            ),
+            child: Text(words.signOut),
+          ),
+        ],
+      ),
+    );
+    if (shouldSignOut != true) return;
+
+    // Close the drawer only after confirmation. Closing it before awaiting the
+    // dialog disposed this widget's context and previously aborted sign-out.
+    navigator.pop();
+
+    try {
+      await identity.signOut();
+    } catch (_) {
+      // A failed network sign-out must not block local access or risk local
+      // records. The signed-out gate remains usable in offline mode.
+    }
+    navigator.pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const SignedOutScreen()),
+      (_) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final words = AppWords.of(context);
     // Width set to 78% of total screen width as requested (70-80% bounds)
     final drawerWidth = MediaQuery.of(context).size.width * 0.78;
 
@@ -43,36 +124,46 @@ class AppSideMenuDrawer extends StatelessWidget {
                     vertical: 12,
                   ),
                   children: [
+                    const _SidebarFieldConditions(),
+                    const SizedBox(height: 12),
                     // Item 1: My Profile (Standard inactive)
                     _buildMenuItem(
                       icon: Icons.person_outline,
-                      label: 'My Profile',
-                      onTap: () => Navigator.pop(context),
+                      label: words.myProfile,
+                      onTap: () => _openAccount(context),
                     ),
                     const SizedBox(height: 6),
 
                     // Item 2: My Fields
                     _buildMenuItem(
                       icon: Icons.landscape_outlined,
-                      label: 'My Fields',
+                      label: words.myFields,
                       onTap: () => _openFields(context),
                     ),
+                    const SizedBox(height: 6),
                     const SizedBox(height: 12),
                     const Divider(height: 1, color: Color(0xFFEEEEEE)),
                     const SizedBox(height: 12),
 
-                    // Item 4: Language
+                    _buildMenuItem(
+                      icon: Icons.menu_book_outlined,
+                      label: words.guidelines,
+                      onTap: () => _openGuides(context),
+                    ),
+                    const SizedBox(height: 6),
+
+                    // Language
                     _buildMenuItem(
                       icon: Icons.language,
-                      label: 'Language',
-                      onTap: () => Navigator.pop(context),
+                      label: words.languageLabel,
+                      onTap: () => _openLanguage(context),
                     ),
                     const SizedBox(height: 6),
 
                     // Item 5: Settings
                     _buildMenuItem(
                       icon: Icons.settings_outlined,
-                      label: 'Settings',
+                      label: words.settings,
                       onTap: () => Navigator.pop(context),
                     ),
                     const SizedBox(height: 12),
@@ -82,16 +173,8 @@ class AppSideMenuDrawer extends StatelessWidget {
                     // Item 6: Help & Support
                     _buildMenuItem(
                       icon: Icons.help_outline,
-                      label: 'Help & Support',
-                      onTap: () => Navigator.pop(context),
-                    ),
-                    const SizedBox(height: 6),
-
-                    // Item 7: About WormWise
-                    _buildMenuItem(
-                      icon: Icons.info_outline,
-                      label: 'About WormWise',
-                      onTap: () => Navigator.pop(context),
+                      label: words.helpAndSupport,
+                      onTap: () => _openHelp(context),
                     ),
                     const SizedBox(height: 12),
                     const Divider(height: 1, color: Color(0xFFEEEEEE)),
@@ -100,9 +183,9 @@ class AppSideMenuDrawer extends StatelessWidget {
                     // Item 8: Sign Out (Red accent)
                     _buildMenuItem(
                       icon: Icons.logout,
-                      label: 'Sign Out',
+                      label: words.signOut,
                       isDestructive: true,
-                      onTap: () => Navigator.pop(context),
+                      onTap: () => _signOut(context),
                     ),
                   ],
                 ),
@@ -115,9 +198,15 @@ class AppSideMenuDrawer extends StatelessWidget {
   }
 
   Widget _buildProfileHeader(BuildContext context) {
-    final activeFieldName =
-        context.watch<FieldWorkspaceProvider>().activeWorkspace?.field.name ??
-        'No field selected';
+    final words = AppWords.of(context);
+    final identity = context.watch<WormWiseIdentityService>();
+    final registered = identity.state == WormWiseIdentityState.registered;
+    final profileName = registered
+        ? identity.displayName ?? words.wormwiseUser
+        : words.guestUser;
+    final profileSubtitle = registered
+        ? identity.email ?? words.registeredAccount
+        : words.dataSavedOnDevice;
     return Container(
       width: double.infinity,
       padding: EdgeInsets.only(
@@ -136,26 +225,19 @@ class AppSideMenuDrawer extends StatelessWidget {
           // Logo & App Name Header
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryLight,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.eco,
-                  color: AppColors.primary,
-                  size: 22,
-                ),
+              Image.asset(
+                'assets/images/wormwise_brand_logo.png',
+                width: 44,
+                height: 44,
+                fit: BoxFit.contain,
               ),
-              const SizedBox(width: 8),
-              const Text(
-                'WormWise',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
-                  letterSpacing: -0.5,
+              const SizedBox(width: 10),
+              Expanded(
+                child: Image.asset(
+                  'assets/images/wormwise_brand_wordmark.png',
+                  height: 28,
+                  fit: BoxFit.contain,
+                  alignment: Alignment.centerLeft,
                 ),
               ),
             ],
@@ -190,13 +272,13 @@ class AppSideMenuDrawer extends StatelessWidget {
               const SizedBox(width: 14),
 
               // Profile state
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Local user',
-                      style: TextStyle(
+                      profileName,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: AppColors.textPrimary,
@@ -204,8 +286,8 @@ class AppSideMenuDrawer extends StatelessWidget {
                     ),
                     SizedBox(height: 2),
                     Text(
-                      'Profile not set up',
-                      style: TextStyle(
+                      profileSubtitle,
+                      style: const TextStyle(
                         fontSize: 13,
                         color: AppColors.textSecondary,
                         fontWeight: FontWeight.w500,
@@ -215,77 +297,6 @@ class AppSideMenuDrawer extends StatelessWidget {
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 16),
-
-          // Field Selector Dropdown Pill
-          InkWell(
-            onTap: () => _openFields(context),
-            borderRadius: BorderRadius.circular(14),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFE0E0E0)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.location_on,
-                    color: AppColors.primary,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      activeFieldName,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const Icon(
-                    Icons.keyboard_arrow_down,
-                    color: AppColors.textMuted,
-                    size: 20,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-
-          // Status Pill Badge: Offline Ready
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE8F5E9),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFC8E6C9)),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.cloud_done_outlined,
-                  color: AppColors.primary,
-                  size: 16,
-                ),
-                SizedBox(width: 6),
-                Text(
-                  'Offline Ready',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ],
-            ),
           ),
         ],
       ),
@@ -357,6 +368,86 @@ class AppSideMenuDrawer extends StatelessWidget {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _SidebarFieldConditions extends StatefulWidget {
+  const _SidebarFieldConditions();
+
+  @override
+  State<_SidebarFieldConditions> createState() =>
+      _SidebarFieldConditionsState();
+}
+
+class _SidebarFieldConditionsState extends State<_SidebarFieldConditions> {
+  String? _coordinatesKey;
+  Future<CurrentFieldWeather>? _weather;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final workspace = context.watch<FieldWorkspaceProvider>().activeWorkspace;
+    final coordinates = workspace == null
+        ? null
+        : resolveRecentWeatherCoordinates(
+            storedLatitude: workspace.boundary?.centroidLatitude,
+            storedLongitude: workspace.boundary?.centroidLongitude,
+            boundaryGeoJson: workspace.boundary?.geometryGeojson ?? '',
+          );
+    final key = coordinates == null
+        ? null
+        : '${coordinates.latitude}:${coordinates.longitude}';
+    if (key == _coordinatesKey) return;
+    _coordinatesKey = key;
+    _weather = coordinates == null
+        ? null
+        : const OpenMeteoCurrentWeatherService().current(
+            latitude: coordinates.latitude,
+            longitude: coordinates.longitude,
+          );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const Key('sidebar_field_conditions'),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF2F8F2),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.cloud_outlined, color: AppColors.primary, size: 22),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Text(
+              AppWords.of(context).fieldConditions,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+            ),
+          ),
+          if (_weather != null)
+            FutureBuilder<CurrentFieldWeather>(
+              future: _weather,
+              builder: (context, snapshot) => Text(
+                snapshot.hasData
+                    ? '${snapshot.data!.temperatureC.round()}°C'
+                    : '—',
+                style: const TextStyle(
+                  color: AppColors.primary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            )
+          else
+            const AppText(
+              '—',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+        ],
       ),
     );
   }

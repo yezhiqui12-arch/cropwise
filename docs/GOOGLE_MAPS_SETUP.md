@@ -13,7 +13,7 @@ World Imagery as an online drawing reference and provide an OpenStreetMap
 alternative. This direct imagery integration still needs production review for
 provider terms, authentication, attribution, availability, and expected usage.
 
-Scan uses the same Esri World Imagery background as the Map tab and falls back
+Scout uses the same Esri World Imagery background as the Map tab and falls back
 automatically to its deterministic illustrated field view. A later deployment
 can use a prepared, licensed offline Piat imagery package without changing the
 field-location rules.

@@ -1,3 +1,4 @@
+import '../services/scouting_sampling_protocol.dart';
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -8,10 +9,31 @@ import '../data/repositories/assessment_repository.dart';
 import '../data/repositories/field_repository.dart';
 import '../data/repositories/people_repository.dart';
 import '../services/assessment_protocol_selector.dart';
+import '../services/treatment_entry_safety.dart';
 
 class AssessmentWorkspaceProvider extends ChangeNotifier {
   AssessmentWorkspaceProvider(this._assessments, this._people);
 
+  /// Watch the requested assessment by ID, including older crop cycles. This
+  /// provider is route-local and never selects a different open assessment.
+  AssessmentWorkspaceProvider.forAssessment(
+    this._assessments,
+    this._people,
+    FieldWorkspaceRecord workspace,
+    AssessmentRecord assessment,
+  ) {
+    if (workspace.cropCycle?.id != assessment.cropCycleId ||
+        workspace.boundary?.id != assessment.boundaryVersionId) {
+      throw ArgumentError(
+        'Assessment context does not match the selected record.',
+      );
+    }
+    _fieldWorkspace = workspace;
+    _currentAssessment = assessment;
+    _subscription = _assessments
+        .watchAssessmentById(assessment.id)
+        .listen(_handleAssessment, onError: _handleError);
+  }
   final AssessmentRepository _assessments;
   final PeopleRepository _people;
   StreamSubscription<AssessmentRecord?>? _subscription;
@@ -79,6 +101,7 @@ class AssessmentWorkspaceProvider extends ChangeNotifier {
     String? safetySource,
     String? safetyNotes,
     bool safetyInputsVerified = false,
+    TreatmentEntrySafety? treatment,
   }) async {
     if (_currentAssessment != null) {
       throw StateError(
@@ -105,12 +128,12 @@ class AssessmentWorkspaceProvider extends ChangeNotifier {
         boundaryVersionId: boundary.id,
         evaluatorPersonId: evaluator.id,
         assessmentMode: assessmentMode,
-        scoutingPattern: scoutingPattern,
+        scoutingPattern: ScoutingSamplingProtocol.daPattern,
         patternReason: patternReason,
         growthStage: growthStage,
         growthStageUncertain: growthStageUncertain,
         growthStageBestEstimate: growthStageUncertain ? growthStage : null,
-        protocolVersion: 'wormwise-maize-faw-2026.1-draft',
+        protocolVersion: ScoutingSamplingProtocol.daVersion,
         formulaVersion: '1.0-draft',
         interventionHistoryStatus: interventionHistoryStatus,
         preferredLanguage: preferredLanguage,
@@ -123,6 +146,7 @@ class AssessmentWorkspaceProvider extends ChangeNotifier {
         safetySource: safetySource,
         safetyNotes: safetyNotes,
         safetyInputsVerified: safetyInputsVerified,
+        treatment: treatment,
       );
       _currentAssessment = await _assessments.assessmentById(draft.id);
       return _currentAssessment!;
@@ -139,6 +163,7 @@ class AssessmentWorkspaceProvider extends ChangeNotifier {
     String? safetySource,
     String? safetyNotes,
     bool safetyInputsVerified = false,
+    TreatmentEntrySafety? treatment,
     String? weatherContext,
   }) async {
     final assessment = _currentAssessment;
@@ -167,6 +192,7 @@ class AssessmentWorkspaceProvider extends ChangeNotifier {
         safetySource: safetySource,
         safetyNotes: safetyNotes,
         safetyInputsVerified: safetyInputsVerified,
+        treatment: treatment,
       );
       _currentAssessment = await _assessments.assessmentById(assessment.id);
       return _currentAssessment!;
@@ -192,9 +218,10 @@ class AssessmentWorkspaceProvider extends ChangeNotifier {
             assessmentMode: AssessmentProtocolSelector.assessmentModeFor(
               growthStage,
             ),
-            scoutingPattern: AssessmentProtocolSelector.recommendedPatternFor(
-              growthStage,
-            ),
+            scoutingPattern:
+                ScoutingSamplingProtocol.isDa(assessment.protocolVersion)
+                ? ScoutingSamplingProtocol.daPattern
+                : AssessmentProtocolSelector.recommendedPatternFor(growthStage),
           );
       return _currentAssessment!;
     } catch (error) {
@@ -211,17 +238,23 @@ class AssessmentWorkspaceProvider extends ChangeNotifier {
     required bool safetyInputsVerified,
     String? safetySource,
     String? safetyNotes,
+    TreatmentEntrySafety? treatment,
   }) async {
+    final resolvedStatus = treatment?.statusAt(DateTime.now()) ?? safetyStatus;
     await _assessments.recordSafetyCheck(
       assessmentId: assessment.id,
       checkedByPersonId: assessment.evaluatorPersonId,
-      resultStatus: safetyStatus,
-      reiSource: safetySource,
-      calculationInputsVerified: safetyInputsVerified,
-      notes: safetyNotes,
+      resultStatus: resolvedStatus,
+      applicationEndAtUsed: treatment?.applicationEndedAt,
+      reiTextUsed: treatment?.reentryText,
+      reiSource: treatment?.source ?? safetySource,
+      calculatedSafeEntryAt: treatment?.safeEntryAt,
+      // Selecting a source records provenance, but is not independent verification.
+      calculationInputsVerified: treatment == null && safetyInputsVerified,
+      notes: treatment?.safetyNote ?? safetyNotes,
     );
-    if (safetyStatus == DatabaseCodes.noRecentTreatment ||
-        safetyStatus == DatabaseCodes.safeIntervalCompleted) {
+    if (resolvedStatus == DatabaseCodes.noRecentTreatment ||
+        resolvedStatus == DatabaseCodes.safeIntervalCompleted) {
       if (DatabaseCodes.isGrowthStageImplemented(assessment.growthStage)) {
         await _assessments.startAssessment(assessment.id);
       }

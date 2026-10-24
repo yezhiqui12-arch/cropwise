@@ -1,7 +1,7 @@
 import '../data/local/app_database.dart';
 import '../data/local/database_codes.dart';
 
-/// Versioned evidence requirements for the V3-V12 five-station pilot.
+/// Versioned evidence requirements for the maize plant capture workflow.
 ///
 /// New sessions use one overview plus an evaluator-selected conditional
 /// close-up. Older policies remain readable to preserve accepted evidence.

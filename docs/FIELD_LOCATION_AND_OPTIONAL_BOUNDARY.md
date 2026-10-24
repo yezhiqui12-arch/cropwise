@@ -6,7 +6,7 @@
 ## Current decision
 
 A field may be registered before its full outline is available, but a new
-assessment cannot proceed to setup or Station 1 until the selected field has a
+assessment cannot proceed to setup or active sampling until the selected field has a
 confirmed approximate outline.
 
 The app must show **Complete field outline** when the outline is missing. It
@@ -73,8 +73,8 @@ and allow switching to OpenStreetMap. That online imagery integration is a
 development reference and still requires a deployment review of provider terms,
 attribution, authentication, availability, and expected usage.
 
-Scan now uses the same Esri World Imagery online background as the Map tab.
-Scan falls back to the deterministic offline illustrated field view when the
+Scout now uses the same Esri World Imagery online background as the Map tab.
+Scout falls back to the deterministic offline illustrated field view when the
 online imagery is unavailable.
 
 Route, stations, obstacles, current position, scale, north orientation, and the
@@ -84,7 +84,7 @@ block saved-outline editing, assessment resume, or field collection.
 ## Acceptance checks
 
 - A field can be registered before an outline is available.
-- A new assessment cannot enter setup or Station 1 without a confirmed outline.
+- A new assessment cannot enter setup or active sampling without a confirmed outline.
 - The gate cannot be bypassed through a legacy Home or Assess route.
 - Existing drafts are preserved when an outline is missing.
 - Entrance GPS is never presented as a polygon.

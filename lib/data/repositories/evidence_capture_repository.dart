@@ -1,3 +1,4 @@
+import '../../services/scouting_sampling_protocol.dart';
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
@@ -384,6 +385,65 @@ class EvidenceCaptureRepository {
         database.evidenceCaptureSessions,
       )..where((row) => row.id.equals(id))).getSingle();
     });
+  }
+
+  Future<void> savePlantLocationFromEvidence(
+    EvidenceCaptureBundle bundle,
+  ) async {
+    final position = bundle.session.plantPosition;
+    if (position == null ||
+        bundle.session.scopeType != DatabaseCodes.evidenceScopePlant)
+      return;
+    final located =
+        bundle.media
+            .where(
+              (media) =>
+                  media.deletedAt == null &&
+                  media.storageState == DatabaseCodes.evidenceStorageReady &&
+                  media.locationSource == 'phone_gps' &&
+                  media.latitude != null &&
+                  media.longitude != null &&
+                  media.locationCapturedAt != null,
+            )
+            .toList()
+          ..sort(
+            (a, b) => a.locationCapturedAt!.compareTo(b.locationCapturedAt!),
+          );
+    if (located.isEmpty) return;
+    final fix = located.first;
+    final plant =
+        await (database.select(database.plantObservations)..where(
+              (p) =>
+                  p.stationId.equals(bundle.session.stationId) &
+                  p.sequenceNumber.equals(position) &
+                  p.deletedAt.isNull(),
+            ))
+            .getSingleOrNull();
+    if (plant == null ||
+        (plant.latitude == fix.latitude &&
+            plant.longitude == fix.longitude &&
+            plant.locationSource == 'phone_gps' &&
+            plant.locationCapturedAt == fix.locationCapturedAt))
+      return;
+    await (database.update(
+      database.plantObservations,
+    )..where((p) => p.id.equals(plant.id))).write(
+      PlantObservationsCompanion(
+        latitude: Value(fix.latitude),
+        longitude: Value(fix.longitude),
+        gpsAccuracyM: Value(fix.gpsAccuracyM),
+        locationSource: const Value('phone_gps'),
+        locationCapturedAt: Value(fix.locationCapturedAt),
+        updatedAt: Value(DateTime.now().toUtc()),
+        syncState: const Value(DatabaseCodes.queued),
+      ),
+    );
+    await _mutations.record(
+      entityType: 'plant_observations',
+      entityId: plant.id,
+      action: 'photo_location_saved',
+      after: {'latitude': fix.latitude, 'longitude': fix.longitude},
+    );
   }
 
   Future<EvidenceCaptureBundle> loadBundle(String sessionId) async {
@@ -848,11 +908,29 @@ class EvidenceCaptureRepository {
     });
   }
 
+  Future<bool> _validInspectedLeafCount(
+    EvidenceCaptureSessionRecord session,
+    int? count,
+  ) async {
+    if (count == 3 || count == 4) return true;
+    final assessment = await (database.select(
+      database.assessments,
+    )..where((r) => r.id.equals(session.assessmentId))).getSingle();
+    if (count == null)
+      return ScoutingSamplingProtocol.isDa(assessment.protocolVersion);
+    // A newly emerged plant may not have three leaves. Never record an
+    // inspection of leaves that do not exist. Legacy capture rules stay intact.
+    return ScoutingSamplingProtocol.isDa(assessment.protocolVersion) &&
+        const {'ve', 'v1', 'v2'}.contains(assessment.growthStage) &&
+        count >= 0 &&
+        count <= 2;
+  }
+
   Future<void> completePlantCapture({
     required EvidenceCaptureSessionRecord session,
     required String actorPersonId,
     required int pilotActiveDurationMs,
-    required int newestLeavesInspectedCount,
+    required int? newestLeavesInspectedCount,
     Set<String> requiredViewTypes = const {
       DatabaseCodes.evidenceViewWhorlOverview,
       DatabaseCodes.evidenceViewCloseUp,
@@ -865,7 +943,7 @@ class EvidenceCaptureRepository {
         'Capture duration cannot be negative',
       );
     }
-    if (newestLeavesInspectedCount != 3 && newestLeavesInspectedCount != 4) {
+    if (!await _validInspectedLeafCount(session, newestLeavesInspectedCount)) {
       throw ArgumentError.value(
         newestLeavesInspectedCount,
         'newestLeavesInspectedCount',
@@ -915,7 +993,8 @@ class EvidenceCaptureRepository {
           'required_view_types': requiredViewTypes.toList()..sort(),
           'waived_view_types': bundle.waivedViewTypes.toList()..sort(),
           'pilot_active_duration_ms': pilotActiveDurationMs,
-          'newest_leaves_inspected_count': newestLeavesInspectedCount,
+          if (newestLeavesInspectedCount != null)
+            'newest_leaves_inspected_count': newestLeavesInspectedCount,
           'conditional_detail_used': bundle.isViewSatisfied(
             DatabaseCodes.evidenceViewDiagnosticDetail,
           ),
@@ -934,7 +1013,7 @@ class EvidenceCaptureRepository {
         session.plantPosition == null) {
       throw StateError('This is not a plant evidence session.');
     }
-    if (newestLeavesInspectedCount != 3 && newestLeavesInspectedCount != 4) {
+    if (!await _validInspectedLeafCount(session, newestLeavesInspectedCount)) {
       throw ArgumentError.value(
         newestLeavesInspectedCount,
         'newestLeavesInspectedCount',
@@ -1004,6 +1083,44 @@ class EvidenceCaptureRepository {
             updatedAt: Value(now),
           ),
         );
+    // Bind a real photo-time fix when the plant observation is created, including
+    // after restart. Never borrow the station location or gallery upload position.
+    final located =
+        bundle.media
+            .where(
+              (media) =>
+                  media.locationSource == 'phone_gps' &&
+                  media.latitude != null &&
+                  media.longitude != null &&
+                  media.locationCapturedAt != null &&
+                  media.storageState == DatabaseCodes.evidenceStorageReady,
+            )
+            .toList()
+          ..sort(
+            (a, b) => a.locationCapturedAt!.compareTo(b.locationCapturedAt!),
+          );
+    final fix = located.isEmpty ? null : located.first;
+    await (database.update(
+      database.plantObservations,
+    )..where((row) => row.id.equals(plantObservationId))).write(
+      PlantObservationsCompanion(
+        latitude: Value(fix?.latitude),
+        longitude: Value(fix?.longitude),
+        gpsAccuracyM: Value(fix?.gpsAccuracyM),
+        locationSource: Value(fix == null ? 'unavailable' : 'phone_gps'),
+        locationCapturedAt: Value(fix?.locationCapturedAt),
+        syncState: const Value(DatabaseCodes.queued),
+        updatedAt: Value(now),
+      ),
+    );
+    await (database.update(
+      database.stations,
+    )..where((row) => row.id.equals(stationId))).write(
+      StationsCompanion(
+        syncState: const Value(DatabaseCodes.queued),
+        updatedAt: Value(now),
+      ),
+    );
     final fallback = bundle.waivedViewTypes.isNotEmpty;
     await (database.update(
       database.evidenceCaptureSessions,

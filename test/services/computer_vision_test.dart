@@ -10,7 +10,6 @@ void main() {
       const clean = PlantDiagnosisResult.cleanPlant;
       expect(clean.isInfested, false);
       expect(clean.suggestedPlantStatus, DatabaseCodes.plantNegative);
-      expect(clean.davisDamageGrade, 1);
       expect(clean.confidenceScore, 0.95);
       expect(clean.larvaVisible, false);
     });
@@ -20,7 +19,6 @@ void main() {
       () {
         final faw = PlantDiagnosisResult.fawInfested(
           confidence: 0.94,
-          davisGrade: 4,
           larvaSeen: true,
           larvaSize: 'medium',
           frassSeen: true,
@@ -29,7 +27,6 @@ void main() {
 
         expect(faw.isInfested, true);
         expect(faw.suggestedPlantStatus, DatabaseCodes.plantCurrentPositive);
-        expect(faw.davisDamageGrade, 4);
         expect(faw.confidenceScore, 0.94);
         expect(faw.larvaVisible, true);
         expect(faw.larvalSize, 'medium');
@@ -54,14 +51,67 @@ void main() {
     test('TfliteFawDetector returns simulated result when provided', () async {
       final simulated = PlantDiagnosisResult.fawInfested(
         confidence: 0.98,
-        davisGrade: 5,
       );
       final detector = TfliteFawDetector(simulatedResult: simulated);
       expect(detector.isModelLoaded, true);
       final result = await detector.analyzeImage(File('dummy.jpg'));
       expect(result.isInfested, true);
-      expect(result.davisDamageGrade, 5);
       expect(result.confidenceScore, 0.98);
+    });
+
+    test('PlantDiagnosisResult.merge fuses multi-image results correctly', () {
+      final overview = PlantDiagnosisResult.cleanPlant;
+      final closeUp = PlantDiagnosisResult.fawInfested(
+        confidence: 0.93,
+        larvaSeen: true,
+        larvaSize: 'large',
+        frassSeen: true,
+        whorlSeen: true,
+      );
+      final detail = PlantDiagnosisResult.fawInfested(
+        confidence: 0.96,
+        larvaSeen: false,
+        frassSeen: true,
+      );
+
+      final merged = PlantDiagnosisResult.merge([overview, closeUp, detail]);
+      expect(merged.isInfested, true);
+      expect(merged.confidenceScore, 0.96);
+      expect(merged.larvaVisible, true);
+      expect(merged.larvalSize, 'large');
+      expect(merged.frass, true);
+      expect(merged.whorlFeeding, true);
+      expect(merged.suggestedPlantStatus, DatabaseCodes.plantCurrentPositive);
+    });
+
+    test('PlantDiagnosisResult.merge returns clean when all views clean', () {
+      const img1 = PlantDiagnosisResult(
+        isInfested: false,
+        pestLabel: 'No Pest',
+        confidenceScore: 0.92,
+      );
+      const img2 = PlantDiagnosisResult(
+        isInfested: false,
+        pestLabel: 'No Pest',
+        confidenceScore: 0.97,
+      );
+
+      final merged = PlantDiagnosisResult.merge([img1, img2]);
+      expect(merged.isInfested, false);
+      expect(merged.confidenceScore, 0.97);
+      expect(merged.suggestedPlantStatus, DatabaseCodes.plantNegative);
+    });
+
+    test('oldDamagePlant and nonFawPlant templates are correct', () {
+      final oldDamage = PlantDiagnosisResult.oldDamagePlant();
+      expect(oldDamage.isInfested, false);
+      expect(oldDamage.suggestedPlantStatus, DatabaseCodes.plantOldDamageOnly);
+      expect(oldDamage.detectedSigns, contains('old_feeding_scars'));
+
+      final nonFaw = PlantDiagnosisResult.nonFawPlant();
+      expect(nonFaw.isInfested, false);
+      expect(nonFaw.suggestedPlantStatus, DatabaseCodes.plantPossibleNonFaw);
+      expect(nonFaw.detectedSigns, contains('non_faw_damage'));
     });
   });
 }

@@ -1,3 +1,4 @@
+import '../../models/automatic_screening.dart';
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
@@ -203,14 +204,36 @@ class AtomicVeV2SaveService {
           ),
         );
       }
-      await _evidence.attachPlantingUnitEvidenceInCurrentTransaction(
-        sessionId: input.evidenceCaptureSessionId,
-        stationId: input.stationId,
-        sequenceNumber: input.sequenceNumber,
-        plantingUnitObservationId: id,
-        requiredViewTypes: input.requiredEvidenceViewTypes,
-        actorPersonId: input.actorPersonId,
-      );
+      final bundle = await _evidence.loadBundle(input.evidenceCaptureSessionId);
+      if (bundle.session.scopeType == DatabaseCodes.evidenceScopePlantingUnit) {
+        await _evidence.attachPlantingUnitEvidenceInCurrentTransaction(
+          sessionId: input.evidenceCaptureSessionId,
+          stationId: input.stationId,
+          sequenceNumber: input.sequenceNumber,
+          plantingUnitObservationId: id,
+          requiredViewTypes: input.requiredEvidenceViewTypes,
+          actorPersonId: input.actorPersonId,
+        );
+      } else if (bundle.session.scopeType == DatabaseCodes.evidenceScopePlant &&
+          bundle.session.stationId == input.stationId &&
+          bundle.session.plantPosition == input.sequenceNumber) {
+        if (bundle.session.sourcePlantingUnitObservationId != null &&
+            bundle.session.sourcePlantingUnitObservationId != id) {
+          throw StateError(
+            'Evidence is linked to a different seedling position.',
+          );
+        }
+        await (database.update(
+          database.evidenceCaptureSessions,
+        )..where((row) => row.id.equals(bundle.session.id))).write(
+          EvidenceCaptureSessionsCompanion(
+            sourcePlantingUnitObservationId: Value(id),
+            updatedAt: Value(now),
+          ),
+        );
+      } else {
+        throw StateError('Evidence does not match this seedling position.');
+      }
       final saved = await (database.select(
         database.plantingUnitObservations,
       )..where((row) => row.id.equals(id))).getSingle();
@@ -458,12 +481,8 @@ class AtomicVeV2SaveService {
 
   Future<VeV2StationInspectionRecord> completePilotStation({
     required String stationId,
-    required int workloadRating,
     required String actorPersonId,
   }) async {
-    if (workloadRating < 1 || workloadRating > 5) {
-      throw ArgumentError('Workload rating must be 1-5.');
-    }
     return database.transaction(() async {
       final inspection = await loadStationInspection(stationId);
       if (inspection == null) {
@@ -480,19 +499,6 @@ class AtomicVeV2SaveService {
         throw StateError('Ten living-seedling confirmations are required.');
       }
       final bundles = await _evidence.loadStationBundles(stationId);
-      final stationContext = bundles.where(
-        (bundle) =>
-            bundle.session.scopeKey ==
-            DatabaseCodes.evidenceScopeStationContext,
-      );
-      if (stationContext.isEmpty ||
-          !stationContext.single.isViewSatisfied(
-            DatabaseCodes.evidenceViewStationContext,
-          )) {
-        throw StateError(
-          'Station context requires a photograph or documented fallback.',
-        );
-      }
       if (inspection.stationContextMeetsRowPurpose != true) {
         final rowContext = bundles.where(
           (bundle) => bundle.session.scopeKey == 've_v2_row_context',
@@ -511,7 +517,8 @@ class AtomicVeV2SaveService {
               DatabaseCodes.naturalEnemyNotAssessable,
               DatabaseCodes.naturalEnemyNotCollected,
             }.contains(plant.naturalEnemyQuickStatus) &&
-            !(plant.evaluatorNotes ?? '').contains('Natural-enemy reason:')) {
+            !(plant.evaluatorNotes ?? '').contains('Natural-enemy reason:') &&
+            AutomaticScreening.parse(plant.wholePlantContextNote) == null) {
           throw StateError(
             'Natural-enemy exceptions require a documented reason.',
           );
@@ -551,7 +558,7 @@ class AtomicVeV2SaveService {
         database.veV2StationInspections,
       )..where((row) => row.id.equals(inspection.id))).write(
         VeV2StationInspectionsCompanion(
-          evaluatorWorkloadRating: Value(workloadRating),
+          evaluatorWorkloadRating: const Value(null),
           completedAt: Value(now),
           updatedAt: Value(now),
           syncState: const Value(DatabaseCodes.queued),
@@ -573,7 +580,6 @@ class AtomicVeV2SaveService {
           'additional_seedling_count': plants
               .where((plant) => plant.sourcePlantingUnitObservationId == null)
               .length,
-          'workload_rating': workloadRating,
         },
       );
       return saved!;

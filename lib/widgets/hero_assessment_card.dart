@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../localization/app_text.dart';
 import 'package:provider/provider.dart';
 
 import '../data/local/database_codes.dart';
@@ -68,11 +69,9 @@ class HeroAssessmentCard extends StatelessWidget {
       );
     }
 
-    return _AssessmentActionCard(
+    return _StartAssessmentCard(
       title: 'Start FAW Assessment',
       message: _readyMessage(fieldName, workspace?.spatialState),
-      badge: 'OFFLINE READY',
-      icon: Icons.fact_check_outlined,
       buttonKey: const Key('start_assessment_button'),
       buttonLabel: workspace == null
           ? 'Select Field First'
@@ -80,7 +79,7 @@ class HeroAssessmentCard extends StatelessWidget {
       onPressed: workspace == null
           ? () => ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text(
+                content: AppText(
                   'Add or select a maize field before starting an assessment.',
                 ),
               ),
@@ -109,11 +108,97 @@ class HeroAssessmentCard extends StatelessWidget {
   }
 
   void _openSession(BuildContext context) {
+    final assessmentId = context
+        .read<AssessmentWorkspaceProvider>()
+        .currentAssessment
+        ?.id;
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const AssessmentSessionScreen()),
+      MaterialPageRoute(
+        builder: (_) => AssessmentSessionScreen(assessmentId: assessmentId),
+      ),
     );
   }
+}
+
+class _StartAssessmentCard extends StatelessWidget {
+  const _StartAssessmentCard({
+    required this.title,
+    required this.message,
+    required this.buttonKey,
+    required this.buttonLabel,
+    required this.onPressed,
+  });
+  final String title;
+  final String message;
+  final Key buttonKey;
+  final String buttonLabel;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(18),
+    decoration: BoxDecoration(
+      color: AppColors.primary,
+      borderRadius: BorderRadius.circular(18),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Row(
+          children: [
+            Icon(Icons.fact_check_outlined, color: Colors.white70, size: 18),
+            SizedBox(width: 7),
+            AppText(
+              'FIELD SCOUTING',
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 21,
+            fontWeight: FontWeight.w800,
+            color: Colors.white,
+          ),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          message,
+          maxLines: 3,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontSize: 12.5,
+            height: 1.35,
+            color: Colors.white70,
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          height: 47,
+          child: FilledButton.icon(
+            key: buttonKey,
+            onPressed: onPressed,
+            icon: const Icon(Icons.arrow_forward, size: 18),
+            label: Text(buttonLabel),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: AppColors.primary,
+              textStyle: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _AssessmentActionCard extends StatelessWidget {
@@ -142,15 +227,14 @@ class _AssessmentActionCard extends StatelessWidget {
     final accent = warning ? const Color(0xFF9A6700) : AppColors.primary;
     final background = warning
         ? const Color(0xFFFFF8E1)
-        : const Color(0xFFF2F8F2);
+        : const Color(0xFFF0F7F1);
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: background,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: accent.withValues(alpha: 0.3)),
-        boxShadow: AppColors.cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -158,13 +242,13 @@ class _AssessmentActionCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, color: accent, size: 28),
-              const SizedBox(width: 10),
+              Icon(icon, color: accent, size: 22),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   title,
                   style: const TextStyle(
-                    fontSize: 22,
+                    fontSize: 19,
                     fontWeight: FontWeight.bold,
                     color: AppColors.textPrimary,
                   ),
@@ -192,42 +276,18 @@ class _AssessmentActionCard extends StatelessWidget {
             message,
             style: const TextStyle(color: AppColors.textSecondary, height: 1.4),
           ),
-          const SizedBox(height: 14),
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 8),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.65),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Row(
-              children: [
-                Expanded(
-                  child: _QuickInfo(Icons.location_on_outlined, '5 stations'),
-                ),
-                Expanded(
-                  child: _QuickInfo(Icons.eco_outlined, '10 plants each'),
-                ),
-                Expanded(
-                  child: _QuickInfo(
-                    Icons.offline_pin_outlined,
-                    'Saved offline',
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
-            height: 50,
+            height: 47,
             child: FilledButton.icon(
               key: buttonKey,
               onPressed: onPressed,
-              icon: const Icon(Icons.arrow_forward),
+              icon: const Icon(Icons.arrow_forward, size: 18),
               label: Text(
                 buttonLabel,
                 style: const TextStyle(
-                  fontSize: 16,
+                  fontSize: 14,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -236,29 +296,6 @@ class _AssessmentActionCard extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _QuickInfo extends StatelessWidget {
-  const _QuickInfo(this.icon, this.text);
-
-  final IconData icon;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 19, color: AppColors.primary),
-        const SizedBox(height: 3),
-        Text(
-          text,
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
-        ),
-      ],
     );
   }
 }

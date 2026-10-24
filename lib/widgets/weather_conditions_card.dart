@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../localization/app_text.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/assessment_workspace_provider.dart';
@@ -35,24 +36,11 @@ class WeatherConditionsCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: const BoxDecoration(
-                  color: AppColors.primaryLight,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.cloud_outlined,
-                  color: AppColors.primary,
-                ),
-              ),
-              const SizedBox(width: 11),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    const AppText(
                       'Field conditions',
                       style: TextStyle(
                         fontSize: 18,
@@ -60,8 +48,8 @@ class WeatherConditionsCard extends StatelessWidget {
                         color: AppColors.textPrimary,
                       ),
                     ),
-                    Text(
-                      fieldName ?? 'Active maize field',
+                    AppText(
+                      '${fieldName ?? 'Active maize field'}  •  ${conditions.updatedLabel}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -72,37 +60,42 @@ class WeatherConditionsCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceContainer,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Text(
-                  'OFFLINE',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ),
+              const Icon(Icons.chevron_right, color: AppColors.textSecondary),
             ],
           ),
           const SizedBox(height: 14),
-          if (conditions.hasRecordedValues) ...[
-            _ConditionRow(
-              icon: Icons.water_drop_outlined,
-              label: 'Rain wet the field in the last 48 hours',
-              value: conditions.rainLabel,
-            ),
-            const Divider(height: 18),
-            _ConditionRow(
-              icon: Icons.landscape_outlined,
-              label: 'Recorded field surface',
-              value: conditions.surfaceLabel,
-            ),
-          ] else
+          if (conditions.hasRecordedValues)
+            Row(
+              children: [
+                Expanded(
+                  child: _ConditionTile(
+                    icon: Icons.water_drop,
+                    label: 'Recent rain',
+                    value: conditions.precipitationLabel,
+                    color: const Color(0xFF1687B5),
+                  ),
+                ),
+                const _ConditionDivider(),
+                Expanded(
+                  child: _ConditionTile(
+                    icon: Icons.grass,
+                    label: 'Field surface',
+                    value: conditions.surfaceLabel,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const _ConditionDivider(),
+                Expanded(
+                  child: _ConditionTile(
+                    icon: Icons.agriculture_outlined,
+                    label: 'Conditions',
+                    value: conditions.conditionLabel,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ],
+            )
+          else
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(13),
@@ -110,77 +103,59 @@ class WeatherConditionsCard extends StatelessWidget {
                 color: AppColors.surfaceContainer.withValues(alpha: 0.6),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Text(
+              child: const AppText(
                 'Field conditions have not been recorded yet. WormWise asks about recent rain and the field surface when an assessment is prepared.',
                 style: TextStyle(color: AppColors.textSecondary, height: 1.4),
               ),
             ),
-          const SizedBox(height: 12),
-          const Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(
-                Icons.info_outline,
-                size: 18,
-                color: AppColors.textSecondary,
-              ),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Live temperature, rainfall, and wind are not connected yet. No forecast values are estimated or invented.',
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 12,
-                    height: 1.35,
-                  ),
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     );
   }
 }
 
-class _ConditionRow extends StatelessWidget {
-  const _ConditionRow({
+class _ConditionTile extends StatelessWidget {
+  const _ConditionTile({
     required this.icon,
     required this.label,
     required this.value,
+    required this.color,
   });
 
   final IconData icon;
   final String label;
   final String value;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
       children: [
-        Icon(icon, color: AppColors.primary, size: 21),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 12,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                value,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: .12),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: color),
+        ),
+        const SizedBox(height: 6),
+        AppText(
+          label,
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: color,
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
           ),
         ),
       ],
@@ -188,13 +163,45 @@ class _ConditionRow extends StatelessWidget {
   }
 }
 
+class _ConditionDivider extends StatelessWidget {
+  const _ConditionDivider();
+  @override
+  Widget build(BuildContext context) =>
+      Container(width: 1, height: 62, color: AppColors.outlineVariant);
+}
+
 class _FieldConditions {
-  const _FieldConditions({this.rainCode, this.surfaceCode});
+  const _FieldConditions({
+    this.rainCode,
+    this.surfaceCode,
+    this.precipitationMm,
+    this.updatedAt,
+  });
 
   final String? rainCode;
   final String? surfaceCode;
+  final double? precipitationMm;
+  final DateTime? updatedAt;
 
-  bool get hasRecordedValues => rainCode != null || surfaceCode != null;
+  bool get hasRecordedValues =>
+      rainCode != null || surfaceCode != null || precipitationMm != null;
+
+  String get precipitationLabel => precipitationMm != null
+      ? '${precipitationMm!.toStringAsFixed(1)} mm / 48h'
+      : rainLabel;
+
+  String get conditionLabel => switch (surfaceCode) {
+    'dry' || 'damp' => 'Good',
+    'muddy' || 'standing_water' => 'Use caution',
+    _ => rainCode == 'yes' ? 'Wet' : 'Recorded',
+  };
+
+  String get updatedLabel {
+    final date = updatedAt;
+    if (date == null) return 'Saved conditions';
+    final hours = DateTime.now().toUtc().difference(date.toUtc()).inHours;
+    return hours <= 1 ? 'Updated recently' : 'Updated $hours hr ago';
+  }
 
   String get rainLabel => switch (rainCode) {
     'yes' => 'Yes',
@@ -225,6 +232,10 @@ class _FieldConditions {
     return _FieldConditions(
       rainCode: values['rain_wet_field_last_48h'],
       surfaceCode: values['field_surface'],
+      precipitationMm: double.tryParse(
+        values['open_meteo_precipitation_last_48h_mm'] ?? '',
+      ),
+      updatedAt: DateTime.tryParse(values['weather_fetched_at_utc'] ?? ''),
     );
   }
 }

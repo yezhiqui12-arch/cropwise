@@ -1,12 +1,22 @@
+import '../services/scouting_sampling_protocol.dart';
+import 'dart:async';
+import 'help_support_screen.dart';
+
+import 'package:drift/drift.dart' show OrderingTerm;
 import 'package:flutter/material.dart';
+import '../localization/app_text.dart';
 import 'package:provider/provider.dart';
 
 import '../data/local/database_codes.dart';
+import '../data/local/app_database.dart';
+import '../localization/app_language.dart';
 import '../data/repositories/field_repository.dart';
 import '../providers/assessment_workspace_provider.dart';
 import '../providers/field_workspace_provider.dart';
 import '../services/assessment_protocol_selector.dart';
+import '../services/assessment_area_policy.dart';
 import '../services/recent_weather_service.dart';
+import '../services/treatment_entry_safety.dart';
 import '../theme/app_colors.dart';
 import '../widgets/accessible_choice_field.dart';
 import 'assessment_session_screen.dart';
@@ -23,14 +33,17 @@ class AssessmentSetupScreen extends StatefulWidget {
 
 class _AssessmentSetupScreenState extends State<AssessmentSetupScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _evaluatorController = TextEditingController();
-  final _safetySourceController = TextEditingController();
-  final _safetyNotesController = TextEditingController();
+  String? _evaluatorName;
+  final _reentryController = TextEditingController();
+  final _productController = TextEditingController();
 
   String _growthStage = 'v3_v6';
   String? _rainLast48Hours;
   String? _safetyStatus;
-  bool _safeIntervalVerified = false;
+  DateTime? _applicationEndedAt;
+  String _applicationTimePrecision = 'exact';
+  String _reentryUnit = 'hours';
+  String? _reentrySource;
   String? _loadedAssessmentId;
   String? _weatherLookupFieldId;
   RecentRainSnapshot? _recentRain;
@@ -45,6 +58,7 @@ class _AssessmentSetupScreenState extends State<AssessmentSetupScreen> {
     if (assessment != null && assessment.id != _loadedAssessmentId) {
       _loadedAssessmentId = assessment.id;
       _growthStage = assessment.growthStage;
+      unawaited(_restoreSafetyDetails(assessment.id));
     }
     final workspace = context.watch<FieldWorkspaceProvider>().activeWorkspace;
     if (assessment?.status != DatabaseCodes.inProgress &&
@@ -55,6 +69,53 @@ class _AssessmentSetupScreenState extends State<AssessmentSetupScreen> {
       _rainLast48Hours = null;
       _startWeatherLookup(workspace);
     }
+  }
+
+  Future<void> _restoreSafetyDetails(String assessmentId) async {
+    final database = context.read<AppDatabase>();
+    final check =
+        await (database.select(database.safetyChecks)
+              ..where((row) => row.assessmentId.equals(assessmentId))
+              ..orderBy([(row) => OrderingTerm.desc(row.checkedAt)])
+              ..limit(1))
+            .getSingleOrNull();
+    if (!mounted || _loadedAssessmentId != assessmentId || check == null) {
+      return;
+    }
+    final match = RegExp(
+      r'^(\d+) (hours|days)$',
+    ).firstMatch(check.reiTextUsed ?? '');
+    final product = RegExp(
+      r'Reported treatment/product: (.*?) \(not label-verified\)',
+    ).firstMatch(check.notes ?? '');
+    setState(() {
+      _safetyStatus =
+          check.resultStatus == DatabaseCodes.safeIntervalCompleted ||
+              check.resultStatus == DatabaseCodes.blockedReiActive ||
+              check.applicationEndAtUsed != null ||
+              check.reiTextUsed != null
+          ? DatabaseCodes.safeIntervalCompleted
+          : check.resultStatus;
+      _applicationEndedAt = check.applicationEndAtUsed?.toLocal();
+      _applicationTimePrecision =
+          check.notes?.contains('Application end time: approximate') == true
+          ? 'approximate'
+          : check.notes?.contains('Application end time: unknown') == true
+          ? 'unknown'
+          : 'exact';
+      _reentryController.text = match?.group(1) ?? '';
+      _reentryUnit = match?.group(2) ?? 'hours';
+      _reentrySource =
+          const {
+            'product_label',
+            'spray_record',
+            'agricultural_adviser',
+            'unknown',
+          }.contains(check.reiSource)
+          ? check.reiSource
+          : null;
+      _productController.text = product?.group(1) ?? '';
+    });
   }
 
   Future<void> _startWeatherLookup(FieldWorkspaceRecord workspace) async {
@@ -105,40 +166,57 @@ class _AssessmentSetupScreenState extends State<AssessmentSetupScreen> {
 
   @override
   void dispose() {
-    _evaluatorController.dispose();
-    _safetySourceController.dispose();
-    _safetyNotesController.dispose();
+    _reentryController.dispose();
+    _productController.dispose();
     super.dispose();
   }
 
-  String get _recommendedPattern =>
-      AssessmentProtocolSelector.recommendedPatternFor(_growthStage);
+  String get _recommendedPattern => ScoutingSamplingProtocol.daPattern;
+
+  TreatmentEntrySafety? get _treatment =>
+      _safetyStatus == DatabaseCodes.safeIntervalCompleted
+      ? TreatmentEntrySafety(
+          applicationEndedAt: _applicationEndedAt,
+          timePrecision: _applicationTimePrecision,
+          reentryValue: int.tryParse(_reentryController.text.trim()),
+          reentryUnit: _reentryUnit,
+          source: _reentrySource,
+          reportedProduct: _productController.text,
+        )
+      : null;
+
+  String? get _resolvedSafetyStatus =>
+      _treatment?.statusAt(DateTime.now()) ?? _safetyStatus;
 
   bool get _safetyAllowsEntry =>
-      _safetyStatus == DatabaseCodes.noRecentTreatment ||
-      _safetyStatus == DatabaseCodes.safeIntervalCompleted;
+      _resolvedSafetyStatus == DatabaseCodes.noRecentTreatment ||
+      _resolvedSafetyStatus == DatabaseCodes.safeIntervalCompleted;
 
   Future<void> _submit() async {
     final provider = context.read<AssessmentWorkspaceProvider>();
     final existing = provider.currentAssessment;
+    final area = provider.fieldWorkspace?.boundary?.areaHectares;
     if (!_formKey.currentState!.validate()) return;
+    if (existing == null && _evaluatorName == null) {
+      _showMessage('Select who is conducting the assessment.');
+      return;
+    }
+    if (area != null && !AssessmentAreaPolicy.isWithinAssessmentLimit(area)) {
+      _showMessage(
+        'Formal assessment currently supports fields up to '
+        '${AssessmentAreaPolicy.maxAssessmentAreaHectares.toStringAsFixed(0)} ha. '
+        'The field remains saved, but scouting cannot begin.',
+      );
+      return;
+    }
     if (_safetyStatus == null) {
       _showMessage('Select the field-entry safety situation.');
       return;
     }
-    if (_safetyStatus == DatabaseCodes.safeIntervalCompleted &&
-        (!_safeIntervalVerified ||
-            _safetySourceController.text.trim().isEmpty)) {
-      _showMessage(
-        'State the label, record, or authorized guidance used and confirm that you verified it.',
-      );
-      return;
-    }
-
     try {
       final result = existing == null
           ? await provider.createAssessment(
-              evaluatorName: _evaluatorController.text,
+              evaluatorName: _evaluatorName!,
               assessmentMode: AssessmentProtocolSelector.assessmentModeFor(
                 _growthStage,
               ),
@@ -146,7 +224,7 @@ class _AssessmentSetupScreenState extends State<AssessmentSetupScreen> {
               patternReason: null,
               growthStage: _growthStage,
               growthStageUncertain: false,
-              safetyStatus: _safetyStatus!,
+              safetyStatus: _resolvedSafetyStatus!,
               interventionHistoryStatus:
                   _safetyStatus == DatabaseCodes.noRecentTreatment
                   ? 'no'
@@ -155,15 +233,11 @@ class _AssessmentSetupScreenState extends State<AssessmentSetupScreen> {
                   : 'yes',
               preferredLanguage: 'en',
               weatherContext: _fieldConditionContext,
-              safetySource: _nullIfBlank(_safetySourceController.text),
-              safetyNotes: _nullIfBlank(_safetyNotesController.text),
-              safetyInputsVerified: _safeIntervalVerified,
+              treatment: _treatment,
             )
           : await provider.recheckSafety(
-              safetyStatus: _safetyStatus!,
-              safetySource: _nullIfBlank(_safetySourceController.text),
-              safetyNotes: _nullIfBlank(_safetyNotesController.text),
-              safetyInputsVerified: _safeIntervalVerified,
+              safetyStatus: _resolvedSafetyStatus!,
+              treatment: _treatment,
               weatherContext: _fieldConditionContext,
             );
       if (!mounted) return;
@@ -171,7 +245,9 @@ class _AssessmentSetupScreenState extends State<AssessmentSetupScreen> {
       if (result.status == DatabaseCodes.inProgress) {
         await Navigator.pushReplacement<void, void>(
           context,
-          MaterialPageRoute(builder: (_) => const AssessmentSessionScreen()),
+          MaterialPageRoute(
+            builder: (_) => AssessmentSessionScreen(assessmentId: result.id),
+          ),
         );
         return;
       }
@@ -192,11 +268,6 @@ class _AssessmentSetupScreenState extends State<AssessmentSetupScreen> {
     }
   }
 
-  String? _nullIfBlank(String value) {
-    final trimmed = value.trim();
-    return trimmed.isEmpty ? null : trimmed;
-  }
-
   String? get _fieldConditionContext {
     final automatic = _recentRain;
     if (automatic != null) {
@@ -214,6 +285,7 @@ class _AssessmentSetupScreenState extends State<AssessmentSetupScreen> {
   }
 
   List<AccessibleChoiceOption<String>> get _growthStageChoices {
+    final words = AppWords.of(context);
     const stageAssets = <String, String>{
       've': 'assets/images/growth_stages/maize_emergence.jpg',
       'v1': 'assets/images/growth_stages/maize_emergence.jpg',
@@ -251,8 +323,8 @@ class _AssessmentSetupScreenState extends State<AssessmentSetupScreen> {
         .map(
           (stage) => AccessibleChoiceOption(
             value: stage.code,
-            label: stage.label,
-            description: stage.help,
+            label: words.stageOptionLabel(stage.code),
+            description: words.stageOptionHelp(stage.code),
             assetPath: stageAssets[stage.code],
             visualGroup: visualGroups[stage.code],
             imageCaption: imageCaptions[stage.code],
@@ -264,7 +336,7 @@ class _AssessmentSetupScreenState extends State<AssessmentSetupScreen> {
   void _showMessage(String message) {
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ).showSnackBar(SnackBar(content: AppText(message)));
   }
 
   @override
@@ -278,7 +350,7 @@ class _AssessmentSetupScreenState extends State<AssessmentSetupScreen> {
     }
     if (workspace == null) {
       return const Scaffold(
-        body: Center(child: Text('Select a maize field before assessment.')),
+        body: Center(child: AppText('Select a maize field before assessment.')),
       );
     }
     if (!workspace.hasApproximateOutline) {
@@ -288,20 +360,30 @@ class _AssessmentSetupScreenState extends State<AssessmentSetupScreen> {
       );
     }
     if (assessment?.status == DatabaseCodes.inProgress) {
-      return const AssessmentSessionScreen();
+      return AssessmentSessionScreen(assessmentId: assessment!.id);
     }
 
     final isExisting = assessment != null;
-    final stageHelp = AssessmentProtocolSelector.growthStageHelp(_growthStage);
     final routePattern = isExisting
         ? assessment.scoutingPattern
         : _recommendedPattern;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
+        title: AppText(
           isExisting ? 'Review Assessment Safety' : 'Assessment Setup',
         ),
+        actions: [
+          IconButton(
+            tooltip: AppWords.of(context).helpAndSupport,
+            icon: const Icon(Icons.help_outline_rounded),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const HelpSupportScreen(initialTopic: 'assess'),
+              ),
+            ),
+          ),
+        ],
       ),
       bottomNavigationBar: SafeArea(
         child: Padding(
@@ -321,7 +403,7 @@ class _AssessmentSetupScreenState extends State<AssessmentSetupScreen> {
                           ? Icons.play_arrow
                           : Icons.save_outlined,
                     ),
-              label: Text(
+              label: AppText(
                 provider.isSaving
                     ? 'Saving...'
                     : _safetyAllowsEntry
@@ -338,46 +420,75 @@ class _AssessmentSetupScreenState extends State<AssessmentSetupScreen> {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              _FieldSummaryCard(
-                fieldName: workspace.field.name,
-                areaHectares: workspace.boundary?.areaHectares,
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: AppColors.outlineVariant),
+                ),
+                child: Column(
+                  children: [
+                    _FieldSummaryCard(
+                      fieldName: workspace.field.name,
+                      areaHectares: workspace.boundary?.areaHectares,
+                    ),
+                    if (workspace.boundary != null)
+                      _AssessmentWorkloadCard(
+                        areaHectares: workspace.boundary!.areaHectares,
+                        isDa:
+                            routePattern == ScoutingSamplingProtocol.daPattern,
+                      ),
+                  ],
+                ),
               ),
               if (isExisting) ...[
                 const SizedBox(height: 12),
                 _SafetyBlockedNotice(status: assessment.status),
               ],
-              const SizedBox(height: 20),
-              const _SectionTitle('Person conducting the assessment'),
+              const SizedBox(height: 26),
+              const _SectionTitle('Assessment details'),
               if (isExisting)
                 const _LockedValue(
                   icon: Icons.person_outline,
                   value: 'Evaluator saved with this draft',
                 )
               else
-                TextFormField(
+                DropdownButtonFormField<String>(
                   key: const Key('assessment_evaluator_input'),
-                  controller: _evaluatorController,
-                  textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(
-                    labelText: 'Name *',
-                    hintText: 'Farmer, technician, or other evaluator',
+                  initialValue: _evaluatorName,
+                  decoration: InputDecoration(
+                    labelText: AppWords.of(context).translate('Assessor'),
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.person_outline),
                   ),
-                  validator: (value) => value == null || value.trim().isEmpty
-                      ? 'Enter the name of the person doing the assessment.'
+                  items:
+                      const [
+                            'Farmer',
+                            'Field technician',
+                            'Agronomist',
+                            'Others',
+                          ]
+                          .map(
+                            (name) => DropdownMenuItem(
+                              value: name,
+                              child: Text(name),
+                            ),
+                          )
+                          .toList(),
+                  onChanged: (name) => setState(() => _evaluatorName = name),
+                  validator: (name) => name == null
+                      ? AppWords.of(context).translate('Select a person.')
                       : null,
                 ),
-              const SizedBox(height: 20),
-              const _SectionTitle('Maize growth stage'),
+              const SizedBox(height: 12),
               AccessibleChoiceField<String>(
                 key: const Key('growth_stage_choice'),
-                label: 'Best estimate *',
-                sheetTitle: 'Compare maize growth stages',
+                label: AppWords.of(context).maizeGrowthStage,
+                sheetTitle: AppWords.of(context).compareGrowthStages,
                 value: _growthStage,
                 options: _growthStageChoices,
                 showImages: true,
-                leadingIcon: Icons.eco_outlined,
+                leadingIcon: Icons.timeline_outlined,
                 onChanged: isExisting
                     ? null
                     : (value) {
@@ -386,27 +497,27 @@ class _AssessmentSetupScreenState extends State<AssessmentSetupScreen> {
                         });
                       },
               ),
-              const SizedBox(height: 8),
-              Text(
-                stageHelp,
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  height: 1.35,
-                ),
-              ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
               const _SectionTitle('Scouting route'),
               _AutomaticRouteCard(pattern: routePattern),
-              const SizedBox(height: 20),
-              const _SectionTitle('Recent rain'),
-              _RecentWeatherContent(
-                state: _weatherLookupState,
-                snapshot: _recentRain,
-                rainLast48Hours: _rainLast48Hours,
-                onChanged: (value) => setState(() => _rainLast48Hours = value),
-                onRetry: () => _startWeatherLookup(workspace),
-              ),
               const SizedBox(height: 22),
+              const _SectionTitle('Recent rain'),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.outlineVariant),
+                ),
+                child: _RecentWeatherContent(
+                  state: _weatherLookupState,
+                  snapshot: _recentRain,
+                  rainLast48Hours: _rainLast48Hours,
+                  onChanged: (value) =>
+                      setState(() => _rainLast48Hours = value),
+                  onRetry: () => _startWeatherLookup(workspace),
+                ),
+              ),
+              const SizedBox(height: 27),
               const _SectionTitle('Field-entry safety check'),
               const _SafetyExplanation(),
               const SizedBox(height: 10),
@@ -429,16 +540,9 @@ class _AssessmentSetupScreenState extends State<AssessmentSetupScreen> {
                       value: DatabaseCodes.safeIntervalCompleted,
                       selected:
                           _safetyStatus == DatabaseCodes.safeIntervalCompleted,
-                      title: 'Treatment applied — waiting period ended',
+                      title: 'Pesticide treatment applied',
                       subtitle:
-                          'Checked using the label, spray record, or authorized advice.',
-                    ),
-                    _SafetyOption(
-                      key: const Key('safety_interval_active_option'),
-                      value: DatabaseCodes.blockedReiActive,
-                      selected: _safetyStatus == DatabaseCodes.blockedReiActive,
-                      title: 'Waiting period is still active',
-                      subtitle: 'Do not enter or begin scouting.',
+                          'Record when spraying ended and the required re-entry period.',
                     ),
                     _SafetyOption(
                       key: const Key('safety_cannot_confirm_option'),
@@ -452,40 +556,187 @@ class _AssessmentSetupScreenState extends State<AssessmentSetupScreen> {
                 ),
               ),
               if (_safetyStatus == DatabaseCodes.safeIntervalCompleted) ...[
-                const SizedBox(height: 10),
-                TextFormField(
-                  key: const Key('safety_source_input'),
-                  controller: _safetySourceController,
-                  decoration: const InputDecoration(
-                    labelText: 'How was the waiting period verified? *',
-                    hintText:
-                        'Product label, farm record, or authorized advice',
-                    border: OutlineInputBorder(),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F8F4),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: AppColors.outlineVariant),
                   ),
-                  maxLines: 2,
-                ),
-                CheckboxListTile(
-                  key: const Key('safety_verified_checkbox'),
-                  value: _safeIntervalVerified,
-                  contentPadding: EdgeInsets.zero,
-                  controlAffinity: ListTileControlAffinity.leading,
-                  title: const Text(
-                    'I verified that the required interval has fully ended',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(
+                            Icons.schedule_outlined,
+                            color: AppColors.primary,
+                            size: 20,
+                          ),
+                          SizedBox(width: 8),
+                          AppText(
+                            'Treatment details',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<String>(
+                        key: const Key('treatment_time_precision'),
+                        initialValue: _applicationTimePrecision,
+                        decoration: InputDecoration(
+                          labelText: AppWords.of(
+                            context,
+                          ).translate('When did spraying end?'),
+                          border: OutlineInputBorder(),
+                          filled: true,
+                          fillColor: Colors.white,
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'exact',
+                            child: AppText('Exact date and time'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'approximate',
+                            child: AppText('Approximate date'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'unknown',
+                            child: AppText('Unknown'),
+                          ),
+                        ],
+                        onChanged: (value) => setState(() {
+                          _applicationTimePrecision = value ?? 'unknown';
+                          _applicationEndedAt = null;
+                        }),
+                      ),
+                      if (_applicationTimePrecision != 'unknown') ...[
+                        const SizedBox(height: 10),
+                        OutlinedButton.icon(
+                          key: const Key('treatment_end_date_button'),
+                          onPressed: _pickApplicationEnd,
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            minimumSize: const Size.fromHeight(56),
+                            alignment: Alignment.centerLeft,
+                          ),
+                          icon: const Icon(Icons.event_outlined),
+                          label: AppText(
+                            _applicationEndedAt == null
+                                ? 'Select end ${_applicationTimePrecision == 'exact' ? 'date and time' : 'date'}'
+                                : '${MaterialLocalizations.of(context).formatShortDate(_applicationEndedAt!)}${_applicationTimePrecision == 'exact' ? ' · ${TimeOfDay.fromDateTime(_applicationEndedAt!).format(context)}' : ''}',
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 10),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: TextFormField(
+                              key: const Key('treatment_reentry_value'),
+                              controller: _reentryController,
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(
+                                labelText: AppWords.of(
+                                  context,
+                                ).translate('Re-entry period'),
+                                border: OutlineInputBorder(),
+                                filled: true,
+                                fillColor: Colors.white,
+                              ),
+                              onChanged: (_) => setState(() {}),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            flex: 2,
+                            child: DropdownButtonFormField<String>(
+                              key: const Key('treatment_reentry_unit'),
+                              initialValue: _reentryUnit,
+                              decoration: InputDecoration(
+                                labelText: AppWords.of(
+                                  context,
+                                ).translate('Unit'),
+                                border: OutlineInputBorder(),
+                                filled: true,
+                                fillColor: Colors.white,
+                              ),
+                              items: const [
+                                DropdownMenuItem(
+                                  value: 'hours',
+                                  child: AppText('Hours'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'days',
+                                  child: AppText('Days'),
+                                ),
+                              ],
+                              onChanged: (value) => setState(
+                                () => _reentryUnit = value ?? 'hours',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      DropdownButtonFormField<String>(
+                        key: const Key('treatment_reentry_source'),
+                        initialValue: _reentrySource,
+                        decoration: InputDecoration(
+                          labelText: AppWords.of(
+                            context,
+                          ).translate('Source of re-entry period'),
+                          border: OutlineInputBorder(),
+                          filled: true,
+                          fillColor: Colors.white,
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'product_label',
+                            child: AppText('Product label'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'spray_record',
+                            child: AppText('Spray record'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'agricultural_adviser',
+                            child: AppText('Agricultural adviser'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'unknown',
+                            child: AppText('Unknown'),
+                          ),
+                        ],
+                        onChanged: (value) =>
+                            setState(() => _reentrySource = value),
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        key: const Key('treatment_product_input'),
+                        controller: _productController,
+                        decoration: InputDecoration(
+                          labelText: AppWords.of(
+                            context,
+                          ).translate('Product used (optional)'),
+                          border: OutlineInputBorder(),
+                          filled: true,
+                          fillColor: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      _TreatmentEntryStatus(treatment: _treatment!),
+                    ],
                   ),
-                  onChanged: (value) =>
-                      setState(() => _safeIntervalVerified = value ?? false),
                 ),
               ],
-              const SizedBox(height: 10),
-              TextFormField(
-                controller: _safetyNotesController,
-                decoration: const InputDecoration(
-                  labelText: 'Safety note (optional)',
-                  hintText: 'Known spray date, product, or person consulted',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 2,
-              ),
               const SizedBox(height: 24),
             ],
           ),
@@ -495,12 +746,69 @@ class _AssessmentSetupScreenState extends State<AssessmentSetupScreen> {
   }
 
   void _selectSafety(String? value) {
-    setState(() {
-      _safetyStatus = value;
-      if (value != DatabaseCodes.safeIntervalCompleted) {
-        _safeIntervalVerified = false;
-      }
-    });
+    setState(() => _safetyStatus = value);
+  }
+
+  Future<void> _pickApplicationEnd() async {
+    final now = DateTime.now();
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _applicationEndedAt ?? now,
+      firstDate: DateTime(now.year - 10),
+      lastDate: now,
+    );
+    if (date == null || !mounted) return;
+    if (_applicationTimePrecision == 'approximate') {
+      setState(() => _applicationEndedAt = date);
+      return;
+    }
+    final time = await showTimePicker(
+      context: context,
+      initialTime: _applicationEndedAt == null
+          ? TimeOfDay.fromDateTime(now)
+          : TimeOfDay.fromDateTime(_applicationEndedAt!),
+    );
+    if (time == null || !mounted) return;
+    final endedAt = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      time.hour,
+      time.minute,
+    );
+    if (endedAt.isAfter(DateTime.now())) {
+      _showMessage('The treatment end time cannot be in the future.');
+      return;
+    }
+    setState(() => _applicationEndedAt = endedAt);
+  }
+}
+
+class _TreatmentEntryStatus extends StatelessWidget {
+  const _TreatmentEntryStatus({required this.treatment});
+
+  final TreatmentEntrySafety treatment;
+
+  @override
+  Widget build(BuildContext context) {
+    final status = treatment.statusAt(DateTime.now());
+    final safeAt = treatment.safeEntryAt;
+    final message = status == DatabaseCodes.safeIntervalCompleted
+        ? 'The reported re-entry period has elapsed. Check any other label restrictions before entering.'
+        : status == DatabaseCodes.blockedReiActive
+        ? 'Do not enter yet. The reported re-entry period ends at ${safeAt!.toLocal()}.'
+        : 'Entry safety is not confirmed. Check the product label or an authorized adviser before scouting.';
+    return Container(
+      key: const Key('treatment_entry_status'),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: status == DatabaseCodes.safeIntervalCompleted
+            ? AppColors.primaryLight
+            : const Color(0xFFFFF3CD),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: AppText(message, style: const TextStyle(height: 1.35)),
+    );
   }
 }
 
@@ -516,7 +824,7 @@ class _BoundaryRequiredScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Assessment Setup')),
+      appBar: AppBar(title: const AppText('Assessment Setup')),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(20),
@@ -527,16 +835,19 @@ class _BoundaryRequiredScreen extends StatelessWidget {
               color: AppColors.primary,
             ),
             const SizedBox(height: 16),
-            const Text(
+            const AppText(
               'Complete field outline',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
-            Text(
+            AppText(
               hasSavedAssessment
                   ? 'Your saved assessment setup remains on this phone. Confirm the field outline before continuing it.'
-                  : 'Confirm the field outline before setting up an assessment for ${workspace.field.name}.',
+                  : AppWords.of(context).format(
+                      'Confirm the field outline before setting up an assessment for {field}.',
+                      {'field': workspace.field.name},
+                    ),
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: AppColors.textSecondary,
@@ -544,7 +855,7 @@ class _BoundaryRequiredScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            const Text(
+            const AppText(
               'The outline is an approximate guide for field scouting. It is not a legal or survey-grade property boundary.',
               textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.textSecondary, height: 1.4),
@@ -561,7 +872,7 @@ class _BoundaryRequiredScreen extends StatelessWidget {
                   ),
                 ),
                 icon: const Icon(Icons.map_outlined),
-                label: const Text('Complete field outline'),
+                label: const AppText('Complete field outline'),
               ),
             ),
           ],
@@ -583,15 +894,21 @@ class _FieldSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.primaryLight,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
-      ),
+      padding: const EdgeInsets.fromLTRB(16, 15, 16, 13),
       child: Row(
         children: [
-          const Icon(Icons.agriculture_outlined, color: AppColors.primary),
+          Container(
+            width: 43,
+            height: 43,
+            decoration: BoxDecoration(
+              color: AppColors.primaryLight,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.agriculture_outlined,
+              color: AppColors.primary,
+            ),
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -600,14 +917,17 @@ class _FieldSummaryCard extends StatelessWidget {
                 Text(
                   fieldName,
                   style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  '${areaHectares?.toStringAsFixed(2) ?? '--'} ha - field scouting setup',
-                  style: const TextStyle(color: AppColors.textSecondary),
+                const SizedBox(height: 2),
+                AppText(
+                  '${areaHectares?.toStringAsFixed(2) ?? '--'} ha',
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 13,
+                  ),
                 ),
               ],
             ),
@@ -626,10 +946,10 @@ class _SectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 9),
+      padding: const EdgeInsets.only(bottom: 10),
       child: Text(
         text,
-        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
       ),
     );
   }
@@ -647,7 +967,7 @@ class _LockedValue extends StatelessWidget {
       tileColor: AppColors.surfaceContainer,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       leading: Icon(icon),
-      title: Text(value),
+      title: AppText(value),
     );
   }
 }
@@ -661,10 +981,10 @@ class _AutomaticRouteCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       key: const Key('automatic_scouting_route'),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
       decoration: BoxDecoration(
-        color: AppColors.primaryLight,
-        borderRadius: BorderRadius.circular(12),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.outlineVariant),
       ),
       child: Row(
@@ -672,12 +992,16 @@ class _AutomaticRouteCard extends StatelessWidget {
           const Icon(Icons.route_outlined, color: AppColors.primary),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(
+            child: AppText(
               AssessmentProtocolSelector.patternLabel(pattern),
-              style: const TextStyle(fontWeight: FontWeight.w700),
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
             ),
           ),
-          const Icon(Icons.lock_outline, size: 19),
+          const Icon(
+            Icons.lock_outline,
+            size: 18,
+            color: AppColors.textSecondary,
+          ),
         ],
       ),
     );
@@ -705,82 +1029,87 @@ class _RecentWeatherContent extends StatelessWidget {
   Widget build(BuildContext context) {
     if (state == _WeatherLookupState.loading ||
         state == _WeatherLookupState.idle) {
-      return const Row(
-        children: [
-          SizedBox.square(
-            dimension: 18,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-          SizedBox(width: 10),
-          Text('Checking recent weather…'),
-        ],
+      return const Padding(
+        padding: EdgeInsets.all(16),
+        child: Row(
+          children: [
+            SizedBox.square(
+              dimension: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            SizedBox(width: 10),
+            AppText('Checking recent weather…'),
+          ],
+        ),
       );
     }
     if (state == _WeatherLookupState.available && snapshot != null) {
       return Container(
         key: const Key('automatic_recent_weather'),
-        padding: const EdgeInsets.all(13),
-        decoration: BoxDecoration(
-          color: AppColors.primaryLight,
-          borderRadius: BorderRadius.circular(10),
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
         child: Row(
           children: [
             const Icon(Icons.water_drop_outlined, color: AppColors.primary),
             const SizedBox(width: 10),
             Expanded(
-              child: Text(
-                'Rain in the last 2 days: '
-                '${snapshot!.precipitationMm.toStringAsFixed(1)} mm\n'
-                'That is about ${snapshot!.precipitationMm.toStringAsFixed(1)} litres of rain per square metre.',
-                style: const TextStyle(height: 1.35),
+              child: AppText(
+                'Last 48 hours · ${snapshot!.precipitationMm.toStringAsFixed(1)} mm',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                ),
               ),
             ),
           ],
         ),
       );
     }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const Icon(
-              Icons.cloud_off_outlined,
-              size: 18,
-              color: AppColors.textSecondary,
-            ),
-            const SizedBox(width: 8),
-            const Expanded(
-              child: Text(
-                'Recent weather could not be retrieved. Add it only if known.',
-                style: TextStyle(color: AppColors.textSecondary),
+    return Padding(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.cloud_off_outlined,
+                size: 18,
+                color: AppColors.textSecondary,
               ),
-            ),
-            IconButton(
-              key: const Key('retry_recent_weather_button'),
-              tooltip: 'Retry weather',
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        AccessibleChoiceField<String>(
-          key: const Key('rain_last_48_hours_choice'),
-          label: 'Did rain wet this field in the last 48 hours?',
-          sheetTitle: 'Rain during the last 48 hours',
-          value: rainLast48Hours,
-          leadingIcon: Icons.water_drop_outlined,
-          hintText: 'Add what you know (optional)',
-          options: const [
-            AccessibleChoiceOption(value: 'yes', label: 'Yes'),
-            AccessibleChoiceOption(value: 'no', label: 'No'),
-            AccessibleChoiceOption(value: 'not_sure', label: 'I am not sure'),
-          ],
-          onChanged: onChanged,
-        ),
-      ],
+              const SizedBox(width: 8),
+              const Expanded(
+                child: AppText(
+                  'Recent weather could not be retrieved. Add it only if known.',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
+              ),
+              IconButton(
+                key: const Key('retry_recent_weather_button'),
+                tooltip: AppWords.of(context).translate('Retry weather'),
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          AccessibleChoiceField<String>(
+            key: const Key('rain_last_48_hours_choice'),
+            label: 'Did rain wet this field in the last 48 hours?',
+            sheetTitle: 'Rain during the last 48 hours',
+            value: rainLast48Hours,
+            leadingIcon: Icons.water_drop_outlined,
+            hintText: AppWords.of(
+              context,
+            ).translate('Add what you know (optional)'),
+            options: const [
+              AccessibleChoiceOption(value: 'yes', label: 'Yes'),
+              AccessibleChoiceOption(value: 'no', label: 'No'),
+              AccessibleChoiceOption(value: 'not_sure', label: 'I am not sure'),
+            ],
+            onChanged: onChanged,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -792,8 +1121,8 @@ class _SafetyExplanation extends StatelessWidget {
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('What is the waiting period?'),
-        content: const Text(
+        title: const AppText('What is the waiting period?'),
+        content: const AppText(
           'After some pesticides are applied, the product label requires people '
           'to wait a stated number of hours or days before entering the treated '
           'field without special protection. This is formally called the '
@@ -805,7 +1134,7 @@ class _SafetyExplanation extends StatelessWidget {
         actions: [
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Understood'),
+            child: const AppText('Understood'),
           ),
         ],
       ),
@@ -814,38 +1143,23 @@ class _SafetyExplanation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(13),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF3CD),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFFFD666)),
-      ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.warning_amber_rounded, color: Color(0xFF8A5A00)),
-          const SizedBox(width: 9),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Was this field sprayed or treated recently? Check the product '
-                  'label, spray record, or ask the applicator before entering.',
-                  style: TextStyle(height: 1.35),
-                ),
-                const SizedBox(height: 4),
-                TextButton(
-                  onPressed: () => _showWaitingPeriodHelp(context),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    visualDensity: VisualDensity.compact,
-                  ),
-                  child: const Text('What is the waiting period?'),
-                ),
-              ],
+          const Expanded(
+            child: AppText(
+              'Confirm treatment before entering.',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
             ),
+          ),
+          IconButton(
+            tooltip: AppWords.of(
+              context,
+            ).translate('What is the waiting period?'),
+            onPressed: () => _showWaitingPeriodHelp(context),
+            icon: const Icon(Icons.help_outline, size: 21),
+            visualDensity: VisualDensity.compact,
           ),
         ],
       ),
@@ -869,19 +1183,32 @@ class _SafetyOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.only(bottom: 8),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-        side: BorderSide(
-          color: selected ? AppColors.primary : AppColors.outlineVariant,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 7),
+      child: Material(
+        color: selected ? AppColors.primaryLight : Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(
+            color: selected ? AppColors.primary : AppColors.outlineVariant,
+          ),
         ),
-      ),
-      child: RadioListTile<String>(
-        value: value,
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text(subtitle),
+        child: RadioListTile<String>(
+          value: value,
+          dense: true,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 8,
+            vertical: 1,
+          ),
+          title: Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+          ),
+          subtitle: Text(
+            subtitle,
+            style: const TextStyle(fontSize: 12.5, height: 1.2),
+          ),
+        ),
       ),
     );
   }
@@ -905,6 +1232,63 @@ class _SafetyBlockedNotice extends StatelessWidget {
             ? 'This draft is saved, but field entry is blocked. Recheck safety below when reliable information becomes available.'
             : 'This draft was not started. Complete the safety check below.',
         style: const TextStyle(height: 1.4),
+      ),
+    );
+  }
+}
+
+class _AssessmentWorkloadCard extends StatelessWidget {
+  const _AssessmentWorkloadCard({
+    required this.areaHectares,
+    required this.isDa,
+  });
+
+  final double areaHectares;
+  final bool isDa;
+
+  @override
+  Widget build(BuildContext context) {
+    final withinLimit = AssessmentAreaPolicy.isWithinAssessmentLimit(
+      areaHectares,
+    );
+    final blocks = AssessmentAreaPolicy.requiredBlockCount(areaHectares);
+    final message = withinLimit
+        ? isDa
+              ? '$blocks ${blocks == 1 ? 'block' : 'blocks'} · '
+                    '${blocks * ScoutingSamplingProtocol.plantsPerBlock} plants · '
+                    '20 plants per sampling block'
+              : '$blocks ${blocks == 1 ? 'block' : 'blocks'} · '
+                    '${blocks * 5} stations · ${blocks * 50} observations'
+        : 'Formal assessment is limited to '
+              '${AssessmentAreaPolicy.maxAssessmentAreaHectares.toStringAsFixed(0)} ha. '
+              'This field can remain saved, but scouting cannot begin.';
+
+    return Container(
+      key: const Key('assessment_workload_card'),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 13),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Divider(height: 1),
+          const SizedBox(height: 11),
+          Text(
+            message,
+            style: TextStyle(
+              color: withinLimit
+                  ? AppColors.textSecondary
+                  : const Color(0xFF8A1C1C),
+              fontSize: 12.5,
+              height: 1.3,
+            ),
+          ),
+          if (withinLimit && blocks > 1) ...[
+            const SizedBox(height: 3),
+            const AppText(
+              'Confirm each block before scouting.',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            ),
+          ],
+        ],
       ),
     );
   }

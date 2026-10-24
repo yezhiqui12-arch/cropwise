@@ -1,4 +1,6 @@
 import 'dart:convert';
+import '../../localization/app_language.dart';
+import '../../localization/app_text.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -130,7 +132,7 @@ class _ReproductivePlantObservationStepState
     children: [
       const _ProtocolReminder(
         text:
-            'Use the ladder route. Examine the tassel, developing ear base, and the axils immediately above and below the ear.',
+            'At the selected plant, examine the tassel, developing ear base, and the axils immediately above and below the ear.',
       ),
       _StageChoice<bool>(
         label: 'Can this plant be assessed safely?',
@@ -146,8 +148,8 @@ class _ReproductivePlantObservationStepState
           key: const Key('vt_not_assessable_reason'),
           controller: _reason,
           maxLines: 2,
-          decoration: const InputDecoration(
-            labelText: 'Reason (required)',
+          decoration: InputDecoration(
+            labelText: AppWords.of(context).translate('Reason (required)'),
             border: OutlineInputBorder(),
           ),
         ),
@@ -239,8 +241,8 @@ class _ReproductivePlantObservationStepState
             key: const Key('vt_larva_count'),
             initialValue: _larvaCount?.toString(),
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Larva count',
+            decoration: InputDecoration(
+              labelText: AppWords.of(context).translate('Larva count'),
               border: OutlineInputBorder(),
             ),
             onChanged: (value) => _larvaCount = int.tryParse(value),
@@ -294,8 +296,9 @@ class _ReproductivePlantObservationStepState
         _StageChoice<String>(
           value: _classification,
           choices: const {
-            DatabaseCodes.reproductiveInfested: 'Currently infested',
-            DatabaseCodes.reproductiveNotInfested: 'Not currently infested',
+            DatabaseCodes.reproductiveInfested:
+                'Current FAW-consistent evidence',
+            DatabaseCodes.reproductiveNotInfested: 'No current signs recorded',
             DatabaseCodes.reproductiveUncertain: 'Uncertain',
           },
           onChanged: (value) => setState(() => _classification = value),
@@ -387,7 +390,7 @@ class _ReproductivePlantObservationStepState
     }
     final positive = _larva == true || _freshFeeding == true;
     if (positive != (_classification == DatabaseCodes.reproductiveInfested)) {
-      return 'Currently infested must match visible larva or fresh feeding.';
+      return 'Current FAW-consistent evidence must match visible larva or fresh feeding.';
     }
     if (widget.evidence?.isViewSatisfied(
           DatabaseCodes.evidenceViewEarRegionOverview,
@@ -553,8 +556,8 @@ class _EarExternalObservationStepState
           key: const Key('ear_not_assessable_reason'),
           controller: _reason,
           maxLines: 2,
-          decoration: const InputDecoration(
-            labelText: 'Reason',
+          decoration: InputDecoration(
+            labelText: AppWords.of(context).translate('Reason'),
             border: OutlineInputBorder(),
           ),
         ),
@@ -562,9 +565,13 @@ class _EarExternalObservationStepState
         TextField(
           key: const Key('designated_ear_identity'),
           controller: _identity,
-          decoration: const InputDecoration(
-            labelText: 'Designated-ear identity',
-            hintText: 'Primary / uppermost marketable ear',
+          decoration: InputDecoration(
+            labelText: AppWords.of(
+              context,
+            ).translate('Designated-ear identity'),
+            hintText: AppWords.of(
+              context,
+            ).translate('Primary / uppermost marketable ear'),
             border: OutlineInputBorder(),
           ),
         ),
@@ -857,11 +864,11 @@ class _StageFormScaffold extends StatelessWidget {
       Material(
         color: const Color(0xFFF3F8F4),
         child: ListTile(
-          title: Text(
+          title: AppText(
             title,
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
-          subtitle: Text(subtitle),
+          subtitle: AppText(subtitle),
         ),
       ),
       Expanded(
@@ -882,13 +889,16 @@ class _StageFormScaffold extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               if (error != null) ...[
-                Text(error!, style: const TextStyle(color: Color(0xFF9D241F))),
+                AppText(
+                  error!,
+                  style: const TextStyle(color: Color(0xFF9D241F)),
+                ),
                 const SizedBox(height: 8),
               ],
               FilledButton(
                 key: const Key('save_stage_plant'),
                 onPressed: isSaving ? null : onSave,
-                child: Text(isSaving ? 'Saving…' : 'Save plant'),
+                child: AppText(isSaving ? 'Saving…' : 'Save plant'),
               ),
             ],
           ),
@@ -909,7 +919,7 @@ class _ProtocolReminder extends StatelessWidget {
     ),
     child: Padding(
       padding: const EdgeInsets.all(12),
-      child: Text(text, style: const TextStyle(fontWeight: FontWeight.w600)),
+      child: AppText(text, style: const TextStyle(fontWeight: FontWeight.w600)),
     ),
   );
 }
@@ -918,7 +928,7 @@ class _StageHeading extends StatelessWidget {
   const _StageHeading(this.text);
   final String text;
   @override
-  Widget build(BuildContext context) => Text(
+  Widget build(BuildContext context) => AppText(
     text,
     style: const TextStyle(
       color: Color(0xFF176B3A),
@@ -946,7 +956,7 @@ class _StageChoice<T> extends StatelessWidget {
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       if (label != null) ...[
-        Text(label!, style: const TextStyle(fontWeight: FontWeight.w600)),
+        AppText(label!, style: const TextStyle(fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
       ],
       Wrap(
@@ -956,7 +966,7 @@ class _StageChoice<T> extends StatelessWidget {
           for (final entry in choices.entries)
             ChoiceChip(
               key: Key('choice_${entry.key}'),
-              label: Text(entry.value),
+              label: AppText(entry.value),
               selected: value == entry.key,
               onSelected: (_) => onChanged(entry.key),
             ),
@@ -1000,7 +1010,7 @@ class _CheckTile extends StatelessWidget {
   Widget build(BuildContext context) => CheckboxListTile(
     value: value,
     contentPadding: EdgeInsets.zero,
-    title: Text(label),
+    title: AppText(label),
     onChanged: (next) => onChanged(next ?? false),
   );
 }
@@ -1087,7 +1097,7 @@ class _CauseTags extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      const Text(
+      const AppText(
         'Possible cause tags (select every applicable cause)',
         style: TextStyle(fontWeight: FontWeight.w600),
       ),
@@ -1106,7 +1116,7 @@ class _CauseTags extends StatelessWidget {
             'uncertain': 'Uncertain',
           }.entries)
             FilterChip(
-              label: Text(entry.value),
+              label: AppText(entry.value),
               selected: value.contains(entry.key),
               onSelected: (selected) {
                 selected ? value.add(entry.key) : value.remove(entry.key);
@@ -1126,8 +1136,8 @@ class _NotesField extends StatelessWidget {
   Widget build(BuildContext context) => TextField(
     controller: controller,
     maxLines: 3,
-    decoration: const InputDecoration(
-      labelText: 'Evaluator note (optional)',
+    decoration: InputDecoration(
+      labelText: AppWords.of(context).translate('Evaluator note (optional)'),
       border: OutlineInputBorder(),
     ),
   );

@@ -1,31 +1,11 @@
+import '../../services/scouting_sampling_protocol.dart';
 import 'package:drift/drift.dart';
 
 import '../local/app_database.dart';
 import '../local/database_codes.dart';
-
-class ValidationIssue {
-  const ValidationIssue(this.code, this.message, {this.stationId});
-
-  final String code;
-  final String message;
-  final String? stationId;
-}
-
-class BlockValidationResult {
-  const BlockValidationResult(this.issues);
-
-  final List<ValidationIssue> issues;
-  bool get isValid => issues.isEmpty;
-}
-
-class AssessmentValidationException implements Exception {
-  const AssessmentValidationException(this.issues);
-
-  final List<ValidationIssue> issues;
-
-  @override
-  String toString() => issues.map((issue) => issue.message).join('; ');
-}
+import 'scouting_completion_service.dart';
+import 'assessment_validation_types.dart';
+export 'assessment_validation_types.dart';
 
 class AssessmentCompletionValidator {
   const AssessmentCompletionValidator(this.database);
@@ -49,12 +29,18 @@ class AssessmentCompletionValidator {
               ..orderBy([(row) => OrderingTerm.asc(row.stationNumber)]))
             .get();
 
+    final locationCount = ScoutingSamplingProtocol.locationCount(
+      assessment.protocolVersion,
+    );
+    final plantCount = ScoutingSamplingProtocol.plantsPerLocation(
+      assessment.protocolVersion,
+    );
     final issues = <ValidationIssue>[];
-    if (stations.length != 5) {
+    if (stations.length != locationCount) {
       issues.add(
         ValidationIssue(
           'station_count',
-          'A completed formal block requires exactly 5 stations; found ${stations.length}.',
+          'A completed formal block requires exactly $locationCount sampling locations; found ${stations.length}.',
         ),
       );
     }
@@ -68,26 +54,29 @@ class AssessmentCompletionValidator {
                 )
                 ..orderBy([(row) => OrderingTerm.asc(row.sequenceNumber)]))
               .get();
-      if (plants.length != 10) {
+      if (plants.length != plantCount) {
         issues.add(
           ValidationIssue(
             'plant_count',
-            'Station ${station.stationNumber} requires 10 explicit plant positions; found ${plants.length}.',
+            'Station ${station.stationNumber} requires $plantCount explicit plant position(s); found ${plants.length}.',
             stationId: station.id,
           ),
         );
       }
 
-      final expectedSequence = List<int>.generate(10, (index) => index + 1);
+      final expectedSequence = List<int>.generate(
+        plantCount,
+        (index) => index + 1,
+      );
       final actualSequence = plants
           .map((plant) => plant.sequenceNumber)
           .toList();
-      if (actualSequence.length == 10 &&
+      if (actualSequence.length == plantCount &&
           !_sameSequence(actualSequence, expectedSequence)) {
         issues.add(
           ValidationIssue(
             'plant_sequence',
-            'Station ${station.stationNumber} must contain plant positions 1-10.',
+            'Station ${station.stationNumber} must contain plant positions 1-$plantCount.',
             stationId: station.id,
           ),
         );
@@ -103,11 +92,11 @@ class AssessmentCompletionValidator {
                   )
                   ..orderBy([(row) => OrderingTerm.asc(row.sequenceNumber)]))
                 .get();
-        if (plantingUnits.length != 10) {
+        if (plantingUnits.length != plantCount) {
           issues.add(
             ValidationIssue(
               'planting_unit_count',
-              'Station ${station.stationNumber} requires 10 explicit VE-V2 planting positions; found ${plantingUnits.length}.',
+              'Station ${station.stationNumber} requires $plantCount explicit VE-V2 planting position(s); found ${plantingUnits.length}.',
               stationId: station.id,
             ),
           );
@@ -137,60 +126,8 @@ class AssessmentCompletionValidator {
     return BlockValidationResult(List.unmodifiable(issues));
   }
 
-  Future<void> completeAssessment(String assessmentId) async {
-    final assessment = await (database.select(
-      database.assessments,
-    )..where((row) => row.id.equals(assessmentId))).getSingle();
-    final blockRuns =
-        await (database.select(database.assessmentBlockRuns)..where(
-              (row) =>
-                  row.assessmentId.equals(assessmentId) &
-                  row.deletedAt.isNull(),
-            ))
-            .get();
-
-    final issues = <ValidationIssue>[];
-    if (blockRuns.isEmpty) {
-      issues.add(
-        const ValidationIssue(
-          'block_missing',
-          'A completed formal assessment requires at least one assessment block.',
-        ),
-      );
-    }
-    for (final blockRun in blockRuns) {
-      issues.addAll((await validateBlock(blockRun.id)).issues);
-    }
-    if (issues.isNotEmpty) {
-      throw AssessmentValidationException(List.unmodifiable(issues));
-    }
-
-    final now = DateTime.now().toUtc();
-    await database.transaction(() async {
-      for (final blockRun in blockRuns) {
-        await (database.update(
-          database.assessmentBlockRuns,
-        )..where((row) => row.id.equals(blockRun.id))).write(
-          AssessmentBlockRunsCompanion(
-            status: const Value(DatabaseCodes.completed),
-            completedAt: Value(now),
-            updatedAt: Value(now),
-            syncState: const Value(DatabaseCodes.queued),
-          ),
-        );
-      }
-      await (database.update(
-        database.assessments,
-      )..where((row) => row.id.equals(assessment.id))).write(
-        AssessmentsCompanion(
-          status: const Value(DatabaseCodes.completed),
-          completedAt: Value(now),
-          updatedAt: Value(now),
-          syncState: const Value(DatabaseCodes.queued),
-        ),
-      );
-    });
-  }
+  Future<void> completeAssessment(String assessmentId) =>
+      ScoutingCompletionService(database).completeAssessment(assessmentId);
 
   Future<bool> _hasVegetativeRecord(String plantId) async {
     return await (database.select(database.vegetativeObservations)

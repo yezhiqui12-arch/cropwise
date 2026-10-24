@@ -12,8 +12,15 @@ class PolygonValidationResult {
 }
 
 class PolygonCalculator {
+  /// Web Mercator cannot project the poles, even though latitude is finite.
+  static bool isValidCoordinate(LatLng point) =>
+      point.latitude.isFinite &&
+      point.longitude.isFinite &&
+      point.latitude.abs() <= 85.05112878 &&
+      point.longitude.abs() <= 180;
+
   static double calculateSquareMeters(List<LatLng> points) {
-    if (points.length < 3) return 0;
+    if (points.length < 3 || points.any((p) => !isValidCoordinate(p))) return 0;
 
     const earthRadius = 6378137.0;
     final meanLatitude =
@@ -41,7 +48,7 @@ class PolygonCalculator {
   }
 
   static double calculatePerimeterMeters(List<LatLng> points) {
-    if (points.length < 2) return 0;
+    if (points.length < 2 || points.any((p) => !isValidCoordinate(p))) return 0;
 
     const distance = Distance();
     var perimeter = 0.0;
@@ -56,6 +63,7 @@ class PolygonCalculator {
   }
 
   static LatLng calculateCenter(List<LatLng> points) {
+    points = points.where(isValidCoordinate).toList(growable: false);
     if (points.isEmpty) return const LatLng(17.7905, 121.4781);
     return LatLng(
       points.map((point) => point.latitude).reduce((a, b) => a + b) /
@@ -67,6 +75,11 @@ class PolygonCalculator {
 
   static PolygonValidationResult validate(List<LatLng> points) {
     final issues = <String>[];
+    if (points.any((point) => !isValidCoordinate(point))) {
+      return const PolygonValidationResult([
+        'Boundary points must have valid map coordinates. Clear and redraw the outline.',
+      ]);
+    }
     if (points.length < 3) {
       issues.add('Add at least three boundary points.');
       return PolygonValidationResult(List.unmodifiable(issues));
@@ -114,6 +127,9 @@ class PolygonCalculator {
   }
 
   static String toGeoJson(List<LatLng> points) {
+    if (points.any((point) => !isValidCoordinate(point))) {
+      throw ArgumentError('Boundary points must have valid map coordinates.');
+    }
     if (points.isEmpty) {
       return '{"type":"Polygon","coordinates":[]}';
     }
@@ -146,7 +162,9 @@ class PolygonCalculator {
         final longitude = coordinate[0];
         final latitude = coordinate[1];
         if (longitude is! num || latitude is! num) continue;
-        points.add(LatLng(latitude.toDouble(), longitude.toDouble()));
+        final point = LatLng(latitude.toDouble(), longitude.toDouble());
+        if (!isValidCoordinate(point)) return const [];
+        points.add(point);
       }
 
       if (points.length > 1 && _samePoint(points.first, points.last)) {

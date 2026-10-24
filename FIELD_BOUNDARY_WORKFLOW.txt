@@ -4,7 +4,7 @@ WORMWISE FIELD OUTLINE WORKFLOW
 CURRENT PROJECT DECISION
 ------------------------
 A field can be registered with its name and reported area before an outline is
-available. A new assessment cannot proceed to setup or Station 1 until that
+available. A new assessment cannot proceed to setup or active sampling until that
 field has a confirmed approximate outline.
 
 If the outline is missing, show:
@@ -27,7 +27,7 @@ WORKFLOW
    corners, or a mixture of both.
 5. Review the polygon, calculated area, and perimeter.
 6. Confirm the approximate-outline statement and save a new boundary version.
-7. Return to Scan, where assessment setup can now proceed.
+7. Return to Scout, where assessment setup can now proceed.
 
 SAFETY AND DATA RULES
 ---------------------
@@ -47,7 +47,7 @@ online reference and provide an OpenStreetMap alternative. That direct online
 imagery integration still needs production review for terms, attribution,
 authentication, and expected usage.
 
-Scan uses the same Esri World Imagery online background as the Map tab and has
+Scout uses the same Esri World Imagery online background as the Map tab and has
 a deterministic illustrated-field fallback. Licensed local imagery packages
 may be added under the rules in:
 

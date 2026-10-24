@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../localization/app_text.dart';
 import '../screens/fields_screen.dart';
+import '../screens/assess/assessments_screen.dart';
 import '../theme/app_colors.dart';
 
 class QuickToolsGrid extends StatelessWidget {
@@ -10,7 +12,7 @@ class QuickToolsGrid extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        const AppText(
           'Quick Tools',
           style: TextStyle(
             fontSize: 20,
@@ -30,7 +32,10 @@ class QuickToolsGrid extends StatelessWidget {
             _buildToolCard(
               icon: Icons.history,
               label: 'History',
-              onTap: () => _showUnavailable(context, 'Assessment history'),
+              onTap: () => Navigator.push<void>(
+                context,
+                MaterialPageRoute(builder: (_) => const AssessmentsScreen()),
+              ),
             ),
             _buildToolCard(
               icon: Icons.grid_view,
@@ -60,7 +65,9 @@ class QuickToolsGrid extends StatelessWidget {
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
       ..showSnackBar(
-        SnackBar(content: Text('$feature is not available in this build yet.')),
+        SnackBar(
+          content: AppText('$feature is not available in this build yet.'),
+        ),
       );
   }
 

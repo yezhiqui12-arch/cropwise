@@ -1,4 +1,6 @@
 import 'dart:io';
+import '../../localization/app_language.dart';
+import '../../localization/app_text.dart';
 
 import 'package:flutter/material.dart';
 
@@ -36,7 +38,6 @@ class PlantObservationStep extends StatefulWidget {
     this.onRetakeEvidence,
     this.onRemoveEvidence,
     this.onManualFallback,
-    this.onMarkAllHealthy,
     this.cvDiagnosis,
     this.growthStage = 'legacy_vegetative',
   });
@@ -65,7 +66,6 @@ class PlantObservationStep extends StatefulWidget {
   final Future<void> Function(EvidenceMediaRecord media)? onRemoveEvidence;
   final Future<void> Function(String viewType, String reasonCode, String? note)?
   onManualFallback;
-  final VoidCallback? onMarkAllHealthy;
   final PlantDiagnosisResult? cvDiagnosis;
   final String growthStage;
 
@@ -225,21 +225,6 @@ class _PlantObservationStepState extends State<PlantObservationStep>
                 ),
                 const SizedBox(height: 14),
               ],
-              if (widget.onMarkAllHealthy != null && widget.position == 1) ...[
-                ConstrainedBox(
-                  constraints: const BoxConstraints(minHeight: 48),
-                  child: OutlinedButton.icon(
-                    key: const Key('mark_all_healthy_button'),
-                    onPressed: widget.isSaving ? null : widget.onMarkAllHealthy,
-                    icon: const Icon(
-                      Icons.check_circle_outline,
-                      color: Color(0xFF176B3A),
-                    ),
-                    label: const Text('All 10 Plants Clean (1-Tap Shortcut)'),
-                  ),
-                ),
-                const SizedBox(height: 14),
-              ],
               const _ReminderCard(),
               const SizedBox(height: 14),
               const _SectionTitle('Can this plant be assessed?'),
@@ -259,9 +244,13 @@ class _PlantObservationStepState extends State<PlantObservationStep>
                   key: const Key('not_assessable_reason_field'),
                   controller: _notAssessableReason,
                   maxLines: 2,
-                  decoration: const InputDecoration(
-                    labelText: 'Reason (required)',
-                    hintText: 'Missing, broken, or unsafe to reach',
+                  decoration: InputDecoration(
+                    labelText: AppWords.of(
+                      context,
+                    ).translate('Reason (required)'),
+                    hintText: AppWords.of(
+                      context,
+                    ).translate('Missing, broken, or unsafe to reach'),
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -314,7 +303,7 @@ class _PlantObservationStepState extends State<PlantObservationStep>
                       color: Color(0xFFFFF3CD),
                       child: Padding(
                         padding: EdgeInsets.all(12),
-                        child: Text(
+                        child: AppText(
                           'Add a close-up or use documented fallback if photography is unavailable. Leave observations unanswered when the accepted evidence cannot support them.',
                           style: TextStyle(height: 1.35),
                         ),
@@ -324,7 +313,7 @@ class _PlantObservationStepState extends State<PlantObservationStep>
                   const SizedBox(height: 14),
                 ],
                 const _SectionTitle('Physical inspection'),
-                const Text(
+                const AppText(
                   'Inspect the newest leaves emerging from the whorl.',
                   style: TextStyle(height: 1.35),
                 ),
@@ -338,7 +327,7 @@ class _PlantObservationStepState extends State<PlantObservationStep>
                 ),
                 const SizedBox(height: 18),
                 const _SectionTitle('Fresh feeding signs'),
-                const Text(
+                const AppText(
                   'Select every sign observed, or explicitly select none.',
                   style: TextStyle(height: 1.35),
                 ),
@@ -410,17 +399,22 @@ class _PlantObservationStepState extends State<PlantObservationStep>
                     initialValue: _larvalSize == 'none_seen'
                         ? null
                         : _larvalSize,
-                    decoration: const InputDecoration(
-                      labelText: 'Broad larval-size group',
+                    decoration: InputDecoration(
+                      labelText: AppWords.of(
+                        context,
+                      ).translate('Broad larval-size group'),
                       border: OutlineInputBorder(),
                     ),
                     items: const [
-                      DropdownMenuItem(value: 'small', child: Text('Small')),
-                      DropdownMenuItem(value: 'medium', child: Text('Medium')),
-                      DropdownMenuItem(value: 'large', child: Text('Large')),
+                      DropdownMenuItem(value: 'small', child: AppText('Small')),
+                      DropdownMenuItem(
+                        value: 'medium',
+                        child: AppText('Medium'),
+                      ),
+                      DropdownMenuItem(value: 'large', child: AppText('Large')),
                       DropdownMenuItem(
                         value: 'uncertain',
-                        child: Text('Uncertain'),
+                        child: AppText('Uncertain'),
                       ),
                     ],
                     onChanged: (value) => setState(() => _larvalSize = value),
@@ -468,7 +462,7 @@ class _PlantObservationStepState extends State<PlantObservationStep>
                 if (widget.growthStage == 'v7_v12') ...[
                   const SizedBox(height: 18),
                   const _SectionTitle('Leaf-damage severity'),
-                  const Text(
+                  const AppText(
                     'Score damage from 0 to 9 using the approved DA-BAFS reference. Keep this ordinal score separate from current infestation.',
                     style: TextStyle(height: 1.35),
                   ),
@@ -476,15 +470,17 @@ class _PlantObservationStepState extends State<PlantObservationStep>
                   DropdownButtonFormField<int>(
                     key: const Key('da_bafs_score_field'),
                     initialValue: _damageScore,
-                    decoration: const InputDecoration(
-                      labelText: 'DA-BAFS score (0–9)',
+                    decoration: InputDecoration(
+                      labelText: AppWords.of(
+                        context,
+                      ).translate('DA-BAFS score (0–9)'),
                       border: OutlineInputBorder(),
                     ),
                     items: List.generate(
                       10,
                       (score) => DropdownMenuItem(
                         value: score,
-                        child: Text('$score · ${_damageScoreLabel(score)}'),
+                        child: AppText('$score · ${_damageScoreLabel(score)}'),
                       ),
                     ),
                     onChanged: (value) => setState(() => _damageScore = value),
@@ -525,7 +521,7 @@ class _PlantObservationStepState extends State<PlantObservationStep>
                     key: const Key('damage_score_uncertain_field'),
                     value: _damageScoreUncertain,
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('The selected score is uncertain'),
+                    title: const AppText('The selected score is uncertain'),
                     onChanged: (value) =>
                         setState(() => _damageScoreUncertain = value ?? false),
                   ),
@@ -609,7 +605,7 @@ class _PlantObservationStepState extends State<PlantObservationStep>
                     color: Color(0xFFFFF3CD),
                     child: Padding(
                       padding: EdgeInsets.all(14),
-                      child: Text(
+                      child: AppText(
                         'Mixed evidence selected. Every raw answer will be kept. Confirm the primary interpretation; WormWise has not selected one.',
                         style: TextStyle(
                           height: 1.35,
@@ -640,13 +636,15 @@ class _PlantObservationStepState extends State<PlantObservationStep>
               ExpansionTile(
                 key: const Key('plant_notes_expansion'),
                 tilePadding: EdgeInsets.zero,
-                title: const Text('Add evaluator note (optional)'),
+                title: const AppText('Add evaluator note (optional)'),
                 children: [
                   TextField(
                     controller: _notes,
                     maxLines: 3,
-                    decoration: const InputDecoration(
-                      labelText: 'Evaluator note',
+                    decoration: InputDecoration(
+                      labelText: AppWords.of(
+                        context,
+                      ).translate('Evaluator note'),
                       border: OutlineInputBorder(),
                     ),
                   ),
@@ -665,7 +663,7 @@ class _PlantObservationStepState extends State<PlantObservationStep>
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 if (_validationMessage != null) ...[
-                  Text(
+                  AppText(
                     _validationMessage!,
                     key: const Key('plant_validation_message'),
                     style: const TextStyle(
@@ -685,7 +683,7 @@ class _PlantObservationStepState extends State<PlantObservationStep>
                             dimension: 22,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : Text(
+                        : AppText(
                             widget.position == 10 && widget.existing == null
                                 ? 'Save Plant 10 and review'
                                 : 'Save Plant ${widget.position}',
@@ -695,7 +693,7 @@ class _PlantObservationStepState extends State<PlantObservationStep>
                 if (widget.onCancelEdit != null)
                   TextButton(
                     onPressed: widget.isSaving ? null : widget.onCancelEdit,
-                    child: const Text('Back to Station Review'),
+                    child: const AppText('Back to Station Review'),
                   ),
               ],
             ),
@@ -950,14 +948,14 @@ class _ManualConfirmationHeader extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
+            AppText(
               editingExisting
                   ? 'Review or correct Plant $position'
                   : 'Manual confirmation · Plant $position of 10',
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 3),
-            Text(
+            AppText(
               'Block $blockNumber · Station $stationNumber · $confirmedCount of 10 confirmed',
               style: const TextStyle(fontSize: 13),
             ),
@@ -987,7 +985,7 @@ class _ReminderCard extends StatelessWidget {
           Icon(Icons.visibility_outlined, size: 22, color: Color(0xFF176B3A)),
           SizedBox(width: 10),
           Expanded(
-            child: Text(
+            child: AppText(
               'Expose the whorl and inspect the newest 3 or 4 leaves. Confirm only what you can observe.',
               style: TextStyle(height: 1.35, fontWeight: FontWeight.w600),
             ),
@@ -1006,7 +1004,7 @@ class _SectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(bottom: 8, left: 2),
-    child: Text(
+    child: AppText(
       text,
       style: const TextStyle(
         color: Color(0xFF176B3A),
@@ -1110,7 +1108,10 @@ class _CompactChoices<T> extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (label != null) ...[
-              Text(label!, style: const TextStyle(fontWeight: FontWeight.w600)),
+              AppText(
+                label!,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
               const SizedBox(height: 8),
             ],
             LayoutBuilder(
@@ -1195,7 +1196,7 @@ class _SelectionTile extends StatelessWidget {
                   ),
                   const SizedBox(width: 9),
                   Expanded(
-                    child: Text(
+                    child: AppText(
                       label,
                       textAlign: TextAlign.left,
                       style: TextStyle(
@@ -1243,11 +1244,11 @@ class _ObservationHelp extends StatelessWidget {
   Widget build(BuildContext context) => const ExpansionTile(
     key: Key('fresh_signs_help'),
     tilePadding: EdgeInsets.zero,
-    title: Text('What do these signs mean?'),
+    title: AppText('What do these signs mean?'),
     children: [
       Align(
         alignment: Alignment.centerLeft,
-        child: Text(
+        child: AppText(
           'Use the approved field definitions for fresh windowpanes, scraping, cutting or tearing, frass, and general whorl-feeding signs. Select only what you physically observed; these raw signs do not by themselves prove pest identity.',
           style: TextStyle(height: 1.4),
         ),
@@ -1263,11 +1264,11 @@ class _InterpretationHelp extends StatelessWidget {
   Widget build(BuildContext context) => const ExpansionTile(
     key: Key('other_evidence_help'),
     tilePadding: EdgeInsets.zero,
-    title: Text('What does possible non-FAW or uncertain mean?'),
+    title: AppText('What does possible non-FAW or uncertain mean?'),
     children: [
       Align(
         alignment: Alignment.centerLeft,
-        child: Text(
+        child: AppText(
           'Keep these available when observations could have another cause or cannot be interpreted confidently. WormWise preserves them alongside all other raw observations.',
           style: TextStyle(height: 1.4),
         ),
@@ -1324,7 +1325,7 @@ class _CvDiagnosisObservationCard extends StatelessWidget {
                       Row(
                         children: [
                           Expanded(
-                            child: Text(
+                            child: AppText(
                               'AI: ${diagnosis.pestLabel}',
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
@@ -1335,7 +1336,7 @@ class _CvDiagnosisObservationCard extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 6),
-                          Text(
+                          AppText(
                             '${(diagnosis.confidenceScore * 100).toInt()}%',
                             style: TextStyle(
                               color: color,
@@ -1346,10 +1347,10 @@ class _CvDiagnosisObservationCard extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 2),
-                      Text(
+                      AppText(
                         isInfested
-                            ? 'Damage: Grade ${diagnosis.davisDamageGrade}/9 · FAW detected'
-                            : 'No FAW damage detected on newest leaves.',
+                            ? 'Current FAW-consistent signs detected'
+                            : 'No current signs detected on newest leaves.',
                         style: TextStyle(
                           color: color.withValues(alpha: 0.85),
                           fontSize: 12,
@@ -1366,7 +1367,7 @@ class _CvDiagnosisObservationCard extends StatelessWidget {
               child: FilledButton.tonal(
                 key: const Key('apply_ai_diagnosis_button'),
                 onPressed: onApply,
-                child: const Text('Auto-Fill from AI'),
+                child: const AppText('Auto-Fill from AI'),
               ),
             ),
           ],

@@ -6,7 +6,7 @@ import 'package:wormwise/data/local/app_database.dart';
 import 'package:wormwise/data/local/database_codes.dart';
 import 'package:wormwise/data/repositories/evidence_capture_repository.dart';
 import 'package:wormwise/data/services/atomic_ve_v2_save_service.dart';
-import 'package:wormwise/providers/five_station_workflow_provider.dart';
+import 'package:wormwise/providers/scouting_workflow_provider.dart';
 import 'package:wormwise/screens/ve_v2/ve_v2_pilot_steps.dart';
 import 'package:wormwise/services/ve_v2_analysis_service.dart';
 
@@ -429,14 +429,14 @@ void main() {
               acceptedImageCount: 0,
               fallbackCount: 0,
               retakeCount: 0,
-              evidenceBundles: const [],
+              evidenceBundles: [_readySeedlingBundle()],
               resolveFile: (uri) async => File(uri),
               onInspect: (_) async {},
               analysisFor: (_) => VeV2AnalysisPresentation.unavailable,
               isSaving: false,
               onEditUnit: (_) async {},
               onEditPlant: (position) async => openedPosition = position,
-              onComplete: (_) async {},
+              onComplete: () async {},
             ),
           ),
         ),
@@ -444,12 +444,18 @@ void main() {
     );
 
     expect(find.text('Station Evidence Review'), findsOneWidget);
+    expect(
+      find.textContaining('1 of 10 seedling photos captured'),
+      findsOneWidget,
+    );
+    expect(find.text('Photo captured'), findsOneWidget);
     for (var position = 1; position <= 10; position++) {
-      expect(find.byKey(Key('review_position_$position')), findsOneWidget);
+      expect(find.byKey(Key('compact_plant_tile_$position')), findsOneWidget);
     }
     final nextReview = find.byKey(const Key('complete_ve_v2_pilot_station'));
     expect(tester.getSize(nextReview).height, greaterThanOrEqualTo(56));
-    await tester.tap(nextReview);
+    await tester.ensureVisible(find.byKey(const Key('compact_plant_tile_1')));
+    await tester.tap(find.byKey(const Key('compact_plant_tile_1')));
     expect(openedPosition, 1);
     expect(tester.takeException(), isNull);
   });
