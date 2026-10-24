@@ -88,6 +88,7 @@ class _AdvisorScreenState extends State<AdvisorScreen> {
   late final bool _ownsController;
   late final AdvisorGeminiSettingsStore _geminiSettingsStore;
   late final ImagePicker _imagePicker;
+  TwoStageFawCvService? _ownedImageModel;
   late final AdvisorConnectivityService _connectivityService;
   final _questionController = TextEditingController();
   final _questionFocusNode = FocusNode();
@@ -130,7 +131,7 @@ class _AdvisorScreenState extends State<AdvisorScreen> {
             settingsStore: _geminiSettingsStore,
           ),
           imageAnalysisService: AdvisorImageAnalysisService(
-            TwoStageFawCvService(),
+            _ownedImageModel = TwoStageFawCvService(),
           ),
           conversationStore: const FileAdvisorConversationStore(),
         );
@@ -224,6 +225,14 @@ class _AdvisorScreenState extends State<AdvisorScreen> {
     _lifecycleListener.dispose();
     _controller.removeListener(_handleConversationChanged);
     if (_ownsController) _controller.dispose();
+    final model = _ownedImageModel;
+    if (model != null) {
+      unawaited(
+        model.close().catchError((Object error, StackTrace stack) {
+          debugPrint('Advisor model cleanup failed: $error');
+        }),
+      );
+    }
     _questionController.dispose();
     _questionFocusNode.dispose();
     _highlightTimer?.cancel();

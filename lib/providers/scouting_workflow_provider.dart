@@ -101,6 +101,7 @@ class ScoutingWorkflowProvider extends ChangeNotifier {
        _routes = routeRepository,
        _evidence = evidenceCoordinator,
        _veV2Analysis = veV2AnalysisService,
+       _ownsCvService = computerVisionService == null,
        _cvService = computerVisionService ?? TwoStageFawCvService();
 
   final String assessmentId;
@@ -114,6 +115,7 @@ class ScoutingWorkflowProvider extends ChangeNotifier {
   final EvidenceCaptureCoordinator? _evidence;
   final VeV2AnalysisService _veV2Analysis;
   final FawComputerVisionService _cvService;
+  final bool _ownsCvService;
   final bool testMode;
   final bool debugFeaturesEnabled;
   final bool realisticTestFixture;
@@ -164,6 +166,17 @@ class ScoutingWorkflowProvider extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    final service = _cvService;
+    if (_ownsCvService && service is DisposableFawComputerVisionService) {
+      unawaited(
+        (service as DisposableFawComputerVisionService).close().catchError((
+          Object error,
+          StackTrace stack,
+        ) {
+          debugPrint('Model cleanup failed: $error');
+        }),
+      );
+    }
     super.dispose();
   }
 
@@ -2766,14 +2779,8 @@ class ScoutingWorkflowProvider extends ChangeNotifier {
     await _perform(() async {
       await _ensureAssessmentActive();
       final activeBundle = _requireActiveEvidenceBundle();
-      final existingMedia = activeBundle.mediaForView(viewType);
-      if (existingMedia != null) {
-        await _requireEvidenceCoordinator().remove(
-          media: existingMedia,
-          actorPersonId: _requireAssessment().evaluatorPersonId,
-          retake: true,
-        );
-      }
+      // Replacement is registered transactionally before the previous evidence
+      // is discarded. A failed retake must leave the accepted photo intact.
       final updated = await _requireEvidenceCoordinator().stageCapture(
         session: activeBundle.session,
         viewType: viewType,
@@ -3210,6 +3217,22 @@ class ScoutingWorkflowProvider extends ChangeNotifier {
       if (res == null) {
         final file = await coordinator.resolve(media.localUri);
         res = await _cvService.analyzeImage(file);
+        if (_disposed ||
+            _snapshot?.station?.id != station.id ||
+            _evidenceSignature(
+                  bundleForPlant(plantPosition)?.media
+                          .where(
+                            (m) =>
+                                m.deletedAt == null &&
+                                m.storageState ==
+                                    DatabaseCodes.evidenceStorageReady,
+                          )
+                          .toList() ??
+                      [],
+                ) !=
+                signature) {
+          throw StateError('The plant photos changed. Retry screening.');
+        }
         final photoResult = res.toJson();
         photoResult['detectionBoxes'] = [
           for (final box in res.detectionBoxes.take(100))

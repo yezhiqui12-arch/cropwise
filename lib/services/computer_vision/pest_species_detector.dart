@@ -10,6 +10,7 @@ import 'faw_computer_vision_service.dart';
 /// This is an optional visual suggestion, never an evaluator-confirmed fact.
 class PestSpeciesDetector {
   PestSpeciesDetector({
+    this.modelBytes,
     this.modelAssetPath =
         'assets/models/wormwise_pest_species_yolov8n_640_float32.tflite',
     this.confidenceThreshold = 0.25,
@@ -18,6 +19,7 @@ class PestSpeciesDetector {
   static const int inputSize = 640;
   static const labels = ['Corn earworm', 'Cutworm', 'Fall armyworm'];
   final String modelAssetPath;
+  final Uint8List? modelBytes;
   final double confidenceThreshold;
   Interpreter? _interpreter;
   Future<void>? _initialization;
@@ -25,11 +27,13 @@ class PestSpeciesDetector {
   Future<void> initialize() => _initialization ??= _load();
 
   Future<void> _load() async {
+    Interpreter? opened;
     try {
-      final interpreter = await Interpreter.fromAsset(
-        modelAssetPath,
-        options: InterpreterOptions()..threads = 2,
-      );
+      final options = InterpreterOptions()..threads = 2;
+      final interpreter = modelBytes == null
+          ? await Interpreter.fromAsset(modelAssetPath, options: options)
+          : Interpreter.fromBuffer(modelBytes!, options: options);
+      opened = interpreter;
       final input = interpreter.getInputTensor(0);
       final output = interpreter.getOutputTensor(0);
       final inputShape = input.shape;
@@ -47,13 +51,14 @@ class PestSpeciesDetector {
           outputShape.length != 3 ||
           outputShape[0] != 1 ||
           !(outputShape[1] == 7 || outputShape[2] == 7)) {
-        interpreter.close();
         throw StateError(
           'Unexpected pest detector tensors: $inputShape -> $outputShape',
         );
       }
       _interpreter = interpreter;
+      opened = null;
     } catch (_) {
+      opened?.close();
       _initialization = null;
       rethrow;
     }

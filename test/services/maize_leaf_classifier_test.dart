@@ -5,14 +5,15 @@ import 'package:wormwise/services/computer_vision/maize_leaf_classifier.dart';
 
 void main() {
   group('Stage 1 FAW damage screen', () {
-    test('returns no-FAW fallback for a missing file', () async {
-      final result = await MaizeLeafClassifier().classifyImage(
-        File('non_existent.jpg'),
-      );
-      expect(result.fawDamageProbability, 0);
-      expect(result.isFawSuspected, false);
-      expect(result.binaryLabel, 'No FAW damage');
-    });
+    test(
+      'missing files fail rather than returning a negative screen',
+      () async {
+        await expectLater(
+          MaizeLeafClassifier().classifyImage(File('non_existent.jpg')),
+          throwsA(isA<FileSystemException>()),
+        );
+      },
+    );
 
     test('only the FAW probability controls the binary screen', () {
       const positive = MaizeClassificationResult(

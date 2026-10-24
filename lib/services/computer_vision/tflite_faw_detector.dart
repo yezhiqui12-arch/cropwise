@@ -13,6 +13,7 @@ import 'pest_species_detector.dart';
 /// Runs the verified WormWise YOLO11n detector fully on-device.
 class TfliteFawDetector implements FawComputerVisionService {
   TfliteFawDetector({
+    this.modelBytes,
     this.modelAssetPath = 'assets/models/wormwise_yolo11n_960_float32.tflite',
     // Matches the best field-photo configuration verified in Kaggle:
     // imgsz=960, conf=0.10, iou=0.45.
@@ -26,6 +27,7 @@ class TfliteFawDetector implements FawComputerVisionService {
   static const int _classCount = 4;
 
   final String modelAssetPath;
+  final Uint8List? modelBytes;
   final double confidenceThreshold;
   final double iouThreshold;
   final PestSpeciesDetector _pestSpeciesDetector;
@@ -55,37 +57,37 @@ class TfliteFawDetector implements FawComputerVisionService {
   }
 
   Future<void> _loadInterpreter() async {
+    Interpreter? opened;
     try {
       final options = InterpreterOptions()..threads = 4;
-      final interpreter = await Interpreter.fromAsset(
-        modelAssetPath,
-        options: options,
-      );
+      final interpreter = modelBytes == null
+          ? await Interpreter.fromAsset(modelAssetPath, options: options)
+          : Interpreter.fromBuffer(modelBytes!, options: options);
+      opened = interpreter;
       final input = interpreter.getInputTensor(0);
       final output = interpreter.getOutputTensor(0);
 
       if (input.type != TensorType.float32 ||
           output.type != TensorType.float32) {
-        interpreter.close();
         throw StateError(
           'WormWise requires float32 tensors, but received '
           '${input.type} input and ${output.type} output.',
         );
       }
       if (!_isSupportedInputShape(input.shape)) {
-        interpreter.close();
         throw StateError('Unsupported model input shape: ${input.shape}');
       }
       if (!_isSupportedOutputShape(output.shape)) {
-        interpreter.close();
         throw StateError('Unsupported model output shape: ${output.shape}');
       }
 
       _inputShape = List<int>.unmodifiable(input.shape);
       _outputShape = List<int>.unmodifiable(output.shape);
       _interpreter = interpreter;
+      opened = null;
       _loadError = null;
     } catch (error) {
+      opened?.close();
       _interpreter = null;
       _inputShape = null;
       _outputShape = null;
@@ -115,7 +117,9 @@ class TfliteFawDetector implements FawComputerVisionService {
     final stopwatch = Stopwatch()..start();
     final simulation = simulatedResult;
     if (simulation != null) return simulation;
-    if (!await imageFile.exists()) return PlantDiagnosisResult.cleanPlant;
+    if (!await imageFile.exists()) {
+      throw const FileSystemException('The screening image is unavailable.');
+    }
 
     await initialize();
     final interpreter = _interpreter;

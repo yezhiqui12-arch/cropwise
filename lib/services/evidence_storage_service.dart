@@ -48,43 +48,58 @@ class EvidenceStorageService {
       throw const FileSystemException('The captured image is unavailable.');
     }
 
-    try {
-      final sourceBytes = await source.readAsBytes();
-      final prepared = await compute(
-        stripMetadata ? _preparePrivateEvidenceImage : _prepareEvidenceImage,
-        sourceBytes,
-      );
-      final folder = [
-        _safeSegment(assessmentId),
-        _safeSegment(stationId),
-        _safeSegment(scopeKey),
-        'staging',
-      ].join('/');
-      final localUri = '$folder/${_safeSegment(mediaId)}.jpg';
-      final thumbnailLocalUri = '$folder/${_safeSegment(mediaId)}_thumb.jpg';
-      final main = await resolve(localUri);
-      final thumbnail = await resolve(thumbnailLocalUri);
-      await main.parent.create(recursive: true);
-      await main.writeAsBytes(prepared.imageBytes, flush: true);
-      await thumbnail.writeAsBytes(prepared.thumbnailBytes, flush: true);
+    final sourceBytes = await source.readAsBytes();
+    final prepared = await compute(
+      stripMetadata ? _preparePrivateEvidenceImage : _prepareEvidenceImage,
+      sourceBytes,
+    );
+    final folder = [
+      _safeSegment(assessmentId),
+      _safeSegment(stationId),
+      _safeSegment(scopeKey),
+      'staging',
+    ].join('/');
+    final localUri = '$folder/${_safeSegment(mediaId)}.jpg';
+    final thumbnailLocalUri = '$folder/${_safeSegment(mediaId)}_thumb.jpg';
+    final main = await resolve(localUri);
+    final thumbnail = await resolve(thumbnailLocalUri);
+    await main.parent.create(recursive: true);
+    await _writeVerified(main, prepared.imageBytes);
+    await _writeVerified(thumbnail, prepared.thumbnailBytes);
+    if (deleteSourceAfterCopy) await discardSource(sourcePath);
 
-      return StoredEvidenceFile(
-        localUri: localUri,
-        thumbnailLocalUri: thumbnailLocalUri,
-        byteSize: prepared.imageBytes.length,
-        sha256Checksum: sha256.convert(prepared.imageBytes).toString(),
-        widthPx: prepared.width,
-        heightPx: prepared.height,
-      );
-    } finally {
-      if (deleteSourceAfterCopy) {
-        try {
-          if (await source.exists()) await source.delete();
-        } on FileSystemException {
-          // Camera-plugin cache cleanup is best effort. The accepted evidence
-          // is held only in WormWise private storage after staging succeeds.
-        }
+    return StoredEvidenceFile(
+      localUri: localUri,
+      thumbnailLocalUri: thumbnailLocalUri,
+      byteSize: prepared.imageBytes.length,
+      sha256Checksum: sha256.convert(prepared.imageBytes).toString(),
+      widthPx: prepared.width,
+      heightPx: prepared.height,
+    );
+  }
+
+  // Publish only complete, verified files. A failed write keeps the capture.
+  Future<void> _writeVerified(File destination, Uint8List bytes) async {
+    final temporary = File('${destination.path}.tmp');
+    try {
+      await temporary.writeAsBytes(bytes, flush: true);
+      final stored = await temporary.readAsBytes();
+      if (stored.length != bytes.length ||
+          sha256.convert(stored) != sha256.convert(bytes)) {
+        throw const FileSystemException('Evidence file verification failed.');
       }
+      await temporary.rename(destination.path);
+    } finally {
+      if (await temporary.exists()) await temporary.delete();
+    }
+  }
+
+  Future<void> discardSource(String sourcePath) async {
+    try {
+      final source = File(sourcePath);
+      if (await source.exists()) await source.delete();
+    } on FileSystemException {
+      // Cache cleanup must not turn a committed capture into a failed save.
     }
   }
 

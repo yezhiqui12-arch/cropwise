@@ -44,6 +44,7 @@ class MaizeClassificationResult {
 /// Runs the binary YOLO11n Stage 1 FAW-damage classifier.
 class MaizeLeafClassifier {
   MaizeLeafClassifier({
+    this.modelBytes,
     this.modelAssetPath =
         'assets/models/wormwise_faw_damage_classifier_320_float32.tflite',
     this.simulatedResult,
@@ -53,6 +54,7 @@ class MaizeLeafClassifier {
   static const List<String> classes = ['faw_damage', 'no_faw_damage'];
 
   final String modelAssetPath;
+  final Uint8List? modelBytes;
   MaizeClassificationResult? simulatedResult;
 
   Interpreter? _interpreter;
@@ -73,18 +75,18 @@ class MaizeLeafClassifier {
   }
 
   Future<void> _loadInterpreter() async {
+    Interpreter? opened;
     try {
       final options = InterpreterOptions()..threads = 2;
-      final interpreter = await Interpreter.fromAsset(
-        modelAssetPath,
-        options: options,
-      );
+      final interpreter = modelBytes == null
+          ? await Interpreter.fromAsset(modelAssetPath, options: options)
+          : Interpreter.fromBuffer(modelBytes!, options: options);
+      opened = interpreter;
       final input = interpreter.getInputTensor(0);
       final output = interpreter.getOutputTensor(0);
 
       if (input.type != TensorType.float32 ||
           output.type != TensorType.float32) {
-        interpreter.close();
         throw StateError(
           'MaizeLeafClassifier requires float32 tensors, but received '
           '${input.type} input and ${output.type} output.',
@@ -110,15 +112,16 @@ class MaizeLeafClassifier {
       if ((!isNchw && !isNhwc) ||
           outputShape.isEmpty ||
           outputShape.last != classes.length) {
-        interpreter.close();
         throw StateError(
           'Unexpected Stage 1 tensor shapes: input $inputShape, '
           'output $outputShape.',
         );
       }
       _interpreter = interpreter;
+      opened = null;
       _loadError = null;
     } catch (error) {
+      opened?.close();
       _interpreter = null;
       _inputShape = null;
       _outputShape = null;
@@ -134,11 +137,7 @@ class MaizeLeafClassifier {
     if (simulation != null) return simulation;
 
     if (!await imageFile.exists()) {
-      return const MaizeClassificationResult(
-        topClass: 'no_faw_damage',
-        topConfidence: 1.0,
-        probabilities: {'faw_damage': 0.0, 'no_faw_damage': 1.0},
-      );
+      throw const FileSystemException('The screening image is unavailable.');
     }
 
     await initialize();

@@ -9,7 +9,8 @@ class AutomaticScreening {
   static const positiveStatus = 'damage_screen_positive';
   static const negativeStatus = 'damage_screen_negative';
   static const unavailableStatus = 'damage_screen_unavailable';
-  bool get available => result.classificationLabel != null;
+  bool get available =>
+      screeningSucceeded && result.suggestedPlantStatus != unavailableStatus;
   bool get positive => result.classificationLabel == 'FAW damage';
   bool get screeningSucceeded => const [
     'FAW damage',

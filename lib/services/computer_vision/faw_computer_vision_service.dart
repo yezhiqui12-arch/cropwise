@@ -350,3 +350,8 @@ abstract interface class FawComputerVisionService {
   bool get isModelLoaded;
   String get modelIdentifier;
 }
+
+/// Implemented by services with owned native resources or background workers.
+abstract interface class DisposableFawComputerVisionService {
+  Future<void> close();
+}

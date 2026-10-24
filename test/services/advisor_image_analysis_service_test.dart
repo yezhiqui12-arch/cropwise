@@ -1,3 +1,4 @@
+import 'package:wormwise/models/automatic_screening.dart';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -21,6 +22,17 @@ void main() {
       expect(answer.details.join(' '), contains('No field observation'));
       expect(result.imagePath, 'test-maize.jpg');
       expect(result.detectionBoxes, hasLength(1));
+    },
+  );
+  test(
+    'unavailable screening produces no confident damage conclusion',
+    () async {
+      final answer = await AdvisorImageAnalysisService(
+        _UnavailableImageModel(),
+      ).analyze(File('missing'));
+      expect(answer.answer.summary, contains('could not be screened'));
+      expect(answer.answer.summary, isNot(contains('0% confidence')));
+      expect(answer.structuredFindings, contains('no damage conclusion'));
     },
   );
 }
@@ -57,4 +69,15 @@ class _FakeImageModel implements FawComputerVisionService {
       ],
     );
   }
+}
+
+class _UnavailableImageModel extends _FakeImageModel {
+  @override
+  Future<PlantDiagnosisResult> analyzeImage(File file) async =>
+      const PlantDiagnosisResult(
+        isInfested: false,
+        pestLabel: 'Unavailable',
+        confidenceScore: 0,
+        suggestedPlantStatus: AutomaticScreening.unavailableStatus,
+      );
 }

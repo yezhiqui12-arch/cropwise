@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'faw_inference_worker.dart';
+import 'managed_inference_worker.dart';
 import 'dart:io';
 import 'detection_preferences.dart';
 import '../../models/automatic_screening.dart';
@@ -12,18 +15,33 @@ import 'tflite_faw_detector.dart';
 ///
 /// Stage 1 is a binary FAW-damage screening gate. Stage 2 runs only after
 /// Stage 1 suspects FAW damage.
-class TwoStageFawCvService implements FawComputerVisionService {
+class TwoStageFawCvService
+    implements FawComputerVisionService, DisposableFawComputerVisionService {
   TwoStageFawCvService({
     MaizeLeafClassifier? classifier,
     TfliteFawDetector? detector,
     this.simulatedResult,
+    this.loadPreferences = true,
     this.fawDamageThreshold = 0.50,
-  }) : _classifier = classifier ?? MaizeLeafClassifier(),
+  }) : _useWorker = classifier == null && detector == null,
+       _ownsClassifier = classifier == null,
+       _ownsDetector = detector == null,
+       _classifier = classifier ?? MaizeLeafClassifier(),
        _detector = detector ?? TfliteFawDetector();
 
   final MaizeLeafClassifier _classifier;
   final TfliteFawDetector _detector;
   final double fawDamageThreshold;
+  final bool loadPreferences;
+  final bool _useWorker;
+  final bool _ownsClassifier;
+  final bool _ownsDetector;
+  ManagedInferenceWorker? _worker;
+  bool? _workerHighlighting;
+  Future<PlantDiagnosisResult>? _active;
+  Future<void>? _closing;
+  bool _disposed = false;
+  bool _workerLoaded = false;
   PlantDiagnosisResult? simulatedResult;
 
   bool? _assessmentHighlighting;
@@ -41,17 +59,33 @@ class TwoStageFawCvService implements FawComputerVisionService {
 
   @override
   bool get isModelLoaded =>
-      simulatedResult != null ||
-      (_classifier.isModelLoaded &&
-          (!_highlightingEnabled || _detector.isModelLoaded));
+      !_disposed &&
+      (simulatedResult != null ||
+          _workerLoaded ||
+          (_classifier.isModelLoaded &&
+              (!_highlightingEnabled || _detector.isModelLoaded)));
 
   @override
   String get modelIdentifier =>
       'WormWise-AutoScreen-v1:${_classifier.modelIdentifier}:overlay=$_highlightingEnabled';
 
   @override
-  Future<PlantDiagnosisResult> analyzeImage(File imageFile) async {
-    await DetectionPreferences.load();
+  Future<PlantDiagnosisResult> analyzeImage(File imageFile) {
+    if (_disposed) {
+      return Future.error(StateError('The model service is closed.'));
+    }
+    if (_active != null) {
+      return Future.error(
+        StateError('Screening is still running. Please wait.'),
+      );
+    }
+    final operation = _analyzeImage(imageFile);
+    _active = operation;
+    return operation.whenComplete(() => _active = null);
+  }
+
+  Future<PlantDiagnosisResult> _analyzeImage(File imageFile) async {
+    if (loadPreferences) await DetectionPreferences.load();
     if (simulatedResult != null) return simulatedResult!;
     final isSimulated =
         _classifier.simulatedResult != null ||
@@ -66,10 +100,54 @@ class TwoStageFawCvService implements FawComputerVisionService {
       );
     }
 
+    if (_useWorker) {
+      final highlighting = _highlightingEnabled;
+      if (_worker != null && _workerHighlighting != highlighting) {
+        await _worker!.close();
+        _worker = null;
+      }
+      _workerHighlighting = highlighting;
+      final worker = _worker ??= createFawInferenceWorker(
+        highlighting: highlighting,
+      );
+      try {
+        final json = await worker.run({
+          'path': imageFile.path,
+          'highlighting': highlighting,
+          'threshold': fawDamageThreshold,
+        });
+        final result = PlantDiagnosisResult.fromJson(
+          Map<String, dynamic>.from(json as Map),
+        );
+        _workerLoaded = result.classificationLabel != null;
+        return result;
+      } catch (error) {
+        await worker.close();
+        _worker = null;
+        _workerLoaded = false;
+        return PlantDiagnosisResult(
+          isInfested: false,
+          pestLabel: 'FAW damage screening unavailable',
+          confidenceScore: 0,
+          suggestedPlantStatus: AutomaticScreening.unavailableStatus,
+          modelName: modelIdentifier,
+          classifierStage: 'Stage 1 unavailable — Stage 2 not run',
+          advisoryNotes: 'Screening could not finish. Retry this photo.',
+        );
+      }
+    }
+
     final stopwatch = Stopwatch()..start();
     MaizeClassificationResult screening;
     try {
       screening = await _classifier.classifyImage(imageFile);
+      final probability = screening.probabilities['faw_damage'];
+      if (probability == null ||
+          !probability.isFinite ||
+          probability < 0 ||
+          probability > 1) {
+        throw const FormatException('Invalid damage-screen probability.');
+      }
     } catch (error, stackTrace) {
       debugPrint('[TwoStageCV] FAW damage screen failed: $error\n$stackTrace');
       stopwatch.stop();
@@ -150,5 +228,24 @@ class TwoStageFawCvService implements FawComputerVisionService {
           'are model suggestions requiring evaluator review.'
           '${pestCandidates.isEmpty ? '' : ' Pest candidate: ${pestCandidates.join(', ')}.'}',
     );
+  }
+
+  @override
+  Future<void> close() {
+    _disposed = true;
+    return _closing ??= _close();
+  }
+
+  Future<void> _close() async {
+    try {
+      await _active;
+    } catch (_) {
+      // The inference caller receives the original error.
+    }
+    await _worker?.close();
+    _worker = null;
+    _workerLoaded = false;
+    if (_ownsClassifier) _classifier.close();
+    if (_ownsDetector) _detector.close();
   }
 }

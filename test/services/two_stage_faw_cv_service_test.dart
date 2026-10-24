@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:wormwise/models/automatic_screening.dart';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wormwise/data/local/database_codes.dart';
@@ -9,13 +10,21 @@ import 'package:wormwise/services/computer_vision/two_stage_faw_cv_service.dart'
 
 void main() {
   group('FAW-only two-stage pipeline', () {
-    test('non-existent file returns clean fallback', () async {
-      final result = await TwoStageFawCvService().analyzeImage(
-        File('non_existent.jpg'),
-      );
-      expect(result.isInfested, false);
-      expect(result.suggestedPlantStatus, DatabaseCodes.plantNegative);
-    });
+    test(
+      'non-existent file returns unavailable without a negative conclusion',
+      () async {
+        final result = await TwoStageFawCvService().analyzeImage(
+          File('non_existent.jpg'),
+        );
+        expect(result.isInfested, false);
+        expect(
+          result.suggestedPlantStatus,
+          AutomaticScreening.unavailableStatus,
+        );
+        expect(result.classificationLabel, isNull);
+        expect(AutomaticScreening(result).available, isFalse);
+      },
+    );
 
     test('Stage 1 no-FAW result stops before Model 2', () async {
       final classifier = MaizeLeafClassifier(
@@ -62,53 +71,58 @@ void main() {
       expect(result.toJson().toString(), isNot(contains('MLB')));
     });
 
-    test('Stage 1 FAW damage calls Model 2 and confirms evidence', () async {
-      final classifier = MaizeLeafClassifier(
-        simulatedResult: const MaizeClassificationResult(
-          topClass: 'faw_damage',
-          topConfidence: .87,
-          probabilities: {'faw_damage': .87, 'no_faw_damage': .13},
-        ),
-      );
-      final detector = TfliteFawDetector(
-        simulatedResult: PlantDiagnosisResult(
-          isInfested: true,
-          pestLabel: 'Fall Armyworm',
-          confidenceScore: .94,
-          suggestedPlantStatus: DatabaseCodes.plantCurrentPositive,
-          detectedSigns: const ['larva', 'fresh_frass'],
-          larvaVisible: true,
-          frass: true,
-          detectionBoxes: const [
-            ModelDetectionBox(
-              sourcePath: 'dummy.jpg',
-              classId: 2,
-              label: 'fall-armyworm-larva',
-              confidence: .94,
-              left: .2,
-              top: .3,
-              right: .4,
-              bottom: .5,
-              imageWidth: 960,
-              imageHeight: 960,
-            ),
-          ],
-        ),
-      );
+    test(
+      'positive screening keeps highlighting separate from infestation',
+      () async {
+        final classifier = MaizeLeafClassifier(
+          simulatedResult: const MaizeClassificationResult(
+            topClass: 'faw_damage',
+            topConfidence: .87,
+            probabilities: {'faw_damage': .87, 'no_faw_damage': .13},
+          ),
+        );
+        final detector = TfliteFawDetector(
+          simulatedResult: PlantDiagnosisResult(
+            isInfested: true,
+            pestLabel: 'Fall Armyworm',
+            confidenceScore: .94,
+            suggestedPlantStatus: DatabaseCodes.plantCurrentPositive,
+            detectedSigns: const ['larva', 'fresh_frass'],
+            larvaVisible: true,
+            frass: true,
+            detectionBoxes: const [
+              ModelDetectionBox(
+                sourcePath: 'dummy.jpg',
+                classId: 2,
+                label: 'fall-armyworm-larva',
+                confidence: .94,
+                left: .2,
+                top: .3,
+                right: .4,
+                bottom: .5,
+                imageWidth: 960,
+                imageHeight: 960,
+              ),
+            ],
+          ),
+        );
 
-      final result = await TwoStageFawCvService(
-        classifier: classifier,
-        detector: detector,
-      ).analyzeImage(File('dummy.jpg'));
+        final pipeline = TwoStageFawCvService(
+          classifier: classifier,
+          detector: detector,
+        )..useAssessmentHighlighting(true);
+        addTearDown(pipeline.close);
+        final result = await pipeline.analyzeImage(File('dummy.jpg'));
 
-      expect(result.isInfested, true);
-      expect(result.classificationLabel, 'FAW damage');
-      expect(result.detectionBoxes, hasLength(1));
-      expect(result.classifierStage, contains('Stage 2 evidence confirmed'));
-    });
+        expect(result.isInfested, false);
+        expect(result.classificationLabel, 'FAW damage');
+        expect(result.detectionBoxes, hasLength(1));
+        expect(result.classifierStage, 'overlay_complete');
+      },
+    );
 
     test(
-      'Stage 2 non-confirmation stays uncertain, not confirmed FAW',
+      'an empty overlay does not replace the Stage 1 damage result',
       () async {
         final classifier = MaizeLeafClassifier(
           simulatedResult: const MaizeClassificationResult(
@@ -127,8 +141,8 @@ void main() {
         ).analyzeImage(File('dummy.jpg'));
 
         expect(result.isInfested, false);
-        expect(result.suggestedPlantStatus, DatabaseCodes.plantOldDamageOnly);
-        expect(result.pestLabel, 'FAW-like damage not confirmed');
+        expect(result.suggestedPlantStatus, AutomaticScreening.positiveStatus);
+        expect(result.pestLabel, 'FAW damage detected');
       },
     );
 
@@ -142,7 +156,7 @@ void main() {
       ).analyzeImage(File('dummy.jpg'));
 
       expect(result.isInfested, false);
-      expect(result.suggestedPlantStatus, DatabaseCodes.plantUncertain);
+      expect(result.suggestedPlantStatus, AutomaticScreening.unavailableStatus);
       expect(result.classifierStage, contains('Stage 2 not run'));
     });
   });

@@ -1,3 +1,4 @@
+import '../../models/automatic_screening.dart';
 import 'dart:io';
 
 import '../../data/local/database_codes.dart';
@@ -28,7 +29,11 @@ class AdvisorImageAnalysisService {
         result.isInfested ||
         result.suggestedPlantStatus != DatabaseCodes.plantNegative;
 
-    final summary = hasCondition
+    final unavailable =
+        result.suggestedPlantStatus == AutomaticScreening.unavailableStatus;
+    final summary = unavailable
+        ? 'This photo could not be screened. No damage conclusion was produced. Retry with an available, readable photo.'
+        : hasCondition
         ? 'The damage screen suggests “${result.classificationLabel ?? result.pestLabel}” with ${confidence.toStringAsFixed(0)}% confidence.$speciesSummary These are visual suggestions, not a confirmed diagnosis.'
         : (result.advisoryNotes ??
               'The WormWise model did not detect one of its configured visual classes in this photo. That does not prove the plant is pest-free.');
@@ -76,7 +81,10 @@ class AdvisorImageAnalysisService {
     return [
       'Model: ${result.modelName}',
       'Suggested label: ${result.pestLabel}',
-      'Damage-screen confidence: ${(result.confidenceScore * 100).toStringAsFixed(0)}%',
+      if (result.suggestedPlantStatus == AutomaticScreening.unavailableStatus)
+        'Screening unavailable: no damage conclusion was produced.'
+      else
+        'Damage-screen confidence: ${(result.confidenceScore * 100).toStringAsFixed(0)}%',
       'Detected signs: ${result.detectedSigns.isEmpty ? 'none' : result.detectedSigns.join(', ')}',
       'Detections: ${result.detectionBoxes.length}',
       if (detections.isNotEmpty) detections,

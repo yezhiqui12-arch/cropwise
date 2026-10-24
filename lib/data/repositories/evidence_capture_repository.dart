@@ -600,7 +600,10 @@ class EvidenceCaptureRepository {
           entityId: active.id,
           action: 'deletion_requested',
           actorPersonId: actorPersonId,
-          after: {'storage_state': DatabaseCodes.evidenceStorageDeleted},
+          after: {
+            'storage_state': DatabaseCodes.evidenceStorageDeleted,
+            'removal_intent': 'retake',
+          },
           queueForSync: false,
         );
       }

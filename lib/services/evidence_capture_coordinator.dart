@@ -119,14 +119,21 @@ class EvidenceCaptureCoordinator {
   }) async {
     final mediaId = stableMediaId ?? LocalId.generate();
     StoredEvidenceFile? stored;
+    var registered = false;
     try {
+      final previous = (await _repository.loadBundle(
+        session.id,
+      )).mediaForView(viewType);
+      if (previous?.id == mediaId) {
+        throw StateError('This evidence identifier is already registered.');
+      }
       stored = await _storage.stageCapturedFile(
         sourcePath: sourcePath,
         assessmentId: session.assessmentId,
         stationId: session.stationId,
         scopeKey: session.scopeKey,
         mediaId: mediaId,
-        deleteSourceAfterCopy: deleteSourceAfterCopy,
+        deleteSourceAfterCopy: false,
       );
       await _repository.insertStagedMedia(
         mediaId: mediaId,
@@ -141,9 +148,22 @@ class EvidenceCaptureCoordinator {
         capturedAt: DateTime.now().toUtc(),
         actorPersonId: actorPersonId,
       );
-      return _repository.loadBundle(session.id);
+      registered = true;
+      if (previous != null) {
+        try {
+          await _storage.deleteArtifacts(
+            localUri: previous.localUri,
+            thumbnailLocalUri: previous.thumbnailLocalUri,
+          );
+        } on FileSystemException {
+          // The replacement is committed. Keep its success even if an old
+          // tombstone's private files cannot be cleaned up on this attempt.
+        }
+      }
+      if (deleteSourceAfterCopy) await _storage.discardSource(sourcePath);
+      return await _repository.loadBundle(session.id);
     } catch (_) {
-      if (stored != null) {
+      if (stored != null && !registered) {
         await _storage.deleteArtifacts(
           localUri: stored.localUri,
           thumbnailLocalUri: stored.thumbnailLocalUri,
