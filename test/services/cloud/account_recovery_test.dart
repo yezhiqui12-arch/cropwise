@@ -340,7 +340,16 @@ void main() {
         } else if (path.startsWith('/storage/v1/object/') &&
             request.method == 'GET') {
           final key = path.replaceFirst('/object/authenticated/', '/object/');
-          request.response.add(snapshots[key]!);
+          final bytes = snapshots[key];
+          if (bytes == null) {
+            request.response.statusCode = 404;
+            request.response.headers.contentType = ContentType.json;
+            request.response.write(
+              jsonEncode({'message': 'Object not found', 'statusCode': '404'}),
+            );
+          } else {
+            request.response.add(bytes);
+          }
         } else {
           request.response.headers.contentType = ContentType.json;
           request.response.write('[]');
@@ -376,7 +385,16 @@ void main() {
         );
         expect(await backup.synchronize('account'), isTrue);
         final decoded =
-            jsonDecode(utf8.decode(gzip.decode(snapshots.values.single)))
+            jsonDecode(
+                  utf8.decode(
+                    gzip.decode(
+                      snapshots.entries
+                          .where((entry) => entry.key.endsWith('.json.gz'))
+                          .single
+                          .value,
+                    ),
+                  ),
+                )
                 as Map;
         expect(decoded['format_version'], 2);
         expect(decoded['media_complete'], isFalse);

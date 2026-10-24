@@ -125,6 +125,9 @@ class EvidenceStorageService {
       if (await readyThumbnail.exists()) await readyThumbnail.delete();
       await stagedThumbnail.rename(readyThumbnail.path);
     }
+    if (!await readyThumbnail.exists()) {
+      await repairThumbnail(readyUri, readyThumbnailUri);
+    }
     return (localUri: readyUri, thumbnailLocalUri: readyThumbnailUri);
   }
 
@@ -162,6 +165,35 @@ class EvidenceStorageService {
       current = '$current${Platform.pathSeparator}$segment';
     }
     return File(current);
+  }
+
+  Future<List<File>> pendingCaptureJournals(String? assessmentId) async {
+    final root = await _rootDirectory();
+    final directory = assessmentId == null
+        ? root
+        : Directory('${root.path}/${_safeSegment(assessmentId)}');
+    if (!await directory.exists()) return [];
+    final result = <File>[];
+    await for (final entity in directory.list(
+      recursive: true,
+      followLinks: false,
+    )) {
+      if (entity is File && entity.path.endsWith('.pending.json'))
+        result.add(entity);
+    }
+    return result;
+  }
+
+  Future<void> repairThumbnail(String localUri, String thumbnailUri) async {
+    final image = await resolve(localUri);
+    final thumbnail = await resolve(thumbnailUri);
+    if (await thumbnail.exists()) return;
+    final prepared = await compute(
+      _prepareEvidenceImage,
+      await image.readAsBytes(),
+    );
+    await thumbnail.parent.create(recursive: true);
+    await _writeVerified(thumbnail, prepared.thumbnailBytes);
   }
 
   Future<List<String>> listRelativeFiles(String assessmentId) async {

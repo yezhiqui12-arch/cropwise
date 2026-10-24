@@ -30,14 +30,17 @@ class AppLanguageController extends ChangeNotifier {
   final AppDatabase _database;
   StreamSubscription<dynamic>? _subscription;
   AppLanguage _language = AppLanguage.english;
+  bool _disposed = false;
 
   AppLanguage get language => _language;
   Locale get locale => Locale(_language == AppLanguage.filipino ? 'fil' : 'en');
 
   Future<void> load() async {
+    if (_disposed) return;
     final row = await (_database.select(
       _database.appPreferences,
     )..where((p) => p.preferenceKey.equals(preferenceKey))).getSingleOrNull();
+    if (_disposed) return;
     _language = row?.preferenceValue == 'fil'
         ? AppLanguage.filipino
         : AppLanguage.english;
@@ -46,7 +49,7 @@ class AppLanguageController extends ChangeNotifier {
   }
 
   Future<void> setLanguage(AppLanguage language) async {
-    if (_language == language) return;
+    if (_disposed || _language == language) return;
     await _database
         .into(_database.appPreferences)
         .insertOnConflictUpdate(
@@ -56,6 +59,7 @@ class AppLanguageController extends ChangeNotifier {
             updatedAt: Value(DateTime.now()),
           ),
         );
+    if (_disposed) return;
     _language = language;
     Intl.defaultLocale = locale.languageCode;
     notifyListeners();
@@ -63,6 +67,7 @@ class AppLanguageController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
     unawaited(_subscription?.cancel());
     super.dispose();
   }

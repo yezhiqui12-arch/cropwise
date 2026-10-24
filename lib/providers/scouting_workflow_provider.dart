@@ -1,3 +1,4 @@
+import '../services/photo_screening_checkpoint_store.dart';
 import '../services/scouting_sampling_protocol.dart';
 import '../models/automatic_screening.dart';
 import '../models/guided_plant_details.dart';
@@ -797,6 +798,7 @@ class ScoutingWorkflowProvider extends ChangeNotifier {
       }
       await _lockAssessmentModels();
       final assessment = _assessment!;
+      await _evidence?.recoverPreparedCaptures();
       await _evidence?.reconcileAssessment(
         assessmentId: assessment.id,
         actorPersonId: assessment.evaluatorPersonId,
@@ -3206,7 +3208,8 @@ class ScoutingWorkflowProvider extends ChangeNotifier {
       return restored;
     }
 
-    final repository = FieldRepository(_plantSaves.database);
+    final checkpoints = PhotoScreeningCheckpointStore(_plantSaves.database);
+    final repository = checkpoints.repository;
     final pipeline = _cvService.modelIdentifier;
     final results = <PlantDiagnosisResult>[];
     for (final media in mediaList) {
@@ -3233,23 +3236,7 @@ class ScoutingWorkflowProvider extends ChangeNotifier {
                 signature) {
           throw StateError('The plant photos changed. Retry screening.');
         }
-        final photoResult = res.toJson();
-        photoResult['detectionBoxes'] = [
-          for (final box in res.detectionBoxes.take(100))
-            Map<String, dynamic>.from(box.toJson())..remove('sourcePath'),
-        ];
-        await repository.savePreferenceValue(
-          'evidence_model_${media.id}',
-          jsonEncode({
-            'schema_version': 1,
-            'pipelineVersion': pipeline,
-            'evidence_id': media.id,
-            'sha256': media.sha256Checksum,
-            'analyzed_at': DateTime.now().toUtc().toIso8601String(),
-            'detector_used': res.classifierStage == 'overlay_complete',
-            'result': photoResult,
-          }),
-        );
+        await checkpoints.save(media, res, pipeline);
       }
       if (res.modelName.startsWith('WormWise-AutoScreen-v1:') &&
           !AutomaticScreening(res).screeningSucceeded) {
@@ -3309,17 +3296,8 @@ class ScoutingWorkflowProvider extends ChangeNotifier {
   Future<PlantDiagnosisResult?> _restorePhotoDiagnosis(
     EvidenceMediaRecord media,
     String pipeline,
-  ) async {
-    final stored = await FieldRepository(
-      _plantSaves.database,
-    ).readPreferenceValue('evidence_model_${media.id}');
-    return AutomaticScreening.photoCheckpoint(
-      stored,
-      evidenceId: media.id,
-      checksum: media.sha256Checksum,
-      pipelineVersion: pipeline,
-    );
-  }
+  ) =>
+      PhotoScreeningCheckpointStore(_plantSaves.database).read(media, pipeline);
 
   Future<bool> daBatchPlantIsScreened(
     String blockId,

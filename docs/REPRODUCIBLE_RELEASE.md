@@ -26,11 +26,11 @@ based on Git status alone. Existing tracked artifact images are retained.
 
 ## Distribution prerequisites
 
-Android release signing currently uses the debug key. This checkpoint preserves
-that existing configuration; it is not a production signing setup. Establish the
-signing identity of existing installations before switching to a production key.
-Store signing credentials outside Git. No schema migration is introduced by this
-repository cleanup.
+Android release signing uses the configured private production keystore. Missing or
+invalid release credentials fail validation; debug builds remain available. See
+docs/PRODUCTION_SIGNING.md for credential setup and first-distribution guidance.
+Before deploying this client, apply the backup manifest migration described in
+docs/BACKUP_MANIFESTS.md. Local Drift remains at schema version 8.
 
 No remote repository is configured at the time of this checkpoint. Add the intended
 remote and push the checkpoint to obtain an off-device source backup. A local Git

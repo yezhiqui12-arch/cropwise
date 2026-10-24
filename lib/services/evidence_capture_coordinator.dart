@@ -1,3 +1,5 @@
+import 'evidence_reconciliation_service.dart';
+import 'prepared_capture_store.dart';
 import 'dart:io';
 
 import '../data/local/app_database.dart';
@@ -48,6 +50,7 @@ class EvidenceCaptureCoordinator {
   final EvidenceStorageService _storage;
 
   EvidenceCaptureRepository get repository => _repository;
+  late final _prepared = PreparedCaptureStore(_storage);
 
   Future<EvidenceCaptureBundle> ensureStationContext({
     required String assessmentId,
@@ -120,10 +123,10 @@ class EvidenceCaptureCoordinator {
     final mediaId = stableMediaId ?? LocalId.generate();
     StoredEvidenceFile? stored;
     var registered = false;
+    var journaled = false;
     try {
-      final previous = (await _repository.loadBundle(
-        session.id,
-      )).mediaForView(viewType);
+      final current = await _repository.loadBundle(session.id);
+      final previous = current.mediaForView(viewType);
       if (previous?.id == mediaId) {
         throw StateError('This evidence identifier is already registered.');
       }
@@ -135,6 +138,17 @@ class EvidenceCaptureCoordinator {
         mediaId: mediaId,
         deleteSourceAfterCopy: false,
       );
+      final capturedAt = DateTime.now().toUtc();
+      await _prepared.prepare(
+        session: current.session,
+        mediaId: mediaId,
+        actorId: actorPersonId,
+        viewType: viewType,
+        stored: stored,
+        previousId: previous?.id,
+        capturedAt: capturedAt,
+      );
+      journaled = true;
       await _repository.insertStagedMedia(
         mediaId: mediaId,
         session: session,
@@ -145,10 +159,11 @@ class EvidenceCaptureCoordinator {
         sha256Checksum: stored.sha256Checksum,
         widthPx: stored.widthPx,
         heightPx: stored.heightPx,
-        capturedAt: DateTime.now().toUtc(),
+        capturedAt: capturedAt,
         actorPersonId: actorPersonId,
       );
       registered = true;
+      await _prepared.finish(stored.localUri);
       if (previous != null) {
         try {
           await _storage.deleteArtifacts(
@@ -163,7 +178,7 @@ class EvidenceCaptureCoordinator {
       if (deleteSourceAfterCopy) await _storage.discardSource(sourcePath);
       return await _repository.loadBundle(session.id);
     } catch (_) {
-      if (stored != null && !registered) {
+      if (stored != null && !registered && !journaled) {
         await _storage.deleteArtifacts(
           localUri: stored.localUri,
           thumbnailLocalUri: stored.thumbnailLocalUri,
@@ -311,83 +326,91 @@ class EvidenceCaptureCoordinator {
     );
   }
 
+  /// Returns unresolved descriptors; they remain private and are never discarded
+  /// as orphans. Matching committed entries are safe to replay repeatedly.
+  Future<int> recoverPreparedCaptures() async {
+    var unresolved = 0;
+    for (final file in await _prepared.pending()) {
+      try {
+        final data = await _prepared.read(file);
+        final db = _repository.database;
+        final session =
+            await (db.select(db.evidenceCaptureSessions)
+                  ..where((s) => s.id.equals(data['session_id'] as String)))
+                .getSingleOrNull();
+        // Other account/guest views must never acquire this capture.
+        if (session == null) continue;
+        if (session.deletedAt != null ||
+            session.assessmentId != data['assessment_id'] ||
+            session.stationId != data['station_id'] ||
+            session.scopeKey != data['scope_key']) {
+          unresolved++;
+          continue;
+        }
+        final assessment = await (db.select(
+          db.assessments,
+        )..where((a) => a.id.equals(session.assessmentId))).getSingle();
+        if (assessment.deletedAt != null ||
+            assessment.evaluatorPersonId != data['actor_id']) {
+          unresolved++;
+          continue;
+        }
+        final bundle = await _repository.loadBundle(session.id);
+        final current = bundle.mediaForView(data['view_type'] as String);
+        if (current?.id == data['media_id']) {
+          await file.delete();
+          continue;
+        }
+        if (current != null &&
+            current.id != data['previous_id'] &&
+            current.storageState == DatabaseCodes.evidenceStorageReady &&
+            current.capturedAt?.isAfter(
+                  DateTime.parse(data['captured_at'] as String),
+                ) ==
+                true) {
+          // An explicitly accepted newer photo supersedes this unfinished save.
+          await _storage.deleteArtifacts(
+            localUri: data['local_uri'] as String,
+            thumbnailLocalUri: data['thumbnail_uri'] as String,
+          );
+          await file.delete();
+          continue;
+        }
+
+        if (current?.id != data['previous_id'] ||
+            session.updatedAt.toUtc().toIso8601String() !=
+                data['session_updated_at'] ||
+            !await _storage.exists(data['local_uri'] as String)) {
+          unresolved++;
+          continue;
+        }
+        await _repository.insertStagedMedia(
+          mediaId: data['media_id'] as String,
+          session: session,
+          viewType: data['view_type'] as String,
+          localUri: data['local_uri'] as String,
+          thumbnailLocalUri: data['thumbnail_uri'] as String,
+          byteSize: data['byte_size'] as int,
+          sha256Checksum: data['sha256'] as String,
+          widthPx: data['width'] as int,
+          heightPx: data['height'] as int,
+          capturedAt: DateTime.parse(data['captured_at'] as String),
+          actorPersonId: data['actor_id'] as String,
+        );
+        await file.delete();
+      } catch (_) {
+        unresolved++;
+      }
+    }
+    return unresolved;
+  }
+
   Future<void> reconcileAssessment({
     required String assessmentId,
     required String actorPersonId,
-  }) async {
-    final media = await _repository.activeMediaForAssessment(assessmentId);
-    if (media.isEmpty) return;
-    for (final item in media) {
-      switch (item.storageState) {
-        case DatabaseCodes.evidenceStorageStaged:
-          if (await _storage.exists(item.localUri)) break;
-          final readyUri = _storage.readyUriFor(item.localUri);
-          if (await _storage.exists(readyUri)) {
-            await _repository.markReady(
-              media: item,
-              localUri: readyUri,
-              thumbnailLocalUri: item.thumbnailLocalUri == null
-                  ? readyUri
-                  : _storage.readyUriFor(item.thumbnailLocalUri!),
-              actorPersonId: actorPersonId,
-              recovered: true,
-            );
-          } else {
-            await _repository.markMissing(
-              media: item,
-              actorPersonId: actorPersonId,
-            );
-          }
-        case DatabaseCodes.evidenceStorageReady:
-          if (!await _storage.exists(item.localUri)) {
-            await _repository.markMissing(
-              media: item,
-              actorPersonId: actorPersonId,
-            );
-          }
-        case DatabaseCodes.evidenceStorageDeletionPending:
-          await _storage.deleteArtifacts(
-            localUri: item.localUri,
-            thumbnailLocalUri: item.thumbnailLocalUri,
-          );
-          await _repository.finalizeDeletion(
-            media: item,
-            actorPersonId: actorPersonId,
-            recovered: true,
-          );
-        case DatabaseCodes.evidenceStorageMissing:
-          if (await _storage.exists(item.localUri)) {
-            await _repository.markReady(
-              media: item,
-              localUri: item.localUri,
-              thumbnailLocalUri: item.thumbnailLocalUri ?? item.localUri,
-              actorPersonId: actorPersonId,
-              recovered: true,
-            );
-          }
-        case DatabaseCodes.evidenceStorageDeleted:
-          // Deleted rows are tombstones and are not returned by the active query.
-          break;
-        default:
-          await _repository.markMissing(
-            media: item,
-            actorPersonId: actorPersonId,
-          );
-      }
-    }
-
-    final refreshed = await _repository.activeMediaForAssessment(assessmentId);
-    final referenced = <String>{
-      for (final item in refreshed) item.localUri,
-      for (final item in refreshed)
-        if (item.thumbnailLocalUri != null) item.thumbnailLocalUri!,
-    };
-    final files = await _storage.listRelativeFiles(assessmentId);
-    for (final path in files) {
-      if (path.contains('/staging/') && !referenced.contains(path)) {
-        final orphan = await _storage.resolve(path);
-        if (await orphan.exists()) await orphan.delete();
-      }
-    }
-  }
+  }) =>
+      EvidenceReconciliationService(_repository, _storage).reconcileAssessment(
+        assessmentId: assessmentId,
+        actorPersonId: actorPersonId,
+      );
 }

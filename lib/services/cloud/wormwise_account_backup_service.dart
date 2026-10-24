@@ -1,3 +1,4 @@
+import 'account_snapshot_store.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -27,7 +28,11 @@ class WormWiseAccountBackupService {
     this.localViewDirectory,
     AccountAppDataService? appData,
     this.onRecoveryProgress,
-  }) : evidenceStorage = evidenceStorage ?? EvidenceStorageService(),
+    AccountSnapshotStore? snapshotStore,
+  }) : snapshotStore =
+           snapshotStore ??
+           AccountSnapshotStore(SupabaseBackupObjectStorage(client, bucket)),
+       evidenceStorage = evidenceStorage ?? EvidenceStorageService(),
        secureStorage = secureStorage ?? const FlutterSecureStorage(),
        appData =
            appData ??
@@ -46,6 +51,9 @@ class WormWiseAccountBackupService {
   static const _pendingGuestTransferKey = 'wormwise_pending_guest_transfer';
   static const _guestView = 'guest';
   static const _formatVersion = 2;
+
+  final AccountSnapshotStore snapshotStore;
+  String? get lastBackupMaintenanceError => snapshotStore.maintenanceError;
 
   final AppDatabase database;
   final SupabaseClient client;
@@ -382,51 +390,16 @@ class WormWiseAccountBackupService {
 
   Future<bool> _restoreAccountRecords(String ownerId) async {
     lastRecordError = null;
-    final storage = client.storage.from(bucket);
-    // Storage's default list returns only the first 100 names in ascending
-    // order. A long-lived account can have many more snapshots, so read every
-    // page before deciding which backups represent its current devices.
-    final snapshots = await storage.list(
-      path: ownerId,
-      searchOptions: const SearchOptions(limit: 100, offset: 0),
-    );
-    var offset = snapshots.length;
-    while (offset > 0 && offset % 100 == 0) {
-      final page = await storage.list(
-        path: ownerId,
-        searchOptions: SearchOptions(limit: 100, offset: offset),
-      );
-      snapshots.addAll(page);
-      if (page.length < 100) {
-        break;
-      }
-      offset += page.length;
-    }
-    final available =
-        snapshots.where((item) => item.name.endsWith('.json.gz')).toList()
-          ..sort((a, b) => (b.updatedAt ?? '').compareTo(a.updatedAt ?? ''));
-
-    // Preserve unsynchronized edits already on this phone. Rows imported in
-    // this pass can still be reconciled against another device by timestamp.
+    final byDevice = await snapshotStore.candidates(ownerId);
+    // Protect unsynchronized edits already present on this phone.
     final protectedRows = await _pendingLocalRows();
-    final byDevice = <String, List<FileObject>>{};
-    for (final snapshot in available) {
-      // Legacy backups were named <device>.json.gz, without a timestamp.
-      final deviceId = snapshot.name
-          .replaceFirst(RegExp(r'\.json\.gz$'), '')
-          .split('-')
-          .first;
-      (byDevice[deviceId] ??= []).add(snapshot);
-    }
     final errors = <Object>[];
     for (final candidates in byDevice.values) {
       Object? failure;
       var restored = false;
       for (final snapshot in candidates) {
         try {
-          final compressed = await storage.download(
-            '$ownerId/${snapshot.name}',
-          );
+          final compressed = await snapshotStore.download(snapshot);
           if (!_isCurrentAccount(ownerId)) {
             throw StateError('Account changed during recovery.');
           }
@@ -1171,13 +1144,16 @@ class WormWiseAccountBackupService {
               in await database.customSelect('SELECT * FROM "$name"').get())
             _rowKey(row.data, primaryKeys): row.data,
         };
-        for (final rawRow in rawRows) {
-          if (rawRow is! Map<String, dynamic> ||
-              rawRow.isEmpty ||
-              !allowedColumns.containsAll(rawRow.keys) ||
-              !rawRow.keys.toSet().containsAll(primaryKeys)) {
+        for (final sourceRow in rawRows) {
+          if (sourceRow is! Map<String, dynamic> ||
+              sourceRow.isEmpty ||
+              !allowedColumns.containsAll(sourceRow.keys) ||
+              !sourceRow.keys.toSet().containsAll(primaryKeys)) {
             throw const FormatException('Invalid record in account backup.');
           }
+          // Decode/copy into a mutable nullable-value map before normalization;
+          // callers may supply Map<String, String> or an immutable typed map.
+          final rawRow = Map<String, dynamic>.from(sourceRow);
           // Retired form fields must not return through an older backup.
           if (name == 'fields') rawRow['location_description'] = null;
           if (name == 'crop_cycles') rawRow['intended_use'] = null;
@@ -1282,7 +1258,6 @@ class WormWiseAccountBackupService {
       return false;
     }
     lastSnapshotHasData = true;
-    final storage = client.storage.from(bucket);
     final deviceId = await _deviceId();
     final media = <Map<String, String>>[];
     var mediaComplete = true;
@@ -1355,24 +1330,14 @@ class WormWiseAccountBackupService {
     final compressed = Uint8List.fromList(
       gzip.encode(utf8.encode(jsonEncode(payload))),
     );
-    final checksum = sha256.convert(compressed).toString();
-    final snapshotPath =
-        '$ownerId/$deviceId-${DateTime.now().toUtc().microsecondsSinceEpoch}.json.gz';
-    if (!_isCurrentAccount(ownerId)) {
-      return false;
-    }
-    await storage.uploadBinary(
-      snapshotPath,
-      compressed,
-      fileOptions: const FileOptions(contentType: 'application/gzip'),
+    await snapshotStore.publish(
+      owner: ownerId,
+      device: deviceId,
+      bytes: compressed,
+      complete: complete,
+      isCurrentAccount: () => _isCurrentAccount(ownerId),
     );
-    final readBack = await storage.download(snapshotPath);
-    if (sha256.convert(readBack).toString() != checksum) {
-      throw const FormatException('Account backup verification failed.');
-    }
-    if (!_isCurrentAccount(ownerId)) {
-      return false;
-    }
+    if (!_isCurrentAccount(ownerId)) return false;
     _lastSnapshotChecksum = fingerprint;
     lastPublishedSnapshotComplete = complete;
     return true;

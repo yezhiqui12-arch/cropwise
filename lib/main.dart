@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -10,49 +8,38 @@ import 'localization/app_language.dart';
 import 'providers/app_data_mode.dart';
 import 'screens/main_navigation_screen.dart';
 import 'screens/animated_app_entry_screen.dart';
-import 'services/cloud/supabase_bootstrap.dart';
+import 'services/startup/app_startup.dart';
+import 'services/startup/app_startup_gate.dart';
 import 'services/cloud/wormwise_cloud_sync_service.dart';
 import 'services/cloud/wormwise_identity_service.dart';
 import 'theme/app_theme.dart';
 import 'widgets/wormwise_data_scope.dart';
 
-Future<void> main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  final cloud = await SupabaseBootstrap.initialize();
-  final identity = WormWiseIdentityService(cloud.client);
-  await identity.restoreAccessState();
-  final database = AppDatabase();
-  final languageController = AppLanguageController(database);
-  await languageController.load();
-  final cloudSync = WormWiseCloudSyncService(database, cloud.client);
-  final restoredUser = identity.user;
-  if (restoredUser != null && !restoredUser.isAnonymous) {
-    await cloudSync.prepareAccountView(
-      restoredUser.id,
-      assumeCurrentWhenUntracked: true,
-      restoreRecords: false,
-    );
-  } else if (identity.hasAppAccess) {
-    await cloudSync.prepareGuestView();
-  }
   runApp(
-    WormWiseApp(
-      database: database,
-      languageController: languageController,
-      identityService: identity,
-      cloudSyncService: cloudSync,
-      showLaunchExperience: true,
+    AppStartupGate<AppStartupResources>(
+      initialize: initializeWormWise,
+      release: (resources) => resources.close(),
+      builder: (_, resources) => WormWiseApp(
+        database: resources.database,
+        languageController: resources.language,
+        identityService: resources.identity,
+        cloudSyncService: resources.cloudSync,
+        startupRecoveryWarning: resources.unresolvedCaptures > 0,
+        disposeDatabase: false,
+        showLaunchExperience: true,
+      ),
     ),
   );
-  unawaited(() async {
-    await identity.initialize();
-  }());
 }
 
 class WormWiseApp extends StatelessWidget {
   const WormWiseApp({
     super.key,
     this.database,
+    this.disposeDatabase = true,
+    this.startupRecoveryWarning = false,
     this.languageController,
     this.identityService,
     this.cloudSyncService,
@@ -61,6 +48,8 @@ class WormWiseApp extends StatelessWidget {
   });
 
   final AppDatabase? database;
+  final bool disposeDatabase;
+  final bool startupRecoveryWarning;
   final AppLanguageController? languageController;
   final WormWiseIdentityService? identityService;
   final WormWiseCloudSyncService? cloudSyncService;
@@ -75,6 +64,7 @@ class WormWiseApp extends StatelessWidget {
     final appDatabase = database ?? AppDatabase();
     return WormWiseDataScope(
       database: appDatabase,
+      disposeDatabase: disposeDatabase,
       languageController:
           languageController ?? AppLanguageController(appDatabase),
       dataMode: AppDataMode.production(
@@ -85,6 +75,9 @@ class WormWiseApp extends StatelessWidget {
       child: Consumer<AppLanguageController>(
         builder: (context, language, _) => MaterialApp(
           title: 'WormWise',
+          builder: startupRecoveryWarning
+              ? (_, child) => StartupRecoveryNotice(child: child!)
+              : null,
           locale: language.locale,
           supportedLocales: const [Locale('en'), Locale('fil')],
           localizationsDelegates: const [

@@ -1,0 +1,7 @@
+# Copy to android/key.properties or use WORMWISE_SIGNING_PROPERTIES.
+# Use an absolute path, forward slashes on Windows, and protect the real file.
+storeFile=C:/secure/wormwise-upload.p12
+storePassword=REPLACE_WITH_PRIVATE_PASSWORD
+keyAlias=wormwise-upload
+keyPassword=REPLACE_WITH_PRIVATE_PASSWORD
+storeType=PKCS12
