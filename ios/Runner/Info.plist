@@ -18,7 +18,7 @@
 		</dict>
 	</array>
 	<key>CFBundleDisplayName</key>
-	<string>WormWise</string>
+	<string>Cropwise</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -26,7 +26,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>WormWise</string>
+	<string>Cropwise</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -38,9 +38,9 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>WormWise uses your location to record the field entrance, optional boundary corners, and scouting stations.</string>
+	<string>Cropwise uses your location to record the field entrance, optional boundary corners, and scouting stations.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>WormWise uses the camera to record field and plant evidence for an assessment.</string>
+	<string>Cropwise uses the camera to record field and plant evidence for an assessment.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Camera Phase A does not record audio. This declaration supports the camera component with audio disabled.</string>
 	<key>UIApplicationSceneManifest</key>

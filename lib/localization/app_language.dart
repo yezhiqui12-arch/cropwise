@@ -99,13 +99,13 @@ class AppWords {
   String get helpAndSupport => _pick('Help & Support', 'Tulong at Suporta');
   String get signOut => _pick('Sign Out', 'Mag-sign out');
   String get signOutQuestion =>
-      _pick('Sign out of WormWise?', 'Mag-sign out sa WormWise?');
+      _pick('Sign out of Cropwise?', 'Mag-sign out sa Cropwise?');
   String get signOutRetention => _pick(
     'Your fields, boundaries, assessments, and photos will stay saved on this phone.',
     'Mananatiling naka-save sa teleponong ito ang iyong mga bukid, hangganan, pagsusuri, at larawan.',
   );
   String get guestUser => _pick('Guest user', 'Bisita');
-  String get wormwiseUser => _pick('WormWise user', 'Gumagamit ng WormWise');
+  String get wormwiseUser => _pick('Cropwise user', 'Gumagamit ng Cropwise');
   String get registeredAccount =>
       _pick('Registered account', 'Rehistradong account');
   String get dataSavedOnDevice => _pick(

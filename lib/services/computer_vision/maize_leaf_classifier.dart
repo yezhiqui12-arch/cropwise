@@ -12,7 +12,7 @@ class MaizeClassificationResult {
     required this.topConfidence,
     required this.probabilities,
     this.inferenceDurationMs = 0,
-    this.modelName = 'WormWise-YOLO11n-Cls-320-float32',
+    this.modelName = 'Cropwise-YOLO11n-Cls-320-float32',
   });
 
   final String topClass;
@@ -57,6 +57,9 @@ class MaizeLeafClassifier {
   final Uint8List? modelBytes;
   MaizeClassificationResult? simulatedResult;
 
+  /// Request-scoped, already oriented image owned by the inference worker.
+  img.Image? preparedImage;
+
   Interpreter? _interpreter;
   Future<void>? _initialization;
   List<int>? _inputShape;
@@ -65,7 +68,7 @@ class MaizeLeafClassifier {
 
   bool get isModelLoaded => _interpreter != null || simulatedResult != null;
   Object? get loadError => _loadError;
-  String get modelIdentifier => 'WormWise-YOLO11n-Cls-320-float32';
+  String get modelIdentifier => 'Cropwise-YOLO11n-Cls-320-float32';
 
   Future<void> initialize() {
     if (simulatedResult != null || _interpreter != null) {
@@ -150,13 +153,13 @@ class MaizeLeafClassifier {
       );
     }
 
-    final bytes = await imageFile.readAsBytes();
-    final decoded = img.decodeImage(bytes);
+    final decoded =
+        preparedImage ?? img.decodeImage(await imageFile.readAsBytes());
     if (decoded == null) {
       throw const FormatException('The selected file is not a readable image.');
     }
 
-    final oriented = img.bakeOrientation(decoded);
+    final oriented = preparedImage ?? img.bakeOrientation(decoded);
     final resized = img.copyResize(
       oriented,
       width: inputSize,

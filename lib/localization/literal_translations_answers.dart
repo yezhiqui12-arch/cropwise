@@ -71,8 +71,8 @@ const answerLiteralFilipino = <String, String>{
       'Humingi ng pagrepaso kung magkasalungat ang natuklasan ng AI at tagasuri sa mahalagang kaso.',
   'Stem, ear, laboratory, or molecular examination may require specialist support.':
       'Maaaring mangailangan ng espesyalista ang pagsusuri sa tangkay, bunga, laboratoryo, o molecular na antas.',
-  'WormWise does not prescribe pesticide treatment':
-      'Hindi nagrereseta ang WormWise ng paggamot na pestisidyo',
+  'Cropwise does not prescribe pesticide treatment':
+      'Hindi nagrereseta ang Cropwise ng paggamot na pestisidyo',
   'Do not choose or apply a pesticide from an image result or this guide alone. Use confirmed field observations and consult current product labels and qualified local agricultural guidance.':
       'Huwag pumili o gumamit ng pestisidyo batay lamang sa resulta ng larawan o gabay na ito. Gumamit ng kumpirmadong obserbasyon sa bukid at sumangguni sa kasalukuyang label ng produkto at kwalipikadong lokal na gabay sa agrikultura.',
   'Image confidence is not a treatment threshold.':
@@ -117,15 +117,15 @@ const answerLiteralFilipino = <String, String>{
       'Obserbahan kung may kapaki-pakinabang na mandaragit habang sinusuri ang gitnang dahon.',
   'This offline guide has a focused scope':
       'May tiyak na saklaw ang offline na gabay na ito',
-  'I can explain WormWise scouting, FAW-consistent signs, field photographs, uncertain damage, and when to request expert help.':
-      'Maaari kong ipaliwanag ang pagmamanman sa WormWise, mga palatandaang tumutugma sa FAW, larawan sa bukid, hindi tiyak na pinsala, at kung kailan hihingi ng tulong ng eksperto.',
+  'I can explain Cropwise scouting, FAW-consistent signs, field photographs, uncertain damage, and when to request expert help.':
+      'Maaari kong ipaliwanag ang pagmamanman sa Cropwise, mga palatandaang tumutugma sa FAW, larawan sa bukid, hindi tiyak na pinsala, at kung kailan hihingi ng tulong ng eksperto.',
   'Try one of the suggested questions below.':
       'Subukan ang isa sa mga mungkahing tanong sa ibaba.',
   'You can also ask for the selected field status or latest saved assessment explanation.':
       'Maaari ka ring magtanong tungkol sa katayuan ng napiling bukid o paliwanag sa pinakahuling naka-save na pagsusuri.',
-  'WormWise offline guide': 'Offline na gabay ng WormWise',
+  'Cropwise offline guide': 'Offline na gabay ng Cropwise',
   'Built-in supported topics': 'Mga paksang suportado ng app',
-  'WormWise assessment protocol': 'Paraan ng pagsusuri ng WormWise',
+  'Cropwise assessment protocol': 'Paraan ng pagsusuri ng Cropwise',
   'What is my current field status?':
       'Ano ang kasalukuyang katayuan ng aking bukid?',
   'Explain my latest assessment': 'Ipaliwanag ang pinakahuli kong pagsusuri',

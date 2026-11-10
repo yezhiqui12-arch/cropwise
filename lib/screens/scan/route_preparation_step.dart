@@ -211,7 +211,7 @@ class _RoutePreparationStepState extends State<RoutePreparationStep> {
             Padding(
               padding: EdgeInsets.only(bottom: 12),
               child: AppText(
-                'Targets and lines are editable approximate field guidance. They are not turn-by-turn navigation, validated station-placement geometry, proof that the protocol was followed, or a legal or survey-grade boundary. For an irregular or concave field, WormWise may omit a connecting line rather than claim it is a safe walking path.',
+                'Targets and lines are editable approximate field guidance. They are not turn-by-turn navigation, validated station-placement geometry, proof that the protocol was followed, or a legal or survey-grade boundary. For an irregular or concave field, Cropwise may omit a connecting line rather than claim it is a safe walking path.',
                 style: TextStyle(height: 1.45),
               ),
             ),

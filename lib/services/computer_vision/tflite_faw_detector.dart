@@ -33,6 +33,9 @@ class TfliteFawDetector implements FawComputerVisionService {
   final PestSpeciesDetector _pestSpeciesDetector;
   PlantDiagnosisResult? simulatedResult;
 
+  /// Request-scoped, already oriented image owned by the inference worker.
+  img.Image? preparedImage;
+
   Interpreter? _interpreter;
   Future<void>? _initialization;
   List<int>? _inputShape;
@@ -46,7 +49,7 @@ class TfliteFawDetector implements FawComputerVisionService {
 
   @override
   String get modelIdentifier =>
-      'WormWise-YOLO11n-Champion-960-float32+PestSpecies-YOLOv8n-640-float32';
+      'Cropwise-YOLO11n-Champion-960-float32+PestSpecies-YOLOv8n-640-float32';
 
   /// Loads the bundled LiteRT/TFLite asset once. Calls are safe to repeat.
   Future<void> initialize() {
@@ -70,7 +73,7 @@ class TfliteFawDetector implements FawComputerVisionService {
       if (input.type != TensorType.float32 ||
           output.type != TensorType.float32) {
         throw StateError(
-          'WormWise requires float32 tensors, but received '
+          'Cropwise requires float32 tensors, but received '
           '${input.type} input and ${output.type} output.',
         );
       }
@@ -126,15 +129,16 @@ class TfliteFawDetector implements FawComputerVisionService {
     final inputShape = _inputShape;
     final outputShape = _outputShape;
     if (interpreter == null || inputShape == null || outputShape == null) {
-      throw StateError('The WormWise model could not be loaded: $_loadError');
+      throw StateError('The Cropwise model could not be loaded: $_loadError');
     }
 
-    final decoded = img.decodeImage(await imageFile.readAsBytes());
+    final decoded =
+        preparedImage ?? img.decodeImage(await imageFile.readAsBytes());
     if (decoded == null) {
       throw const FormatException('The selected file is not a readable image.');
     }
 
-    final oriented = img.bakeOrientation(decoded);
+    final oriented = preparedImage ?? img.bakeOrientation(decoded);
     final prepared = _letterbox(oriented);
     final inputBuffer = _createInputBuffer(prepared.image, inputShape);
     // Transfer exact float32 bytes in and read exact native output bytes back.

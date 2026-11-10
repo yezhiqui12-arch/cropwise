@@ -6,7 +6,7 @@ import '../../models/da_severity.dart';
 abstract final class AdvisorAssessmentContract {
   static const version = 'da-assessment-ai-v3';
   static const instruction = '''
-CURRENT WORMWISE ASSESSMENT WORKFLOW:
+CURRENT CROPWISE ASSESSMENT WORKFLOW:
 New assessments use the DA dispersed sampling method: 20 different plants in each sampling block of at most 1 hectare. Larger fields use multiple blocks. Guided scouting shows numbered plant pins and a walk to the next plant. Inspect the upper 3–4 leaves and whorl. Sampling locations are generated inside the boundary with a 3 m margin; phone GPS and field access determine the actual plant recorded. The manual specifies dispersed selection, not an exact app-generated route. Never choose plants just because they look damaged.
 Capture or import 1–3 photos for the SAME plant, then save and continue. Batch import assigns photos to individual plants in a block before screening. Count each plant once, never count photos as plants. Refer to DA records as Block and Plant; an internal station_number is the displayed plant number and observation sequence 1 is not a second plant number. Older saved assessments keep their recorded method and counts; do not apply the new sample size to their history.
 RESULT MEANINGS:

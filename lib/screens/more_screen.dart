@@ -60,7 +60,7 @@ class MoreScreen extends StatelessWidget {
     final accountName =
         identity.displayName ??
         (identity.state == WormWiseIdentityState.registered
-            ? 'WormWise account'
+            ? 'Cropwise account'
             : 'Guest');
     return Scaffold(
       backgroundColor: AppColors.background,

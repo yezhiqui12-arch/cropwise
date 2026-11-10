@@ -46,7 +46,7 @@ PlantDiagnosisResult model(List<int> ids, {String? label = 'FAW damage'}) =>
 
 void main() {
   setUpAll(() async {
-    if (Platform.environment['WORMWISE_ACTION_PREVIEW'] != '1') return;
+    if (Platform.environment['CROPWISE_ACTION_PREVIEW'] != '1') return;
     await (FontLoader(
       'Roboto',
     )..addFont(rootBundle.load('assets/fonts/Roboto-Regular.ttf'))).load();
@@ -258,7 +258,7 @@ void main() {
     double scale = 1,
   }) => MaterialApp(
     theme: ThemeData(
-      fontFamily: Platform.environment['WORMWISE_ACTION_PREVIEW'] == '1'
+      fontFamily: Platform.environment['CROPWISE_ACTION_PREVIEW'] == '1'
           ? 'Roboto'
           : null,
       useMaterial3: true,
@@ -298,7 +298,7 @@ void main() {
     ),
   );
   Future<void> capture(WidgetTester tester, String name) async {
-    if (Platform.environment['WORMWISE_ACTION_PREVIEW'] != '1') return;
+    if (Platform.environment['CROPWISE_ACTION_PREVIEW'] != '1') return;
     final boundary = tester.renderObject<RenderRepaintBoundary>(
       find.byKey(const Key('action_preview')),
     );
@@ -344,7 +344,7 @@ void main() {
     child: MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        fontFamily: Platform.environment['WORMWISE_ACTION_PREVIEW'] == '1'
+        fontFamily: Platform.environment['CROPWISE_ACTION_PREVIEW'] == '1'
             ? 'Roboto'
             : null,
         useMaterial3: true,
@@ -406,7 +406,7 @@ void main() {
       findsOneWidget,
     );
     expect(tester.takeException(), isNull);
-    if (Platform.environment['WORMWISE_ACTION_PREVIEW'] == '1') {
+    if (Platform.environment['CROPWISE_ACTION_PREVIEW'] == '1') {
       final boundary = tester.renderObject<RenderRepaintBoundary>(
         find.byKey(const Key('notice_preview')),
       );

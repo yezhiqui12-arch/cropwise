@@ -170,7 +170,7 @@ class AdvisorRagContext {
   String toPromptText() {
     if (results.isEmpty) return '';
     final buffer = StringBuffer(
-      'WORMWISE CURATED REFERENCE CONTEXT — TECHNICAL REVIEW PENDING\n'
+      'CROPWISE CURATED REFERENCE CONTEXT — TECHNICAL REVIEW PENDING\n'
       'Use only relevant claims below for FAW guidance. The evidence grade and '
       'jurisdiction are binding. Do not turn validation-required material into '
       'field instructions. If actionable publication status is false, use the '
@@ -270,7 +270,7 @@ class AdvisorRagService {
       label:
           'DA Bureau of Plant Industry, Detection and Management of Fall Armyworm',
       reference:
-          'Printed Crop Pest Management Division leaflet; six photographed pages supplied to the WormWise project. Publication date and public URL unverified.',
+          'Printed Crop Pest Management Division leaflet; six photographed pages supplied to the Cropwise project. Publication date and public URL unverified.',
       jurisdiction:
           'Philippines; general guidance, not a field-specific treatment decision',
     ),
@@ -411,10 +411,10 @@ class AdvisorRagService {
     ),
     'WORMWISE-PROTOCOL': AdvisorReferenceSource(
       id: 'WORMWISE-PROTOCOL',
-      label: 'WormWise assessment protocol',
+      label: 'Cropwise assessment protocol',
       reference:
           'Current DA sampling implementation and saved-result definitions',
-      jurisdiction: 'WormWise operational rule',
+      jurisdiction: 'Cropwise operational rule',
     ),
     'DA-PROVIDED-HARABAS': AdvisorReferenceSource(
       id: 'DA-PROVIDED-HARABAS',
@@ -473,7 +473,7 @@ class AdvisorRagService {
           'General field-corn morphology; US source, not Philippine treatment guidance',
       steps: [
         'Check collars before tasseling; examine silks and kernels after tasseling.',
-        'Use WormWise groups VE–V2, V3–V6, V7–V12, VT–R2 or R3–R6 only when the observed stage fits. V13–Vn is not covered by the current groups; do not force it into V7–V12.',
+        'Use Cropwise groups VE–V2, V3–V6, V7–V12, VT–R2 or R3–R6 only when the observed stage fits. V13–Vn is not covered by the current groups; do not force it into V7–V12.',
       ],
       doNotAssume: [
         'A photo or days since planting alone establishes the stage. Clemson timing estimates are not a fixed Philippine calendar.',
@@ -970,7 +970,7 @@ class AdvisorRagService {
       summary:
           'Fall armyworm, or FAW, is the caterpillar stage of the moth Spodoptera frugiperda.',
       body:
-          'FAW can feed on maize and other host plants. WormWise currently limits its assessment protocol to maize. A field symptom or photograph may support screening, but species confirmation requires multiple compatible features or qualified review.',
+          'FAW can feed on maize and other host plants. Cropwise currently limits its assessment protocol to maize. A field symptom or photograph may support screening, but species confirmation requires multiple compatible features or qualified review.',
       keywords: [
         'faw',
         'fall armyworm',
@@ -991,7 +991,7 @@ class AdvisorRagService {
       ],
       relatedArticleIds: ['identify-larva', 'identify-eggs', 'look-alikes'],
       warning: identificationWarning,
-      jurisdiction: 'International biology; WormWise scope is Philippine maize',
+      jurisdiction: 'International biology; Cropwise scope is Philippine maize',
     ),
     AdvisorKnowledgeChunk(
       id: 'identify-larva',
@@ -1195,7 +1195,7 @@ class AdvisorRagService {
       body:
           'Access Agriculture recommends scouting twice a week during the first six weeks. FAO Scouting Guidance Note 2 recommends at least weekly visits, with more frequent checks when conditions change. These are attributed reference schedules; follow local agricultural guidance and any pesticide re-entry restrictions.',
       steps: [
-        'In WormWise, follow Guided scouting to inspect 20 dispersed plants per sampling block of at most 1 hectare.',
+        'In Cropwise, follow Guided scouting to inspect 20 dispersed plants per sampling block of at most 1 hectare.',
         'Look for recent feeding and fresh frass in the whorl. Old leaf damage alone does not count as current infestation.',
         'Record the date, crop stage, plants checked, current signs, and beneficial organisms before taking management action.',
         'Save a new assessment on the next visit so changes can be compared with the earlier record.',
@@ -1275,7 +1275,7 @@ class AdvisorRagService {
       summary:
           'CIMMYT Asia guide (2021): educational reference thresholds by maize growth stage.',
       body:
-          'An action threshold indicates when treatment should be considered. Table 2 gives these reference values:\n\nV1–V6 (early whorl): 20%, range 10–30%.\nV7–V12 (late whorl): 50%, range 40–60%.\nVT–R2 (tassel and early ear): 20%, range 10–30%.\n\nFor vegetative stages, count plants with small fresh windowpanes and/or infested whorls. The reproductive-stage value uses percent infested plants. Do not extend these stage ranges to VE or R3–R6. WormWise uses 20 separate plants per sampling block; the sampling layout alone does not determine treatment.\n\nExample: 8 of 20 qualifying plants = 40%. This exceeds the early-whorl midpoint, lies within the late-whorl range, and exceeds the tassel/early-ear midpoint. It is not a Davis score or an automatic spray instruction.',
+          'An action threshold indicates when treatment should be considered. Table 2 gives these reference values:\n\nV1–V6 (early whorl): 20%, range 10–30%.\nV7–V12 (late whorl): 50%, range 40–60%.\nVT–R2 (tassel and early ear): 20%, range 10–30%.\n\nFor vegetative stages, count plants with small fresh windowpanes and/or infested whorls. The reproductive-stage value uses percent infested plants. Do not extend these stage ranges to VE or R3–R6. Cropwise uses 20 separate plants per sampling block; the sampling layout alone does not determine treatment.\n\nExample: 8 of 20 qualifying plants = 40%. This exceeds the early-whorl midpoint, lies within the late-whorl range, and exceeds the tassel/early-ear midpoint. It is not a Davis score or an automatic spray instruction.',
       lookFor: [
         'Above the early-whorl threshold, the guide distinguishes mostly small larvae (recommended foliar treatment) from larger larvae in whorls (selective whorl-directed treatment). Mixed sizes may require reassessment and follow-up management.',
         'At VT–R2, the guide adds conditions for low human toxicity and availability of the required protective equipment because taller plants increase application exposure.',
@@ -1314,7 +1314,7 @@ class AdvisorRagService {
       summary:
           'Follow Guided scouting to inspect 20 dispersed plants per sampling block of at most 1 hectare.',
       body:
-          'Current WormWise assessments follow the DA-provided Harabas booklet: select 20 dispersed plants per sampling block of at most 1 hectare, at least 3 m inside the field edge. Guided scouting shows Plant 1–20 and the next walking destination; the app generates location aids and records the actual sampled plants. Inspect the upper 3–4 leaves and whorl. Capture or import 1–3 photos of the same plant. Batch import assigns photos to individual plants. Count plants once regardless of photo count. Larger fields have multiple sampling blocks. Model 1 screens damage; optional eggs, larvae or frass detection supports provisional sampled infestation, counted once per plant over the planned sample (20 plants per DA block); unavailable detection remains unknown. Finalized expert results provide Davis mean severity on 0–9 with the supplied DA classification wording and current sampled infestation based on recorded freshness. The Davis classification describes leaf-damage severity, not a percentage or proof of pest absence. Damage percentage, infestation percentage and Davis mean are separate results.',
+          'Current Cropwise assessments follow the DA-provided Harabas booklet: select 20 dispersed plants per sampling block of at most 1 hectare, at least 3 m inside the field edge. Guided scouting shows Plant 1–20 and the next walking destination; the app generates location aids and records the actual sampled plants. Inspect the upper 3–4 leaves and whorl. Capture or import 1–3 photos of the same plant. Batch import assigns photos to individual plants. Count plants once regardless of photo count. Larger fields have multiple sampling blocks. Model 1 screens damage; optional eggs, larvae or frass detection supports provisional sampled infestation, counted once per plant over the planned sample (20 plants per DA block); unavailable detection remains unknown. Finalized expert results provide Davis mean severity on 0–9 with the supplied DA classification wording and current sampled infestation based on recorded freshness. The Davis classification describes leaf-damage severity, not a percentage or proof of pest absence. Damage percentage, infestation percentage and Davis mean are separate results.',
       contentVersion: AdvisorAssessmentContract.version,
       keywords: [
         'field assessment',
@@ -1484,7 +1484,7 @@ class AdvisorRagService {
       summary:
           'Use field checks and local pest-management offices when suspected FAW needs confirmation.',
       body:
-          'The DA-BPI leaflet describes field surveys, pheromone traps for monitoring, and collection of suspected larvae for identification by the appropriate crop-pest office. It also lists physical removal of egg masses or larvae and biological control as management categories. Biological organisms and pesticides require current local authorization and qualified advice; a trap catch, photograph, or WormWise percentage does not select a treatment.',
+          'The DA-BPI leaflet describes field surveys, pheromone traps for monitoring, and collection of suspected larvae for identification by the appropriate crop-pest office. It also lists physical removal of egg masses or larvae and biological control as management categories. Biological organisms and pesticides require current local authorization and qualified advice; a trap catch, photograph, or Cropwise percentage does not select a treatment.',
       keywords: [
         'bpi',
         'department of agriculture',
@@ -1568,7 +1568,7 @@ class AdvisorRagService {
       summary:
           'Consider evidence, crop stage, context, feasibility, and follow-up together.',
       body:
-          'First confirm crop stage and current evidence. Then consider distribution, larval size when reliably observed, crop condition, weather, natural enemies, recent interventions, safe re-entry, inaccessible stations, and uncertainty. Review any option for cost, efficacy, safety, accessibility, and scalability. A no-treatment decision still needs follow-up scouting. Foreign trial performance or a WormWise risk label alone is not a Philippine treatment recommendation.',
+          'First confirm crop stage and current evidence. Then consider distribution, larval size when reliably observed, crop condition, weather, natural enemies, recent interventions, safe re-entry, inaccessible stations, and uncertainty. Review any option for cost, efficacy, safety, accessibility, and scalability. A no-treatment decision still needs follow-up scouting. Foreign trial performance or a Cropwise risk label alone is not a Philippine treatment recommendation.',
       keywords: [
         'decision',
         'decide',
@@ -1591,9 +1591,9 @@ class AdvisorRagService {
       title: 'Interpret risk without inventing a treatment threshold',
       category: 'Management',
       summary:
-          'WormWise risk is a scouting summary, not an automatic spray instruction.',
+          'Cropwise risk is a scouting summary, not an automatic spray instruction.',
       body:
-          'Published action thresholds from other regions have not been validated for Piat or for WormWise\'s exact sampling definitions. Treat them as background information and ask a qualified local adviser to interpret current field observations before any treatment decision.',
+          'Published action thresholds from other regions have not been validated for Piat or for Cropwise\'s exact sampling definitions. Treat them as background information and ask a qualified local adviser to interpret current field observations before any treatment decision.',
       keywords: [
         'threshold',
         'risk',
@@ -1603,7 +1603,7 @@ class AdvisorRagService {
         'spray decision',
         'action level',
       ],
-      sourceIds: ['CIMMYT-ASIA', 'WORMWISE-PROTOCOL'],
+      sourceIds: ['CIMMYT-ASIA', 'CROPWISE-PROTOCOL'],
       grade: AdvisorEvidenceGrade.expertValidationRequired,
       warning: decisionWarning,
     ),
@@ -1698,7 +1698,7 @@ class AdvisorRagService {
         'scale',
         'focus',
       ],
-      sourceIds: ['CABI-HANDBOOK', 'WORMWISE-PROTOCOL'],
+      sourceIds: ['CABI-HANDBOOK', 'CROPWISE-PROTOCOL'],
       grade: AdvisorEvidenceGrade.operationalRule,
       warning: identificationWarning,
     ),
@@ -1888,7 +1888,7 @@ class AdvisorRagService {
       chunk.grade != AdvisorEvidenceGrade.expertValidationRequired &&
       chunk.sourceIds.every(
         (id) =>
-            id == 'WORMWISE-PROTOCOL' ||
+            id == 'CROPWISE-PROTOCOL' ||
             sources[id]?.hasVerifiedReference == true,
       );
 

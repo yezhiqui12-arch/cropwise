@@ -13,7 +13,12 @@ import 'main_navigation_screen.dart';
 /// Returning users receive one short brand acknowledgement before Home.
 /// Signed-out users continue into the complete account-entry sequence.
 class AnimatedAppEntryScreen extends StatefulWidget {
-  const AnimatedAppEntryScreen({super.key});
+  const AnimatedAppEntryScreen({
+    super.key,
+    this.launchLogoAlreadyShown = false,
+  });
+
+  final bool launchLogoAlreadyShown;
 
   @override
   State<AnimatedAppEntryScreen> createState() => _AnimatedAppEntryScreenState();
@@ -33,6 +38,10 @@ class _AnimatedAppEntryScreenState extends State<AnimatedAppEntryScreen>
   void initState() {
     super.initState();
     _hasAccessAtLaunch = context.read<WormWiseIdentityService>().hasAppAccess;
+    if (widget.launchLogoAlreadyShown && _hasAccessAtLaunch) {
+      _showHome = true;
+      _showLogo = false;
+    }
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 480),
@@ -47,7 +56,9 @@ class _AnimatedAppEntryScreenState extends State<AnimatedAppEntryScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_hasAccessAtLaunch || _started) return;
+    if (!_hasAccessAtLaunch || widget.launchLogoAlreadyShown || _started) {
+      return;
+    }
     _started = true;
     final pixelRatio = MediaQuery.devicePixelRatioOf(context).clamp(1.0, 2.0);
     _logoProvider = ResizeImage(

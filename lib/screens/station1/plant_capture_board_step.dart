@@ -134,7 +134,7 @@ class _PlantCaptureBoardStepState extends State<PlantCaptureBoardStep> {
         icon: const Icon(Icons.location_off_outlined),
         title: const AppText('Location needed'),
         content: AppText(
-          '${error.message}\n\nTurn on location so WormWise can show where you are inside the field.',
+          '${error.message}\n\nTurn on location so Cropwise can show where you are inside the field.',
         ),
         actions: [
           TextButton(
@@ -922,11 +922,7 @@ class _PlantTile extends StatelessWidget {
                   ),
                   if (!isSelected)
                     _ThumbStack(
-                      media: [
-                        ?primaryMedia,
-                        ?closeUpMedia,
-                        ?detailMedia,
-                      ],
+                      media: [?primaryMedia, ?closeUpMedia, ?detailMedia],
                       resolveFile: resolveFile,
                     ),
                   const SizedBox(width: 4),
@@ -1244,7 +1240,6 @@ class _MicroActionButton extends StatelessWidget {
   }
 }
 
-
 class _PlantNumberBadge extends StatelessWidget {
   const _PlantNumberBadge({
     required this.position,
@@ -1306,9 +1301,7 @@ class _StatusChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: filled ? const Color(0xFFE3F1E7) : Colors.transparent,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: filled ? Colors.transparent : Colors.black12,
-        ),
+        border: Border.all(color: filled ? Colors.transparent : Colors.black12),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1360,7 +1353,9 @@ class _DiagnosisPill extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            damage ? Icons.bug_report_outlined : Icons.check_circle_outline_rounded,
+            damage
+                ? Icons.bug_report_outlined
+                : Icons.check_circle_outline_rounded,
             size: 12,
             color: color,
           ),

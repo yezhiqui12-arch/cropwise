@@ -32,10 +32,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('WormWise AI Assistant'), findsOneWidget);
+    expect(find.text('Cropwise AI Assistant'), findsOneWidget);
     expect(find.byKey(const Key('guide_safety_notice')), findsNothing);
     expect(find.textContaining('Guidance only'), findsNothing);
-    expect(find.text('How can I help with WormWise?'), findsOneWidget);
+    expect(find.text('How can I help with Cropwise?'), findsOneWidget);
     expect(find.text('Explain my assessment'), findsOneWidget);
     expect(find.text('Check a maize photo'), findsOneWidget);
     expect(find.text('Inspect a plant'), findsOneWidget);
@@ -124,7 +124,7 @@ void main() {
 
     expect(find.byKey(const Key('guide_conversation_list')), findsOneWidget);
     expect(find.text('Inspect the plant systematically'), findsOneWidget);
-    expect(find.textContaining('WormWise assessment protocol'), findsOneWidget);
+    expect(find.textContaining('Cropwise assessment protocol'), findsOneWidget);
   });
 
   testWidgets('photo attachment goes directly to camera or gallery', (
@@ -182,7 +182,7 @@ void main() {
 
     expect(controller.messages, hasLength(2));
     expect(
-      find.text('WormWise does not prescribe pesticide treatment'),
+      find.text('Cropwise does not prescribe pesticide treatment'),
       findsOneWidget,
     );
     expect(find.textContaining('qualified agricultural'), findsWidgets);
@@ -216,7 +216,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(controller.messages, isEmpty);
-    expect(find.text('How can I help with WormWise?'), findsOneWidget);
+    expect(find.text('How can I help with Cropwise?'), findsOneWidget);
   });
 
   testWidgets('saved field context opens a read-only assessment explanation', (
@@ -331,7 +331,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('guide_open_chat_error')), findsNothing);
-    expect(find.text('WormWise AI'), findsOneWidget);
+    expect(find.text('Cropwise AI'), findsOneWidget);
     expect(find.textContaining('**'), findsNothing);
     expect(find.textContaining('Generated online'), findsNothing);
     expect(find.textContaining('Google Gemini'), findsNothing);

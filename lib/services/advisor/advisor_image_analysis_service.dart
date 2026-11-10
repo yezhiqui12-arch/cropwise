@@ -36,7 +36,7 @@ class AdvisorImageAnalysisService {
         : hasCondition
         ? 'The damage screen suggests “${result.classificationLabel ?? result.pestLabel}” with ${confidence.toStringAsFixed(0)}% confidence.$speciesSummary These are visual suggestions, not a confirmed diagnosis.'
         : (result.advisoryNotes ??
-              'The WormWise model did not detect one of its configured visual classes in this photo. That does not prove the plant is pest-free.');
+              'The Cropwise model did not detect one of its configured visual classes in this photo. That does not prove the plant is pest-free.');
 
     return AdvisorImageAnalysisResult(
       answer: AdvisorAnswer(
@@ -58,7 +58,7 @@ class AdvisorImageAnalysisService {
         nextAction:
             'Use the Scout workflow for structured evidence and evaluator confirmation.',
         source: AdvisorKnowledgeSource(
-          label: 'WormWise on-device image model',
+          label: 'Cropwise on-device image model',
           reference: 'Selected photo processed on this phone',
           version: _model.modelIdentifier,
         ),

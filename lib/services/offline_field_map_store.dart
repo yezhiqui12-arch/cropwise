@@ -231,7 +231,7 @@ class OfflineFieldMapStore {
       );
       request.headers.set(
         HttpHeaders.userAgentHeader,
-        'WormWise/1.0 (field offline maps)',
+        'Cropwise/1.0 (field offline maps)',
       );
       request.headers.contentType = ContentType(
         'application',

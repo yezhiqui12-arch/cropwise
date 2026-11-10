@@ -66,7 +66,7 @@ class ScanLandingScreen extends StatelessWidget {
         status: 'LOCAL DATA ERROR',
         title: 'Could not load saved field data',
         message:
-            'Close and reopen WormWise. Your existing records have not been intentionally changed.',
+            'Close and reopen Cropwise. Your existing records have not been intentionally changed.',
       );
     }
 
@@ -112,7 +112,7 @@ class ScanLandingScreen extends StatelessWidget {
         status: 'LOCAL DATA ERROR',
         title: 'Could not load the saved assessment',
         message:
-            'Close and reopen WormWise. The field and assessment records remain saved on this phone.',
+            'Close and reopen Cropwise. The field and assessment records remain saved on this phone.',
       );
     }
 

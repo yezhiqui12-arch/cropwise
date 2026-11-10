@@ -65,7 +65,7 @@ class ExpertFindingsPdfExportService {
       }),
     );
     final pdf = pw.Document(
-      title: 'WormWise expert findings',
+      title: 'Cropwise expert findings',
       theme: pw.ThemeData.withFont(
         base: pw.Font.ttf(
           await rootBundle.load('assets/fonts/Roboto-Regular.ttf'),
@@ -137,7 +137,7 @@ class ExpertFindingsPdfExportService {
       child: pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         children: [
-          text('WormWise · Finalized expert findings', size: 8, color: grey),
+          text('Cropwise · Finalized expert findings', size: 8, color: grey),
           text(
             '${context.pageNumber} / ${context.pagesCount}',
             size: 8,
@@ -151,7 +151,7 @@ class ExpertFindingsPdfExportService {
       child: pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         children: [
-          text('WORMWISE', bold: true, color: green),
+          text('CROPWISE', bold: true, color: green),
           text('EXPERT FINDINGS', size: 9, color: grey),
         ],
       ),

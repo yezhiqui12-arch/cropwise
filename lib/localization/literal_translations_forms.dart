@@ -20,8 +20,8 @@ const formLiteralFilipino = <String, String>{
       'Lumang bahagyang resulta · ipinapakita ang aktuwal na bilang na ginamit',
   'The DA Davis classification describes visible leaf-damage severity. Damage incidence includes old damage. Current sampled infestation uses expert-assessed signs of current feeding at the assessment date. A Davis classification is not an infestation percentage or confirmation of pest absence.':
       'Inilalarawan ng DA Davis classification ang tindi ng nakikitang pinsala sa dahon. Kabilang sa damage incidence ang lumang pinsala. Ang kasalukuyang infestation sa sample ay batay sa mga palatandaan ng kasalukuyang pagkain na sinuri ng eksperto noong petsa ng pagsusuri. Ang Davis classification ay hindi porsiyento ng infestation o patunay na walang peste.',
-  'Classification wording follows the supplied DA reference. Decimal intervals are WormWise display bands around reference ratings 1, 3, 5, 7 and 9.':
-      'Ang mga pangalan ng klasipikasyon ay mula sa ibinigay na sanggunian ng DA. Ang mga saklaw na may decimal ay pagpapangkat ng WormWise sa mga reference rating na 1, 3, 5, 7 at 9.',
+  'Classification wording follows the supplied DA reference. Decimal intervals are Cropwise display bands around reference ratings 1, 3, 5, 7 and 9.':
+      'Ang mga pangalan ng klasipikasyon ay mula sa ibinigay na sanggunian ng DA. Ang mga saklaw na may decimal ay pagpapangkat ng Cropwise sa mga reference rating na 1, 3, 5, 7 at 9.',
   'For a complete block of 20 plants: FAW damage incidence = damaged plants / 20 × 100; current sampled infestation = plants with current feeding signs / 20 × 100; mean Davis = sum of all 20 scores / 20. For multiple complete blocks, use 20 × number of blocks. Historical partial findings use their recorded scored/assessable counts; missing evidence is never counted as unaffected.':
       'Para sa kumpletong block na may 20 halaman: FAW damage incidence = mga halamang may pinsala / 20 × 100; kasalukuyang infestation sa sample = mga halamang may palatandaan ng kasalukuyang pagkain / 20 × 100; mean Davis = kabuuan ng 20 score / 20. Para sa maraming kumpletong block, gamitin ang 20 × bilang ng mga block. Gumagamit ang lumang bahagyang resulta ng aktuwal na bilang ng na-rate o nasuring halaman; hindi itinuturing na walang pinsala ang kulang na ebidensiya.',
 
@@ -180,12 +180,12 @@ const formLiteralFilipino = <String, String>{
       'Bakit hindi masuri ang pagkakasunod na ito?',
   'Why was the quick observation not completed?':
       'Bakit hindi nakumpleto ang mabilisang obserbasyon?',
-  'WormWise AI needs this app to be built with its Supabase URL and publishable key.':
-      'Kailangan ng WormWise AI na mai-build ang app na may Supabase URL at publishable key.',
-  'WormWise AI is currently unavailable.':
-      'Hindi available ang WormWise AI sa ngayon.',
-  'WormWise could not complete that response. Please try again.':
-      'Hindi nakumpleto ng WormWise ang sagot. Subukan muli.',
+  'Cropwise AI needs this app to be built with its Supabase URL and publishable key.':
+      'Kailangan ng Cropwise AI na mai-build ang app na may Supabase URL at publishable key.',
+  'Cropwise AI is currently unavailable.':
+      'Hindi available ang Cropwise AI sa ngayon.',
+  'Cropwise could not complete that response. Please try again.':
+      'Hindi nakumpleto ng Cropwise ang sagot. Subukan muli.',
   'Analyzing the photo': 'Sinusuri ang larawan',
   'Reviewing model findings': 'Nirerepaso ang natuklasan ng modelo',
   'Checking the conversation': 'Sinusuri ang usapan',

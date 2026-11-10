@@ -29,7 +29,7 @@ class AdvisorOfflineGuidesScreen extends StatelessWidget {
           children: [
             AppText('FAW Guide', style: TextStyle(fontWeight: FontWeight.w800)),
             AppText(
-              'Offline WormWise reference',
+              'Offline Cropwise reference',
               style: TextStyle(
                 color: AppColors.textSecondary,
                 fontSize: 12,
@@ -384,7 +384,7 @@ class _GuideArticleSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final gradeLabel = switch (article.grade) {
       AdvisorEvidenceGrade.verifiedCore => 'Source-grounded',
-      AdvisorEvidenceGrade.operationalRule => 'WormWise protocol',
+      AdvisorEvidenceGrade.operationalRule => 'Cropwise protocol',
       AdvisorEvidenceGrade.expertValidationRequired =>
         'Expert validation required',
     };
@@ -493,7 +493,7 @@ class _GuideArticleSheet extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xs),
           for (final id in article.sourceIds)
-            if (id != 'WORMWISE-PROTOCOL')
+            if (id != 'CROPWISE-PROTOCOL')
               _SourceTile(source: AdvisorRagService.sources[id]!),
           const SizedBox(height: AppSpacing.md),
           const AppText(

@@ -53,7 +53,7 @@ class _Media extends CaseMessageService {
 }
 
 void main() {
-  final output = Platform.environment['WORMWISE_RESULTS_PREVIEW'];
+  final output = Platform.environment['CROPWISE_RESULTS_PREVIEW'];
   setUpAll(() async {
     if (output == null) return;
     for (final font in {

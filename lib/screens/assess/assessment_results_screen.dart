@@ -1084,7 +1084,7 @@ class _AssessmentResultAiClient {
           'parts': [
             {
               'text':
-                  'Return only structured JSON for the supplied WormWise assessment. Follow the factual and safety rules in the user request.',
+                  'Return only structured JSON for the supplied Cropwise assessment. Follow the factual and safety rules in the user request.',
             },
           ],
         },
@@ -1489,7 +1489,7 @@ List<AssessmentNextStep> _buildDeterministicNextSteps(
       type: 'field_monitoring',
       title: 'Continue protocol-based monitoring',
       description:
-          'Repeat scouting according to the applicable WormWise field protocol and compare the next completed assessment with this saved record.',
+          'Repeat scouting according to the applicable Cropwise field protocol and compare the next completed assessment with this saved record.',
     ),
   );
 
@@ -2211,7 +2211,7 @@ class _ResultsScrollableBody extends StatelessWidget {
                 _RecommendationResourceRow(
                   key: const Key('ask_wormwise_assessment_card'),
                   icon: Icons.chat_bubble_outline_rounded,
-                  title: 'Ask WormWise',
+                  title: 'Ask Cropwise',
                   subtitle: assistantPreview?.hasConversation == true
                       ? 'Continue your assessment chat'
                       : 'Ask about these results',
@@ -4179,7 +4179,7 @@ class _ReportAssessmentCard extends StatelessWidget {
             children: [
               const _ReportMetaChip(
                 icon: Icons.groups_outlined,
-                label: 'Authorized WormWise expert',
+                label: 'Authorized Cropwise expert',
               ),
               const _ReportMetaChip(
                 icon: Icons.description_outlined,
@@ -4492,7 +4492,7 @@ class _AskWormWiseLinkCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const AppText(
-                          'Ask WormWise',
+                          'Ask Cropwise',
                           style: TextStyle(
                             color: Color(0xFF1E293B),
                             fontSize: 14.5,

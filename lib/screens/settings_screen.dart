@@ -53,7 +53,7 @@ class SettingsScreen extends StatelessWidget {
           const Card(
             child: ListTile(
               leading: Icon(Icons.info_outline),
-              title: AppText('WormWise'),
+              title: AppText('Cropwise'),
               subtitle: AppText('Version 1.0.0+1 · Structured field scouting'),
             ),
           ),

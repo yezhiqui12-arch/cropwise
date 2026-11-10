@@ -111,7 +111,7 @@ class AdvisorKnowledgeService {
   static const protocolVersion = ScoutingSamplingProtocol.daVersion;
 
   static const _protocolSource = AdvisorKnowledgeSource(
-    label: 'WormWise assessment protocol',
+    label: 'Cropwise assessment protocol',
     reference:
         'DA-provided Harabas booklet, sampling page 5; current app workflow',
     version: protocolVersion,
@@ -440,7 +440,7 @@ class AdvisorKnowledgeService {
 
   static const _treatmentAnswer = AdvisorAnswer(
     topicId: 'treatment_safety',
-    title: 'WormWise does not prescribe pesticide treatment',
+    title: 'Cropwise does not prescribe pesticide treatment',
     summary:
         'Do not choose or apply a pesticide from an image result or this guide alone. Use confirmed field observations and consult current product labels and qualified local agricultural guidance.',
     details: [
@@ -491,13 +491,13 @@ class AdvisorKnowledgeService {
     topicId: 'unknown',
     title: 'This offline guide has a focused scope',
     summary:
-        'I can explain WormWise scouting, FAW-consistent signs, field photographs, uncertain damage, and when to request expert help.',
+        'I can explain Cropwise scouting, FAW-consistent signs, field photographs, uncertain damage, and when to request expert help.',
     details: [
       'Try one of the suggested questions below.',
       'You can also ask for the selected field status or latest saved assessment explanation.',
     ],
     source: AdvisorKnowledgeSource(
-      label: 'WormWise offline guide',
+      label: 'Cropwise offline guide',
       reference: 'Built-in supported topics',
       version: knowledgeVersion,
     ),

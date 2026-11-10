@@ -67,7 +67,7 @@ class _StationLocationStepState extends State<StationLocationStep> {
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 10),
-        const AppText('Keep WormWise open while it records this station.'),
+        const AppText('Keep Cropwise open while it records this station.'),
         const SizedBox(height: 20),
         if (_capturing || widget.isSaving)
           const Center(child: CircularProgressIndicator()),

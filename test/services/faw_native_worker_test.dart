@@ -65,7 +65,7 @@ void main() {
               as Map;
       expect(repeated['classificationLabel'], result['classificationLabel']);
     },
-    skip: const bool.fromEnvironment('WORMWISE_NATIVE_MODEL_TEST')
+    skip: const bool.fromEnvironment('CROPWISE_NATIVE_MODEL_TEST')
         ? false
         : 'Opt-in native check: requires the platform TFLite runtime.',
   );

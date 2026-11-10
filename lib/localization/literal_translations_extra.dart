@@ -52,11 +52,11 @@ const extraLiteralFilipino = <String, String>{
       'Tinatayang balangkas para lamang sa pagmamanman.',
   'Are observations still comparable and safe to continue?':
       'Maaari pa bang ihambing ang mga obserbasyon at ligtas bang magpatuloy?',
-  'Ask WormWise': 'Magtanong sa WormWise',
-  'Ask WormWise About This Assessment':
-      'Magtanong sa WormWise tungkol sa pagsusuring ito',
-  'Ask about fall armyworm, your assessments, or how to use WormWise.':
-      'Magtanong tungkol sa fall armyworm, iyong mga pagsusuri, o paggamit ng WormWise.',
+  'Ask Cropwise': 'Magtanong sa Cropwise',
+  'Ask Cropwise About This Assessment':
+      'Magtanong sa Cropwise tungkol sa pagsusuring ito',
+  'Ask about fall armyworm, your assessments, or how to use Cropwise.':
+      'Magtanong tungkol sa fall armyworm, iyong mga pagsusuri, o paggamit ng Cropwise.',
   'Ask about this assessment': 'Magtanong tungkol sa pagsusuring ito',
   'Assessment Complete': 'Tapos na ang pagsusuri',
   'Assessment in progress': 'Isinasagawa ang pagsusuri',
@@ -164,8 +164,8 @@ const extraLiteralFilipino = <String, String>{
       'Suriin ang mga bagong dahon at gitnang dahon, saka kumuha ng larawan.',
   'Inspect the newest leaves emerging from the whorl.':
       'Suriin ang mga bagong dahong lumalabas sa gitna.',
-  'Keep WormWise open while it records this station.':
-      'Panatilihing bukas ang WormWise habang itinatala nito ang istasyong ito.',
+  'Keep Cropwise open while it records this station.':
+      'Panatilihing bukas ang Cropwise habang itinatala nito ang istasyong ito.',
   'Keep typing or press Search to check every guideline.':
       'Magpatuloy sa pag-type o pindutin ang Hanapin upang suriin ang bawat patnubay.',
   'Keep walking until at least three filtered boundary points are recorded.':
@@ -198,7 +198,7 @@ const extraLiteralFilipino = <String, String>{
       'Walang resultang tumutugma sa filter na ito.',
   'No usable camera': 'Walang magagamit na camera',
   'Offline FAW guide': 'Offline na gabay sa FAW',
-  'Offline WormWise reference': 'Offline na sanggunian ng WormWise',
+  'Offline Cropwise reference': 'Offline na sanggunian ng Cropwise',
   'Ongoing Assessment Summary': 'Buod ng kasalukuyang pagsusuri',
   'Open app settings': 'Buksan ang mga setting ng app',
   'Opening assessment': 'Binubuksan ang pagsusuri',
@@ -299,7 +299,7 @@ const extraLiteralFilipino = <String, String>{
   'Walk captured - review it': 'Naitala ang nilakad - repasuhin ito',
   'Weather and season entries are assessment- or crop-cycle-level context, not station measurements.':
       'Ang tala ng panahon at panahon ng tanim ay konteksto ng pagsusuri o siklo ng tanim, hindi sukat sa istasyon.',
-  'Welcome to WormWise': 'Maligayang pagdating sa WormWise',
+  'Welcome to Cropwise': 'Maligayang pagdating sa Cropwise',
   'What does possible non-FAW or uncertain mean?':
       'Ano ang ibig sabihin ng posibleng hindi FAW o hindi tiyak?',
   'What is at this position?': 'Ano ang nasa posisyong ito?',

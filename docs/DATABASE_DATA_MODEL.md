@@ -3,7 +3,11 @@
 ## Status
 
 WormWise uses Drift over local SQLite. The executable schema is
-`lib/data/local/app_database.dart`; the current schema version is **8**.
+`lib/data/local/app_database.dart`; the current schema version is **9**.
+
+Version 9 adds non-destructive indexes for evidence lookup and pending recovery,
+capture-session lookup, assessment cycle filtering, and history ordering. It
+preserves the version 8 tables, records, and photo paths.
 
 ## Core relationships
 

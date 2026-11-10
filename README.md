@@ -30,7 +30,7 @@ Home, or Assess.
 ## Technical profile
 
 - Flutter and Dart
-- Drift/SQLite schema version 8
+- Drift/SQLite schema version 9
 - Provider-based application and workflow state
 - Private local evidence storage with checksums and thumbnails
 - On-device TFLite screening and pest-species suggestions

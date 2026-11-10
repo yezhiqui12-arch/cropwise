@@ -66,8 +66,9 @@ Future<AppStartupResources> initializeWormWise(
       storage: EvidenceStorageService(),
     );
     var unresolvedCaptures = await evidence.recoverPreparedCaptures();
-    for (final assessment
-        in await database.select(database.assessments).get()) {
+    for (final assessment in await assessmentsNeedingEvidenceRecovery(
+      database,
+    )) {
       try {
         await evidence.reconcileAssessment(
           assessmentId: assessment.id,
@@ -104,4 +105,24 @@ Future<AppStartupResources> initializeWormWise(
     await database?.close();
     rethrow;
   }
+}
+
+/// Ready historical media is checked when its assessment opens, rather than
+/// making every launch inspect every photograph on the device.
+Future<List<AssessmentRecord>> assessmentsNeedingEvidenceRecovery(
+  AppDatabase database,
+) async {
+  final rows = await database
+      .customSelect(
+        '''
+    SELECT a.* FROM assessments a WHERE a.id IN (
+      SELECT assessment_id FROM evidence_media
+      INDEXED BY evidence_pending_recovery_idx
+      WHERE storage_state NOT IN ('ready', 'deleted')
+    )
+  ''',
+        readsFrom: {database.assessments, database.evidenceMedia},
+      )
+      .get();
+  return [for (final row in rows) database.assessments.map(row.data)];
 }

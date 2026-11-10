@@ -1,5 +1,5 @@
 name: wormwise
-description: "Offline-first maize fall armyworm field assessment for WormWise."
+description: "Offline-first maize fall armyworm field assessment for Cropwise."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -87,7 +87,17 @@ flutter:
     - assets/fonts/Roboto-Regular.ttf
     - assets/fonts/Roboto-Bold.ttf
     - assets/fonts/LICENSE-Roboto.txt
-    - assets/images/
+    - assets/images/assessment_results_field.png
+    - assets/images/boundary_draw_method.png
+    - assets/images/boundary_landscape_accent.png
+    - assets/images/boundary_walk_accent.png
+    - assets/images/empty_map_field_indicator.png
+    - assets/images/home_first_field_onboarding.png
+    - assets/images/resume_field_aerial.jpg
+    - assets/images/cropwise_brand_logo.png
+    - assets/images/wormwise_brand_logo.png
+    - assets/images/wormwise_brand_wordmark.png
+    - assets/images/wormwise_login_field.png
     - assets/images/growth_stages/
     - assets/images/growth_stages/clemson/
     - assets/images/faw_actions/

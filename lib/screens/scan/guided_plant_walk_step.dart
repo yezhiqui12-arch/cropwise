@@ -92,6 +92,9 @@ class _GuidedPlantWalkStepState extends State<GuidedPlantWalkStep> {
   ScrollController? _panelScrollController;
   double _sheetExtent = .48;
   double _minimumExtent = .16;
+  int? _cardPointer;
+  Offset? _cardPointerStart;
+  bool _cardDragging = false;
   Timer? _freshnessTimer;
   int? _transitionFromPlant;
   int _transitionGeneration = 0;
@@ -337,16 +340,61 @@ class _GuidedPlantWalkStepState extends State<GuidedPlantWalkStep> {
                           top: Radius.circular(26),
                         ),
                         clipBehavior: Clip.antiAlias,
-                        child: Column(
-                          children: [
-                            Expanded(
-                              child: SingleChildScrollView(
-                                controller: controller,
-                                child: _panel(context, expanded: expanded),
+                        child: Listener(
+                          key: const Key('guided_walk_sheet_surface'),
+                          behavior: HitTestBehavior.opaque,
+                          onPointerDown: (event) {
+                            if (_cardPointer != null) return;
+                            _cardPointer = event.pointer;
+                            _cardPointerStart = event.position;
+                            _cardDragging = false;
+                          },
+                          onPointerMove: (event) {
+                            if (_cardPointer != event.pointer) return;
+                            if (!_cardDragging) {
+                              final distance =
+                                  event.position - _cardPointerStart!;
+                              if (distance.dy.abs() < 18 ||
+                                  distance.dy.abs() < distance.dx.abs())
+                                return;
+                              _cardDragging = true;
+                              if (_sheetController.isAttached) {
+                                _sheetController.jumpTo(_sheetController.size);
+                              }
+                            }
+                            _dragPanel(
+                              DragUpdateDetails(
+                                globalPosition: event.position,
+                                delta: Offset(0, event.delta.dy),
                               ),
+                            );
+                          },
+                          onPointerUp: (event) =>
+                              _finishCardPointer(event.pointer),
+                          onPointerCancel: (event) =>
+                              _finishCardPointer(event.pointer),
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: _expandDetails,
+                            // Claim vertical gestures to cancel button taps;
+                            // the outer listener moves every part of the card.
+                            onVerticalDragUpdate: (_) {},
+                            child: Column(
+                              children: [
+                                Expanded(
+                                  child: SingleChildScrollView(
+                                    controller: controller,
+                                    // One recognizer owns dragging across the
+                                    // entire card, including empty space/buttons.
+                                    physics:
+                                        const NeverScrollableScrollPhysics(),
+                                    child: _panel(context, expanded: expanded),
+                                  ),
+                                ),
+                                if (expanded) _primaryAction(),
+                              ],
                             ),
-                            if (expanded) _primaryAction(),
-                          ],
+                          ),
                         ),
                       );
                     },
@@ -472,20 +520,39 @@ class _GuidedPlantWalkStepState extends State<GuidedPlantWalkStep> {
     );
   }
 
-  void _beginSheetDrag(DragStartDetails details) {
-    if (!_sheetController.isAttached) return;
-    // Stop a tap animation immediately so the handle stays under the finger.
-    _sheetController.jumpTo(_sheetController.size);
-    if (_panelScrollController?.hasClients == true) {
-      _panelScrollController!.jumpTo(0);
-    }
+  void _finishCardPointer(int pointer) {
+    if (_cardPointer != pointer) return;
+    final wasDragging = _cardDragging;
+    _cardPointer = null;
+    _cardPointerStart = null;
+    _cardDragging = false;
+    if (wasDragging) _settleSheet();
   }
 
-  void _dragSheet(DragUpdateDetails details) {
+  void _dragPanel(DragUpdateDetails details) {
     if (!_sheetController.isAttached) return;
-    final extent =
-        _sheetController.size - _sheetController.pixelsToSize(details.delta.dy);
-    _sheetController.jumpTo(extent.clamp(_minimumExtent, 1));
+    var delta = details.delta.dy;
+    final scroll = _panelScrollController;
+    // At full height, scroll longer plant details. Pulling down first returns
+    // the content to its top, then lowers the whole card in the same gesture.
+    if (delta > 0 && scroll != null && scroll.hasClients && scroll.offset > 0) {
+      final consumed = delta.clamp(0.0, scroll.offset);
+      scroll.jumpTo(scroll.offset - consumed);
+      delta -= consumed;
+    }
+    if (delta == 0) return;
+    final current = _sheetController.size;
+    if (delta < 0 && current >= 1 - .001) {
+      if (scroll != null && scroll.hasClients) {
+        scroll.jumpTo(
+          (scroll.offset - delta).clamp(0.0, scroll.position.maxScrollExtent),
+        );
+      }
+      return;
+    }
+    _sheetController.jumpTo(
+      (current - _sheetController.pixelsToSize(delta)).clamp(_minimumExtent, 1),
+    );
   }
 
   void _settleSheet() {
@@ -514,10 +581,7 @@ class _GuidedPlantWalkStepState extends State<GuidedPlantWalkStep> {
             label: expanded ? 'Expand plant details' : 'Pull up plant details',
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onVerticalDragStart: _beginSheetDrag,
-              onVerticalDragUpdate: _dragSheet,
-              onVerticalDragEnd: (_) => _settleSheet(),
-              onVerticalDragCancel: _settleSheet,
+              onVerticalDragUpdate: (_) {},
               child: InkWell(
                 key: const Key('guided_walk_sheet_handle'),
                 onTap: _expandDetails,

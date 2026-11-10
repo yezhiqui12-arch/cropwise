@@ -606,7 +606,7 @@ class _PlantObservationStepState extends State<PlantObservationStep>
                     child: Padding(
                       padding: EdgeInsets.all(14),
                       child: AppText(
-                        'Mixed evidence selected. Every raw answer will be kept. Confirm the primary interpretation; WormWise has not selected one.',
+                        'Mixed evidence selected. Every raw answer will be kept. Confirm the primary interpretation; Cropwise has not selected one.',
                         style: TextStyle(
                           height: 1.35,
                           fontWeight: FontWeight.w600,
@@ -915,7 +915,7 @@ class _PlantObservationStepState extends State<PlantObservationStep>
       }
     }
     if (_plantStatus == null) {
-      return 'Confirm the primary interpretation. WormWise will not select it automatically.';
+      return 'Confirm the primary interpretation. Cropwise will not select it automatically.';
     }
     return null;
   }
@@ -1269,7 +1269,7 @@ class _InterpretationHelp extends StatelessWidget {
       Align(
         alignment: Alignment.centerLeft,
         child: AppText(
-          'Keep these available when observations could have another cause or cannot be interpreted confidently. WormWise preserves them alongside all other raw observations.',
+          'Keep these available when observations could have another cause or cannot be interpreted confidently. Cropwise preserves them alongside all other raw observations.',
           style: TextStyle(height: 1.4),
         ),
       ),

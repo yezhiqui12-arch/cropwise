@@ -1800,7 +1800,7 @@ class _VeV2StationReviewStepState extends State<VeV2StationReviewStep> {
       builder: (context) => AlertDialog(
         title: const AppText('Leave observations unconfirmed?'),
         content: const AppText(
-          'Photos will be saved, but WormWise has no image model yet. No findings will be created for these seedlings.',
+          'Photos will be saved, but Cropwise has no image model yet. No findings will be created for these seedlings.',
         ),
         actions: [
           TextButton(

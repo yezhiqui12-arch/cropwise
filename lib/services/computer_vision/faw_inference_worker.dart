@@ -3,6 +3,7 @@ import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:image/image.dart' as img;
 
 import 'managed_inference_worker.dart';
 import 'maize_leaf_classifier.dart';
@@ -55,6 +56,15 @@ void fawInferenceWorkerMain(List<Object?> bootstrap) async {
       if (message == null) break;
       try {
         final request = message as Map;
+        final source = File(request['path'] as String);
+        if (await source.exists()) {
+          final decoded = img.decodeImage(await source.readAsBytes());
+          if (decoded != null) {
+            final oriented = img.bakeOrientation(decoded);
+            classifier.preparedImage = oriented;
+            detector.preparedImage = oriented;
+          }
+        }
         // The workers own the models; a per-request pipeline carries settings
         // without reading plugins/preferences from this background isolate.
         final pipeline = TwoStageFawCvService(
@@ -66,6 +76,8 @@ void fawInferenceWorkerMain(List<Object?> bootstrap) async {
         final result = await pipeline.analyzeImage(
           File(request['path'] as String),
         );
+        classifier.preparedImage = null;
+        detector.preparedImage = null;
         replies.send({'result': result.toJson()});
       } catch (error) {
         failure = error;
@@ -73,6 +85,8 @@ void fawInferenceWorkerMain(List<Object?> bootstrap) async {
       }
     }
   } finally {
+    classifier.preparedImage = null;
+    detector.preparedImage = null;
     classifier.close();
     detector.close();
     commands.close();

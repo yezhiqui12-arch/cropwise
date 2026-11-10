@@ -74,7 +74,7 @@ class WormWiseApp extends StatelessWidget {
       cloudSyncService: cloudSyncService,
       child: Consumer<AppLanguageController>(
         builder: (context, language, _) => MaterialApp(
-          title: 'WormWise',
+          title: 'Cropwise',
           builder: startupRecoveryWarning
               ? (_, child) => StartupRecoveryNotice(child: child!)
               : null,
@@ -88,7 +88,7 @@ class WormWiseApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           theme: AppTheme.light(),
           home: showLaunchExperience == true
-              ? const AnimatedAppEntryScreen()
+              ? const AnimatedAppEntryScreen(launchLogoAlreadyShown: true)
               : const MainNavigationScreen(),
         ),
       ),

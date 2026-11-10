@@ -17,7 +17,7 @@ import 'package:wormwise/widgets/wormwise_data_scope.dart';
 import '../support/da_results_fixture.dart';
 
 void main() {
-  final output = Platform.environment['WORMWISE_RESULTS_PREVIEW'];
+  final output = Platform.environment['CROPWISE_RESULTS_PREVIEW'];
   setUpAll(() async {
     GoogleFonts.config.allowRuntimeFetching = false;
     if (output == null) return;

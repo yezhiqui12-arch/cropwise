@@ -343,7 +343,7 @@ class WormWiseNotificationService extends ChangeNotifier {
       }
       notifyListeners();
     } catch (error) {
-      debugPrint('Could not refresh WormWise notifications: $error');
+      debugPrint('Could not refresh Cropwise notifications: $error');
     } finally {
       _refreshing = false;
     }

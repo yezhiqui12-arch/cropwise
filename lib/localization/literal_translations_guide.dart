@@ -14,7 +14,7 @@ const guideLiteralFilipino = <String, String>{
   'Do not make a pesticide decision from a risk label alone. Consider current scouting, crop stage, fresh evidence, larval size, crop condition, natural enemies, local guidance, cost, and label restrictions.':
       'Huwag magpasiyang gumamit ng pestisidyo batay lamang sa risk label. Isaalang-alang ang kasalukuyang pagmamanman, yugto ng pananim, bagong ebidensiya, laki ng uod, kalagayan ng pananim, likas na kaaway, lokal na gabay, gastos, at mga limitasyon sa label.',
   'Source-grounded': 'Batay sa sanggunian',
-  'WormWise protocol': 'Paraan ng WormWise',
+  'Cropwise protocol': 'Paraan ng Cropwise',
   'Expert validation required': 'Kailangan ng pagpapatunay ng eksperto',
   'Steps': 'Mga hakbang',
   'Look for': 'Hanapin',
@@ -41,8 +41,8 @@ const guideLiteralFilipino = <String, String>{
       'Bigyang-pansin ang mga naitalang lugar na may uod at ihambing ang kalapit na halaman para sa patuloy na ebidensiya ng pagkain.',
   'Continue protocol-based monitoring':
       'Ipagpatuloy ang pagmamanman ayon sa paraan',
-  'Repeat scouting according to the applicable WormWise field protocol and compare the next completed assessment with this saved record.':
-      'Ulitin ang pagmamanman ayon sa naaangkop na paraan ng WormWise at ihambing ang susunod na natapos na pagsusuri sa naka-save na rekord na ito.',
+  'Repeat scouting according to the applicable Cropwise field protocol and compare the next completed assessment with this saved record.':
+      'Ulitin ang pagmamanman ayon sa naaangkop na paraan ng Cropwise at ihambing ang susunod na natapos na pagsusuri sa naka-save na rekord na ito.',
   'Use local agricultural support when needed':
       'Humingi ng lokal na tulong sa agrikultura kung kailangan',
   'Share the completed assessment with the appropriate local agriculture office when follow-up support or management decisions are needed.':
@@ -57,8 +57,8 @@ const guideLiteralFilipino = <String, String>{
   'What fall armyworm is': 'Ano ang fall armyworm',
   'Fall armyworm, or FAW, is the caterpillar stage of the moth Spodoptera frugiperda.':
       'Ang fall armyworm, o FAW, ay yugto ng uod ng gamu-gamong Spodoptera frugiperda.',
-  'FAW can feed on maize and other host plants. WormWise currently limits its assessment protocol to maize. A field symptom or photograph may support screening, but species confirmation requires multiple compatible features or qualified review.':
-      'Maaaring kumain ang FAW ng mais at iba pang halaman. Para sa mais lamang ang kasalukuyang paraan ng pagsusuri ng WormWise. Maaaring makatulong sa paunang pagsusuri ang sintomas o larawan, ngunit nangangailangan ang kumpirmasyon ng uri ng peste ng maraming magkatugmang katangian o pagrepaso ng kwalipikadong eksperto.',
+  'FAW can feed on maize and other host plants. Cropwise currently limits its assessment protocol to maize. A field symptom or photograph may support screening, but species confirmation requires multiple compatible features or qualified review.':
+      'Maaaring kumain ang FAW ng mais at iba pang halaman. Para sa mais lamang ang kasalukuyang paraan ng pagsusuri ng Cropwise. Maaaring makatulong sa paunang pagsusuri ang sintomas o larawan, ngunit nangangailangan ang kumpirmasyon ng uri ng peste ng maraming magkatugmang katangian o pagrepaso ng kwalipikadong eksperto.',
   'Do not treat any caterpillar, leaf injury, or photograph as confirmed FAW by itself.':
       'Huwag ituring na kumpirmadong FAW ang anumang uod, pinsala sa dahon, o larawan lamang.',
   'Do not apply the maize assessment protocol to another crop.':
@@ -164,20 +164,20 @@ const guideLiteralFilipino = <String, String>{
       'Gawing dahilan ang panahon upang muling magsuri',
   'Rain and field conditions can change what is observable, but they do not rewrite an assessment.':
       'Maaaring baguhin ng ulan at kalagayan ng bukid ang nakikita, ngunit hindi nito binabago ang naunang pagsusuri.',
-  'Heavy rain may reduce some exposed eggs or young larvae, but it does not guarantee FAW control. Recent or forecast rain, crop condition, natural enemies, and a recent intervention can justify another field check. Keep the earlier observations unchanged and create a new follow-up assessment at a locally appropriate time; WormWise must not invent a universal rescouting interval.':
-      'Maaaring mabawasan ng malakas na ulan ang ilang nakalantad na itlog o batang uod, ngunit hindi nito ginagarantiyang makokontrol ang FAW. Maaaring maging dahilan ng panibagong pagsusuri sa bukid ang kamakailan o inaasahang ulan, kalagayan ng pananim, likas na kaaway, at kamakailang hakbang. Huwag baguhin ang naunang obserbasyon at gumawa ng bagong follow-up na pagsusuri sa angkop na oras ayon sa lokal na kalagayan; hindi dapat mag-imbento ang WormWise ng iisang pagitan ng pagmamanman para sa lahat.',
+  'Heavy rain may reduce some exposed eggs or young larvae, but it does not guarantee FAW control. Recent or forecast rain, crop condition, natural enemies, and a recent intervention can justify another field check. Keep the earlier observations unchanged and create a new follow-up assessment at a locally appropriate time; Cropwise must not invent a universal rescouting interval.':
+      'Maaaring mabawasan ng malakas na ulan ang ilang nakalantad na itlog o batang uod, ngunit hindi nito ginagarantiyang makokontrol ang FAW. Maaaring maging dahilan ng panibagong pagsusuri sa bukid ang kamakailan o inaasahang ulan, kalagayan ng pananim, likas na kaaway, at kamakailang hakbang. Huwag baguhin ang naunang obserbasyon at gumawa ng bagong follow-up na pagsusuri sa angkop na oras ayon sa lokal na kalagayan; hindi dapat mag-imbento ang Cropwise ng iisang pagitan ng pagmamanman para sa lahat.',
   'Frame a management decision safely':
       'Bumuo ng ligtas na pasiya sa pamamahala',
   'Consider evidence, crop stage, context, feasibility, and follow-up together.':
       'Isaalang-alang nang magkakasama ang ebidensiya, yugto ng pananim, konteksto, pagiging praktikal, at susunod na pagmamanman.',
-  'First confirm crop stage and current evidence. Then consider distribution, larval size when reliably observed, crop condition, weather, natural enemies, recent interventions, safe re-entry, inaccessible stations, and uncertainty. Review any option for cost, efficacy, safety, accessibility, and scalability. A no-treatment decision still needs follow-up scouting. Foreign trial performance or a WormWise risk label alone is not a Philippine treatment recommendation.':
-      'Kumpirmahin muna ang yugto ng pananim at kasalukuyang ebidensiya. Pagkatapos, isaalang-alang ang pagkalat, laki ng uod kung mapagkakatiwalaang naobserbahan, kalagayan ng pananim, panahon, likas na kaaway, kamakailang hakbang, ligtas na muling pagpasok, mga istasyong hindi marating, at kawalan ng katiyakan. Suriin ang bawat opsiyon ayon sa gastos, bisa, kaligtasan, pag-abot, at lawak ng maaaring paggamit. Kailangan pa rin ng susunod na pagmamanman kahit walang gagawing paggamot. Ang resulta ng pagsubok sa ibang bansa o risk label ng WormWise lamang ay hindi rekomendasyon sa paggamot sa Pilipinas.',
+  'First confirm crop stage and current evidence. Then consider distribution, larval size when reliably observed, crop condition, weather, natural enemies, recent interventions, safe re-entry, inaccessible stations, and uncertainty. Review any option for cost, efficacy, safety, accessibility, and scalability. A no-treatment decision still needs follow-up scouting. Foreign trial performance or a Cropwise risk label alone is not a Philippine treatment recommendation.':
+      'Kumpirmahin muna ang yugto ng pananim at kasalukuyang ebidensiya. Pagkatapos, isaalang-alang ang pagkalat, laki ng uod kung mapagkakatiwalaang naobserbahan, kalagayan ng pananim, panahon, likas na kaaway, kamakailang hakbang, ligtas na muling pagpasok, mga istasyong hindi marating, at kawalan ng katiyakan. Suriin ang bawat opsiyon ayon sa gastos, bisa, kaligtasan, pag-abot, at lawak ng maaaring paggamit. Kailangan pa rin ng susunod na pagmamanman kahit walang gagawing paggamot. Ang resulta ng pagsubok sa ibang bansa o risk label ng Cropwise lamang ay hindi rekomendasyon sa paggamot sa Pilipinas.',
   'Interpret risk without inventing a treatment threshold':
       'Unawain ang panganib nang hindi nag-iimbento ng hangganan para sa paggamot',
-  'WormWise risk is a scouting summary, not an automatic spray instruction.':
-      'Buod ng pagmamanman ang panganib sa WormWise, hindi awtomatikong utos na mag-spray.',
-  'Action thresholds from international or regional publications require Philippine validation against crop stage, location, production system, and WormWise evidence definitions. Until validated, do not present a numeric threshold as Philippine field advice.':
-      'Kailangan ng pagpapatunay sa Pilipinas ang mga action threshold mula sa internasyonal o panrehiyong publikasyon ayon sa yugto ng pananim, lokasyon, sistema ng produksyon, at kahulugan ng ebidensiya sa WormWise. Hangga’t hindi napapatunayan, huwag magpakita ng numerong threshold bilang payo sa bukid sa Pilipinas.',
+  'Cropwise risk is a scouting summary, not an automatic spray instruction.':
+      'Buod ng pagmamanman ang panganib sa Cropwise, hindi awtomatikong utos na mag-spray.',
+  'Action thresholds from international or regional publications require Philippine validation against crop stage, location, production system, and Cropwise evidence definitions. Until validated, do not present a numeric threshold as Philippine field advice.':
+      'Kailangan ng pagpapatunay sa Pilipinas ang mga action threshold mula sa internasyonal o panrehiyong publikasyon ayon sa yugto ng pananim, lokasyon, sistema ng produksyon, at kahulugan ng ebidensiya sa Cropwise. Hangga’t hindi napapatunayan, huwag magpakita ng numerong threshold bilang payo sa bukid sa Pilipinas.',
 
   'Make pesticide decisions safely':
       'Gumawa ng ligtas na pasiya tungkol sa pestisidyo',

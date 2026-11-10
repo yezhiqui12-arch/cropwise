@@ -119,7 +119,7 @@ void main() {
           (await db.customSelect('SELECT total_changes() AS n').getSingle())
               .read<int>('n');
       expect(after, before);
-      expect(detail.workspace.boundary!.id, fixture.field.boundary.id);
+      expect(detail.workspace.boundary!.id, fixture.field.boundary!.id);
       expect(detail.stations, hasLength(5));
       expect(detail.stations.where((s) => s.reviewIsCurrent), isEmpty);
       expect(row.positions, 1);
@@ -251,7 +251,7 @@ void main() {
       final repository = AssessmentRepository(db);
       await repository.createDraft(
         cropCycleId: fixture.field.cropCycle.id,
-        boundaryVersionId: fixture.field.boundary.id,
+        boundaryVersionId: fixture.field.boundary!.id,
         evaluatorPersonId: fixture.assessment.evaluatorPersonId,
         assessmentMode: 've_v6',
         scoutingPattern: 'w',

@@ -406,7 +406,7 @@ class ScoutingRoutePlan {
     final root = jsonDecode(value) as Map<String, Object?>;
     final metadata = (root['wormwise'] as Map).cast<String, Object?>();
     if (metadata['document_version'] != scoutingRouteDocumentVersion) {
-      throw const FormatException('Unsupported WormWise route document.');
+      throw const FormatException('Unsupported Cropwise route document.');
     }
     final preparation =
         (metadata['preparation'] as Map?)?.cast<String, Object?>() ??

@@ -100,7 +100,7 @@ class _AssessmentPdfWriter {
     required bool includePhotos,
     required EvidenceStorageService evidenceStorage,
   }) async {
-    final report = pw.Document(title: t('WormWise field assessment record'));
+    final report = pw.Document(title: t('Cropwise field assessment record'));
     final assessment = detail.assessment;
     final field = detail.workspace.field;
     final cycle = detail.workspace.cropCycle;
@@ -149,7 +149,7 @@ class _AssessmentPdfWriter {
             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
             children: [
               pw.Text(
-                'WORMWISE',
+                'CROPWISE',
                 style: pw.TextStyle(
                   fontSize: 13,
                   fontWeight: pw.FontWeight.bold,

@@ -2186,7 +2186,7 @@ class Station1WorkflowScreen extends StatelessWidget {
         builder: (context) => AlertDialog(
           title: Text(retake ? 'Retake this photo?' : 'Remove this photo?'),
           content: const AppText(
-            'The image file will be deleted. WormWise keeps only an audited metadata tombstone and checksum.',
+            'The image file will be deleted. Cropwise keeps only an audited metadata tombstone and checksum.',
           ),
           actions: [
             TextButton(

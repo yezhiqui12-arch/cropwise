@@ -223,24 +223,11 @@ class AppSideMenuDrawer extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Logo & App Name Header
-          Row(
-            children: [
-              Image.asset(
-                'assets/images/wormwise_brand_logo.png',
-                width: 44,
-                height: 44,
-                fit: BoxFit.contain,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Image.asset(
-                  'assets/images/wormwise_brand_wordmark.png',
-                  height: 28,
-                  fit: BoxFit.contain,
-                  alignment: Alignment.centerLeft,
-                ),
-              ),
-            ],
+          Image.asset(
+            'assets/images/cropwise_brand_logo.png',
+            height: 48,
+            fit: BoxFit.contain,
+            alignment: Alignment.centerLeft,
           ),
           const SizedBox(height: 20),
 

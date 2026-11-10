@@ -10,13 +10,13 @@ import 'package:wormwise/screens/assess/da_monitoring_export.dart';
 import '../models/da_monitoring_test.dart' show daTestModel;
 
 void main() {
-  final preview = Platform.environment['WORMWISE_DA_UI_PREVIEW'];
+  final preview = Platform.environment['CROPWISE_DA_UI_PREVIEW'];
   const key = Key('da_ui_preview');
   setUpAll(() async {
     await (FontLoader(
       'DaPreviewRoboto',
     )..addFont(rootBundle.load('assets/fonts/Roboto-Regular.ttf'))).load();
-    final iconFont = Platform.environment['WORMWISE_DA_ICON_FONT'];
+    final iconFont = Platform.environment['CROPWISE_DA_ICON_FONT'];
     if (iconFont != null) {
       await (FontLoader('MaterialIcons')..addFont(
             File(

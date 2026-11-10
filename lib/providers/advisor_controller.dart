@@ -391,7 +391,7 @@ class AdvisorController extends ChangeNotifier {
                     topicId: analysis.answer.topicId,
                     title: analysis.answer.title,
                     summary:
-                        'WormWise analyzed ${analyses.length} photos on this device. Review the marked images and ask about any of the model findings.',
+                        'Cropwise analyzed ${analyses.length} photos on this device. Review the marked images and ask about any of the model findings.',
                     details: [
                       for (var index = 0; index < analyses.length; index++)
                         'Photo ${index + 1}: ${analyses[index].answer.summary}',
@@ -416,7 +416,7 @@ class AdvisorController extends ChangeNotifier {
       _notifyListeners();
     } catch (error) {
       if (_disposed || generation != _replyGeneration) return;
-      debugPrint('WormWise on-device image analysis failed: $error');
+      debugPrint('Cropwise on-device image analysis failed: $error');
       _showPhotoError(error);
     }
   }
@@ -493,7 +493,7 @@ class AdvisorController extends ChangeNotifier {
       await _sendPendingOpenChat();
     } catch (error) {
       if (_disposed || generation != _replyGeneration) return;
-      debugPrint('WormWise photo explanation failed: $error');
+      debugPrint('Cropwise photo explanation failed: $error');
       _showPhotoError(error);
     }
   }
@@ -773,7 +773,7 @@ class AdvisorController extends ChangeNotifier {
     } catch (error) {
       if (_disposed || generation != _replyGeneration) return;
       _thinkingTimer?.cancel();
-      debugPrint('WormWise online guide request failed: $error');
+      debugPrint('Cropwise online guide request failed: $error');
       _replyError = error;
       _replyState = AdvisorReplyState.error;
       _thinkingStage = null;

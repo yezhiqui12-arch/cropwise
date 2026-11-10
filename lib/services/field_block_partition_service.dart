@@ -115,7 +115,7 @@ class FieldBlockPartitionService {
     }
     if (candidates.isEmpty) {
       throw const FieldBlockPartitionException(
-        'WormWise could not make safe connected blocks from this outline. Adjust the field outline or divide the maize area manually.',
+        'Cropwise could not make safe connected blocks from this outline. Adjust the field outline or divide the maize area manually.',
       );
     }
     candidates.sort((a, b) => b.qualityScore.compareTo(a.qualityScore));
@@ -174,7 +174,8 @@ class FieldBlockPartitionService {
       final spanAlong = cuts[index + 1] - cuts[index];
       final perpendicular = _Point(-axis.y, axis.x);
       final crossValues = polygon.map((p) => p.dot(perpendicular)).toList();
-      final spanAcross = crossValues.reduce(math.max) - crossValues.reduce(math.min);
+      final spanAcross =
+          crossValues.reduce(math.max) - crossValues.reduce(math.min);
       if (compactness < _minimumCompactness ||
           math.min(spanAlong, spanAcross) < _minimumSpanMeters) {
         return null;
@@ -187,14 +188,16 @@ class FieldBlockPartitionService {
     if ((areaSum - totalArea).abs() / totalArea > 0.005) return null;
     final hectareScale = expectedAreaHectares / areaSum;
     final blockAreas = polygonAreas.map((area) => area * hectareScale).toList();
-    if (blockAreas.any((area) => !AssessmentAreaPolicy.isValidBlockArea(area))) {
+    if (blockAreas.any(
+      (area) => !AssessmentAreaPolicy.isValidBlockArea(area),
+    )) {
       return null;
     }
 
     final mean = expectedAreaHectares / blockCount;
     final imbalance = blockAreas
-            .map((area) => (area - mean).abs() / mean)
-            .fold<double>(0, math.max);
+        .map((area) => (area - mean).abs() / mean)
+        .fold<double>(0, math.max);
     final totalPerimeter = polygons
         .map(_perimeter)
         .fold<double>(0, (sum, value) => sum + value);
@@ -247,9 +250,9 @@ class FieldBlockPartitionService {
   }
 
   LatLng _centroid(List<LatLng> points) => LatLng(
-        points.map((p) => p.latitude).reduce((a, b) => a + b) / points.length,
-        points.map((p) => p.longitude).reduce((a, b) => a + b) / points.length,
-      );
+    points.map((p) => p.latitude).reduce((a, b) => a + b) / points.length,
+    points.map((p) => p.longitude).reduce((a, b) => a + b) / points.length,
+  );
 
   _Point _project(LatLng point, LatLng origin) {
     final latitudeRadians = origin.latitude * math.pi / 180;
@@ -392,14 +395,14 @@ class FieldBlockPartitionService {
   double _cross(_Point a, _Point b) => a.x * b.y - a.y * b.x;
 
   String _encodePolygon(List<LatLng> points) => jsonEncode({
-        'type': 'Polygon',
-        'coordinates': [
-          [
-            for (final point in [...points, points.first])
-              [point.longitude, point.latitude],
-          ],
-        ],
-      });
+    'type': 'Polygon',
+    'coordinates': [
+      [
+        for (final point in [...points, points.first])
+          [point.longitude, point.latitude],
+      ],
+    ],
+  });
 }
 
 class _Point {

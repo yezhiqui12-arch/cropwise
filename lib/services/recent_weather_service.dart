@@ -58,7 +58,7 @@ class OpenMeteoCurrentWeatherService {
           .getUrl(uri)
           .timeout(const Duration(seconds: 6));
       request.headers.set(HttpHeaders.acceptHeader, 'application/json');
-      request.headers.set(HttpHeaders.userAgentHeader, 'WormWise/1.0');
+      request.headers.set(HttpHeaders.userAgentHeader, 'Cropwise/1.0');
       final response = await request.close().timeout(
         const Duration(seconds: 8),
       );
@@ -225,7 +225,7 @@ class OpenMeteoRecentWeatherService implements RecentWeatherService {
           .getUrl(uri)
           .timeout(const Duration(seconds: 6));
       request.headers.set(HttpHeaders.acceptHeader, 'application/json');
-      request.headers.set(HttpHeaders.userAgentHeader, 'WormWise/1.0');
+      request.headers.set(HttpHeaders.userAgentHeader, 'Cropwise/1.0');
       final response = await request.close().timeout(
         const Duration(seconds: 8),
       );

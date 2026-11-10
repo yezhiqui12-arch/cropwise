@@ -146,7 +146,7 @@ final helpArticles = List<HelpArticle>.unmodifiable([
   HelpArticle(
     'first-visit',
     'start',
-    'Start using WormWise|Simulang gamitin ang WormWise',
+    'Start using Cropwise|Simulang gamitin ang Cropwise',
     'Set up one maize field, then begin a guided assessment.|Magrehistro muna ng isang bukid ng mais bago magsimula ng assessment.',
     'Home → My Fields; or More → My Fields|Home → My Fields; o More → My Fields',
     [
@@ -639,7 +639,7 @@ final helpArticles = List<HelpArticle>.unmodifiable([
     'maps',
     'Record location and understand GPS accuracy|Itala ang lokasyon at unawain ang GPS accuracy',
     'Grant location access and record fixes when the workflow requests them.|Pahintulutan ang lokasyon at itala ito kapag hinihingi.',
-    'Station / plant capture → Location; device settings → WormWise permissions|Pagkuha sa istasyon / halaman → Location; device settings → Pahintulot ng WormWise',
+    'Station / plant capture → Location; device settings → Cropwise permissions|Pagkuha sa istasyon / halaman → Location; device settings → Pahintulot ng Cropwise',
     [
       'Enable device location and allow the app to use it while you work.|I-on ang location at pahintulutan ang app habang ginagamit.',
       'Wait for a usable fix in an open area when safe, then use the offered location action.|Hintayin ang lokasyon sa ligtas at bukas na lugar, saka gamitin ang aksyon.',
@@ -947,7 +947,7 @@ final helpArticles = List<HelpArticle>.unmodifiable([
     'trouble',
     'Camera won’t open or save a photo|Hindi bumubukas ang camera o nai-save ang larawan',
     'Check permission, camera availability, and storage before retrying.|Tingnan ang pahintulot, camera, at storage bago ulitin.',
-    'Device settings → Apps → WormWise → Permissions; guided camera|Device settings → Apps → WormWise → Permissions; guided camera',
+    'Device settings → Apps → Cropwise → Permissions; guided camera|Device settings → Apps → Cropwise → Permissions; guided camera',
     [
       'Allow camera access in device settings and close other apps using the camera.|Pahintulutan ang camera sa settings at isara ang ibang gumagamit nito.',
       'Check available storage and reopen the capture step.|Tingnan ang libreng storage at buksan muli ang pagkuha.',
@@ -963,7 +963,7 @@ final helpArticles = List<HelpArticle>.unmodifiable([
     'GPS fixes depend on permissions, signal, and device location settings.|Nakadepende ang GPS sa pahintulot, signal, at device settings.',
     'Device location settings; station / plant location prompt|Device location settings; tanong sa lokasyon ng istasyon / halaman',
     [
-      'Enable location and allow the requested WormWise location permission.|I-on ang location at pahintulutan ang WormWise.',
+      'Enable location and allow the requested Cropwise location permission.|I-on ang location at pahintulutan ang Cropwise.',
       'When safe, move to an open area and wait before retrying the fix.|Kung ligtas, pumunta sa bukas na lugar at maghintay bago ulitin.',
       'Keep an unavailable or unverified location marked honestly if no usable fix arrives.|Itala bilang unavailable o unverified kung walang magagamit na lokasyon.',
     ],
@@ -1074,7 +1074,7 @@ final helpArticles = List<HelpArticle>.unmodifiable([
   HelpArticle(
     'limitations',
     'privacy',
-    'What can WormWise tell me—and what needs an expert?|Ano ang masasabi ng WormWise at kailan kailangan ang eksperto?',
+    'What can Cropwise tell me—and what needs an expert?|Ano ang masasabi ng Cropwise at kailan kailangan ang eksperto?',
     'Use sampled findings, screening, and guidance with their stated limits.|Gamitin ang sample findings, screening, at gabay ayon sa limitasyon.',
     'Results; Guide; expert review|Results; Guide; expert review',
     [
@@ -1082,7 +1082,7 @@ final helpArticles = List<HelpArticle>.unmodifiable([
       'Use Guidelines and supporting sources to understand the recorded observations.|Gamitin ang Guidelines at sanggunian upang unawain ang obserbasyon.',
       'Ask an agricultural expert about uncertain evidence or decisions needing field judgment.|Magtanong sa eksperto tungkol sa hindi tiyak na ebidensya o desisyon sa bukid.',
     ],
-    'WormWise does not provide laboratory identification, a continuous whole-field severity prediction, or an automatic pesticide prescription.|Hindi nagbibigay ang WormWise ng laboratory identification, hula ng severity sa buong bukid, o awtomatikong reseta ng pestisidyo.',
+    'Cropwise does not provide laboratory identification, a continuous whole-field severity prediction, or an automatic pesticide prescription.|Hindi nagbibigay ang Cropwise ng laboratory identification, hula ng severity sa buong bukid, o awtomatikong reseta ng pestisidyo.',
     related: ['measurements', 'screening', 'submit-expert'],
   ),
   HelpArticle(
@@ -1373,7 +1373,7 @@ final helpQuestionLinks = List<HelpQuestionLink>.unmodifiable([
     'privacy-sharing',
   ),
   HelpQuestionLink(
-    'Can WormWise diagnose pests or prescribe pesticides?|Maaari bang mag-diagnose o magreseta ang WormWise?',
+    'Can Cropwise diagnose pests or prescribe pesticides?|Maaari bang mag-diagnose o magreseta ang Cropwise?',
     'limitations',
   ),
   HelpQuestionLink(

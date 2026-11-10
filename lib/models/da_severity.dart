@@ -50,7 +50,7 @@ const daSeverityExplanation =
 
 const daSeverityBandExplanation =
     'Classification wording follows the supplied DA reference. Decimal intervals '
-    'are WormWise display bands around reference ratings 1, 3, 5, 7 and 9.';
+    'are Cropwise display bands around reference ratings 1, 3, 5, 7 and 9.';
 
 const daFormulaExplanation =
     'For a complete block of 20 plants: FAW damage incidence = damaged plants / 20 × 100; '

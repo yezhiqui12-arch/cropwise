@@ -1004,7 +1004,7 @@ class _GuideWelcome extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 AppText(
-                  'Ask about fall armyworm, your assessments, or how to use WormWise.',
+                  'Ask about fall armyworm, your assessments, or how to use Cropwise.',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: AppColors.textSecondary,
@@ -1149,7 +1149,7 @@ class _MessageBubble extends StatelessWidget {
       container: true,
       label: isFarmer
           ? (hasText ? 'Your question' : 'Your photo')
-          : 'WormWise guide response',
+          : 'Cropwise guide response',
       child: Align(
         alignment: isFarmer ? Alignment.centerRight : Alignment.centerLeft,
         child: ConstrainedBox(
@@ -1313,7 +1313,7 @@ class _AdvisorIdentity extends StatelessWidget {
     mainAxisSize: MainAxisSize.min,
     children: [
       AppText(
-        'WormWise',
+        'Cropwise',
         style: Theme.of(context).textTheme.labelMedium?.copyWith(
           color: AppColors.highContrastGreen,
           fontWeight: FontWeight.w700,
@@ -1497,7 +1497,7 @@ class _AdvisorRouteActions extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              words.translate('OPEN IN WORMWISE'),
+                              words.translate('OPEN IN CROPWISE'),
                               style: Theme.of(context).textTheme.labelSmall
                                   ?.copyWith(
                                     color: AppColors.primary,
@@ -1987,7 +1987,7 @@ class _QuestionComposer extends StatelessWidget {
                                     decoration: InputDecoration(
                                       hintText: AppWords.of(
                                         context,
-                                      ).translate('Ask WormWise'),
+                                      ).translate('Ask Cropwise'),
                                       border: InputBorder.none,
                                       enabledBorder: InputBorder.none,
                                       focusedBorder: InputBorder.none,
@@ -2387,14 +2387,14 @@ class _ReplyStatus extends StatelessWidget {
 
   static String _errorMessage(Object? error) {
     if (error is AdvisorGeminiNotConfiguredException) {
-      return 'WormWise AI needs this app to be built with its Supabase URL and publishable key.';
+      return 'Cropwise AI needs this app to be built with its Supabase URL and publishable key.';
     }
     if (error is AdvisorGeminiDisabledException) {
-      return 'WormWise AI is currently unavailable.';
+      return 'Cropwise AI is currently unavailable.';
     }
     if (error is AdvisorGeminiApiException) return error.message;
     if (error is AdvisorOnlineUnavailableException) return error.message;
-    return 'WormWise could not complete that response. Please try again.';
+    return 'Cropwise could not complete that response. Please try again.';
   }
 }
 

@@ -23,7 +23,7 @@ import '../support/assessment_history_fixture.dart';
 
 void main() {
   late AppDatabase db;
-  final previewPath = Platform.environment['WORMWISE_RESULTS_PREVIEW'];
+  final previewPath = Platform.environment['CROPWISE_RESULTS_PREVIEW'];
   setUpAll(() async {
     GoogleFonts.config.allowRuntimeFetching = false;
     if (previewPath == null) return;

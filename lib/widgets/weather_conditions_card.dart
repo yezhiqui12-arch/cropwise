@@ -104,7 +104,7 @@ class WeatherConditionsCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const AppText(
-                'Field conditions have not been recorded yet. WormWise asks about recent rain and the field surface when an assessment is prepared.',
+                'Field conditions have not been recorded yet. Cropwise asks about recent rain and the field surface when an assessment is prepared.',
                 style: TextStyle(color: AppColors.textSecondary, height: 1.4),
               ),
             ),

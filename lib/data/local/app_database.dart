@@ -723,11 +723,14 @@ class AppDatabase extends _$AppDatabase {
       );
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-    onCreate: (migrator) => migrator.createAll(),
+    onCreate: (migrator) async {
+      await migrator.createAll();
+      await _createPerformanceIndexes();
+    },
     onUpgrade: (migrator, from, to) async {
       if (from < 8) {
         await migrator.addColumn(stations, stations.locationSource);
@@ -981,11 +984,33 @@ class AppDatabase extends _$AppDatabase {
           await migrator.createTable(earObservations);
         }
       }
+      if (from < 9) await _createPerformanceIndexes();
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
     },
   );
+
+  Future<void> _createPerformanceIndexes() async {
+    // Existing unique constraints already index station/block parent keys.
+    for (final sql in performanceIndexes) {
+      await customStatement(sql);
+    }
+  }
+
+  static const performanceIndexes = [
+    'CREATE INDEX IF NOT EXISTS evidence_assessment_state_idx '
+        'ON evidence_media(assessment_id, storage_state, deleted_at)',
+    'CREATE INDEX IF NOT EXISTS evidence_pending_recovery_idx '
+        "ON evidence_media(assessment_id) WHERE storage_state NOT IN ('ready', 'deleted')",
+    'CREATE INDEX IF NOT EXISTS evidence_session_idx '
+        'ON evidence_media(capture_session_id)',
+    'CREATE INDEX IF NOT EXISTS assessment_cycle_idx '
+        'ON assessments(crop_cycle_id, deleted_at)',
+    'CREATE INDEX IF NOT EXISTS assessment_history_order_idx '
+        'ON assessments(COALESCE(started_at, created_at) DESC, id DESC) '
+        'WHERE deleted_at IS NULL',
+  ];
 
   Future<bool> _tableExists(String tableName) async {
     final match = await customSelect(

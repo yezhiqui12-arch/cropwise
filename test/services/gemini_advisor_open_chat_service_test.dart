@@ -215,7 +215,7 @@ void main() {
           AdvisorOpenChatTurn(role: AdvisorOpenChatRole.farmer, text: 'hi'),
           AdvisorOpenChatTurn(
             role: AdvisorOpenChatRole.advisor,
-            text: 'Hello! How can I help you use WormWise today?',
+            text: 'Hello! How can I help you use Cropwise today?',
           ),
         ],
       ),
@@ -239,7 +239,7 @@ void main() {
           AdvisorOpenChatTurn(role: AdvisorOpenChatRole.farmer, text: 'hi'),
           AdvisorOpenChatTurn(
             role: AdvisorOpenChatRole.advisor,
-            text: 'Hello! How can I help you use WormWise today?',
+            text: 'Hello! How can I help you use Cropwise today?',
           ),
         ],
       ),
@@ -333,7 +333,7 @@ void main() {
 
     expect(transport.model, GeminiAdvisorOpenChatService.defaultModel);
     expect(answer.topicId, 'gemini_open_chat');
-    expect(answer.title, 'WormWise AI');
+    expect(answer.title, 'Cropwise AI');
     expect(answer.summary, 'A farmer-friendly Gemini answer.');
     expect(answer.suggestedActions, [
       'Inspect the newest leaves',
@@ -345,7 +345,7 @@ void main() {
     );
     expect(answer.details, isEmpty);
     expect(answer.source.label, 'Google Gemini');
-    expect(transport.body.toString(), contains('entire WormWise application'));
+    expect(transport.body.toString(), contains('entire Cropwise application'));
     expect(transport.body.toString(), contains('Home for the current field'));
   });
 
@@ -536,8 +536,10 @@ AdvisorOpenChatRequest _request({
 }
 
 class _MemorySettingsStore implements AdvisorGeminiSettingsStore {
-  _MemorySettingsStore({this.configured = false, AdvisorGeminiPreferences? preferences})
-    : preferences = preferences ?? const AdvisorGeminiPreferences();
+  _MemorySettingsStore({
+    this.configured = false,
+    AdvisorGeminiPreferences? preferences,
+  }) : preferences = preferences ?? const AdvisorGeminiPreferences();
 
   bool configured;
   AdvisorGeminiPreferences preferences;
@@ -648,7 +650,7 @@ class _RepeatingGreetingTransport implements AdvisorGeminiTransport {
     if (callCount == 2) repairContents = body['contents'] as List;
     final answer = callCount == 2 && repairAnswer != null
         ? repairAnswer!
-        : 'Hello! How can I help you use WormWise today?';
+        : 'Hello! How can I help you use Cropwise today?';
     return {
       'candidates': [
         {

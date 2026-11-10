@@ -144,7 +144,7 @@ class _NewUserHomeState extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     const AppText(
-                      'Welcome to WormWise',
+                      'Welcome to Cropwise',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: AppColors.textPrimary,

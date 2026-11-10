@@ -147,7 +147,7 @@ class _ExpertCaseScreenState extends State<ExpertCaseScreen> {
             Text(
               item.expertName?.trim().isNotEmpty == true
                   ? item.expertName!
-                  : 'WormWise expert',
+                  : 'Cropwise expert',
               style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 16),

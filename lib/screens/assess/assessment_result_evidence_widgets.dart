@@ -533,7 +533,7 @@ class _OverallInfestationHeroCard extends StatelessWidget {
         content: AppText(
           '$fractionText\n\n'
           'This is the saved descriptive whole-assessment metric for the current growth stage. '
-          'WormWise does not treat this value as an automatic pesticide or treatment threshold.',
+          'Cropwise does not treat this value as an automatic pesticide or treatment threshold.',
         ),
         actions: [
           TextButton(

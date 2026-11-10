@@ -18,7 +18,7 @@ import 'package:wormwise/widgets/offline_scouting_route_map.dart';
 
 void main() {
   final capturePreview =
-      Platform.environment['WORMWISE_CAPTURE_PREVIEW'] == '1';
+      Platform.environment['CROPWISE_CAPTURE_PREVIEW'] == '1';
   setUpAll(() async {
     if (!capturePreview) return;
     final fontDirectory =
@@ -165,6 +165,123 @@ void main() {
     );
   }
 
+  testWidgets('entire card height follows a drag including its bottom edge', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(screen());
+    await tester.pumpAndSettle();
+    final controller = tester
+        .widget<DraggableScrollableSheet>(
+          find.byKey(const Key('guided_walk_draggable_sheet')),
+        )
+        .controller!;
+    for (final fraction in [.1, .4, .7, .95]) {
+      controller.jumpTo(.48);
+      await tester.pumpAndSettle();
+      final card = tester.getRect(
+        find.byKey(const Key('guided_walk_sheet_surface')),
+      );
+      final gesture = await tester.startGesture(
+        Offset(card.center.dx, card.top + card.height * fraction),
+      );
+      await gesture.moveBy(const Offset(0, -25));
+      await tester.pump();
+      await gesture.moveBy(const Offset(0, -65));
+      await tester.pump();
+      expect(
+        controller.size,
+        greaterThan(.53),
+        reason: 'Drag at $fraction of card height',
+      );
+      await gesture.up();
+      await tester.pumpAndSettle();
+    }
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'card padding and action button drag the sheet under the finger',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      var arrivals = 0;
+      await tester.pumpWidget(screen(onArrive: () async => arrivals++));
+      await tester.pumpAndSettle();
+      final controller = tester
+          .widget<DraggableScrollableSheet>(
+            find.byKey(const Key('guided_walk_draggable_sheet')),
+          )
+          .controller!;
+      final card = tester.getRect(
+        find.byKey(const Key('guided_walk_sheet_surface')),
+      );
+      final start = controller.size;
+      final gesture = await tester.startGesture(
+        Offset(card.left + 6, card.top + 90),
+      );
+      await gesture.moveBy(const Offset(0, -30));
+      await tester.pump();
+      await gesture.moveBy(const Offset(0, -70));
+      await tester.pump();
+      expect(controller.size, greaterThan(start + .05));
+      await gesture.up();
+      await tester.pumpAndSettle();
+      controller.jumpTo(.48);
+      await tester.pumpAndSettle();
+      final buttonDrag = await tester.startGesture(
+        tester.getCenter(find.byKey(const Key('guided_walk_arrive'))),
+      );
+      await buttonDrag.moveBy(const Offset(0, -30));
+      await tester.pump();
+      await buttonDrag.moveBy(const Offset(0, -90));
+      await tester.pump();
+      expect(controller.size, greaterThan(.53));
+      expect(arrivals, 0);
+      await buttonDrag.up();
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'plant card body expands by tap and drags without using handles',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      var arrivals = 0;
+      await tester.pumpWidget(screen(onArrive: () async => arrivals++));
+      await tester.pumpAndSettle();
+      final sheet = tester.widget<DraggableScrollableSheet>(
+        find.byKey(const Key('guided_walk_draggable_sheet')),
+      );
+      await tester.tap(find.text('Plant 7'));
+      await tester.pumpAndSettle();
+      expect(sheet.controller!.size, closeTo(1, .01));
+      await tester.drag(find.text('Plant 7'), const Offset(0, 340));
+      await tester.pumpAndSettle();
+      expect(sheet.controller!.size, lessThan(.9));
+      sheet.controller!.jumpTo(sheet.minChildSize);
+      await tester.pumpAndSettle();
+      await tester.drag(find.text('Plant 7'), const Offset(0, -250));
+      await tester.pumpAndSettle();
+      expect(sheet.controller!.size, greaterThan(sheet.minChildSize + .1));
+      final previousExtent = sheet.controller!.size;
+      await tester.tap(find.byKey(const Key('guided_walk_arrive')));
+      await tester.pumpAndSettle();
+      expect(arrivals, 1);
+      expect(sheet.controller!.size, closeTo(previousExtent, .01));
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets(
     'manual arrival remains available without GPS and renders the approved sheet',
     (tester) async {
@@ -192,7 +309,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(calls, 1);
       expect(tester.takeException(), isNull);
-      if (Platform.environment['WORMWISE_CAPTURE_PREVIEW'] == '1')
+      if (Platform.environment['CROPWISE_CAPTURE_PREVIEW'] == '1')
         await tester.runAsync(() async {
           final boundary = tester.renderObject<RenderRepaintBoundary>(
             find.byKey(imageKey),

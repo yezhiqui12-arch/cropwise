@@ -32,8 +32,8 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verify Guide landing page elements
-      expect(find.text('WormWise AI Assistant'), findsOneWidget);
-      expect(find.text('How can I help with WormWise?'), findsOneWidget);
+      expect(find.text('Cropwise AI Assistant'), findsOneWidget);
+      expect(find.text('How can I help with Cropwise?'), findsOneWidget);
       expect(find.text('Explain my assessment'), findsOneWidget);
       expect(find.text('Check a maize photo'), findsOneWidget);
       expect(find.text('Inspect a plant'), findsOneWidget);
@@ -70,7 +70,7 @@ void main() {
       await tester.tap(find.byKey(const Key('advisor_new_chat')));
       await tester.pumpAndSettle();
 
-      expect(find.text('How can I help with WormWise?'), findsOneWidget);
+      expect(find.text('How can I help with Cropwise?'), findsOneWidget);
 
       // Cleanup
       await tester.pumpWidget(const SizedBox.shrink());

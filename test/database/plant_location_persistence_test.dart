@@ -14,6 +14,7 @@ import 'package:wormwise/data/repositories/station1_workflow_repository.dart';
 import 'package:wormwise/data/services/atomic_plant_save_service.dart';
 import 'package:wormwise/services/evidence_capture_coordinator.dart';
 import 'package:wormwise/services/evidence_storage_service.dart';
+import 'package:wormwise/services/scouting_sampling_protocol.dart';
 
 const _polygon =
     '{"type":"Polygon","coordinates":[[[121.0,17.0],[121.01,17.0],'
@@ -169,12 +170,12 @@ Future<_Fixture> _createFixture(AppDatabase database) async {
   final assessments = AssessmentRepository(database);
   var assessment = await assessments.createDraft(
     cropCycleId: field.cropCycle.id,
-    boundaryVersionId: field.boundary.id,
+    boundaryVersionId: field.boundary!.id,
     evaluatorPersonId: evaluator.id,
     assessmentMode: DatabaseCodes.modeV7V12,
-    scoutingPattern: DatabaseCodes.patternW,
+    scoutingPattern: ScoutingSamplingProtocol.daPattern,
     growthStage: 'v7_v12',
-    protocolVersion: 'camera-phase-a-test',
+    protocolVersion: ScoutingSamplingProtocol.daVersion,
     formulaVersion: 'camera-phase-a-test',
   );
   await assessments.recordSafetyCheck(
@@ -185,7 +186,7 @@ Future<_Fixture> _createFixture(AppDatabase database) async {
   await assessments.startAssessment(assessment.id);
   assessment = await assessments.assessmentById(assessment.id);
   final workflow = Station1WorkflowRepository(database);
-  final prepared = await workflow.prepareBlockOne(assessment, field.boundary);
+  final prepared = await workflow.prepareBlockOne(assessment, field.boundary!);
   final station = await workflow.saveStationLocation(
     prepared: prepared,
     actorPersonId: evaluator.id,

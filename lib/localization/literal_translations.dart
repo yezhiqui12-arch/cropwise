@@ -116,7 +116,7 @@ const literalFilipino = <String, String>{
   'Change password': 'Palitan ang password',
   'Continue as guest': 'Magpatuloy bilang bisita',
   'Sign out': 'Mag-sign out',
-  'Sign out of WormWise?': 'Mag-sign out sa WormWise?',
+  'Sign out of Cropwise?': 'Mag-sign out sa Cropwise?',
   'This review is no longer available.':
       'Hindi na available ang pagrepasong ito.',
   'Technical review pending': 'Naghihintay ng teknikal na pagrepaso',

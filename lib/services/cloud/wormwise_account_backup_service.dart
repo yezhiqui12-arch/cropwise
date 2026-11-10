@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart' show compute;
 import 'package:drift/drift.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:path_provider/path_provider.dart';
@@ -73,6 +74,7 @@ class WormWiseAccountBackupService {
 
   void requireFreshVerification() {
     _freshMediaVerification = true;
+    _thumbnailChecksums.clear();
     _lastSnapshotChecksum = null;
     _uploadedMedia.clear();
     lastPublishedSnapshotComplete = false;
@@ -82,6 +84,10 @@ class WormWiseAccountBackupService {
   final Directory? localViewDirectory;
   final Set<String> _restoredOwners = {};
   final Set<String> _uploadedMedia = {};
+  // Bounded and account-scoped. Original evidence checksums remain authoritative;
+  // only derived thumbnail hashes are reused when size and mtime match.
+  final Map<String, ({int size, DateTime modified, String checksum})>
+  _thumbnailChecksums = {};
   Future<bool>? _synchronizing;
   Future<bool>? _synchronizingMedia;
   Future<bool>? _switchingView;
@@ -1279,7 +1285,28 @@ class WormWiseAccountBackupService {
         if (checksum == null || checksum.isEmpty) {
           final file = await evidenceStorage.resolve(relativePath);
           if (await file.exists()) {
-            checksum = sha256.convert(await file.readAsBytes()).toString();
+            final stat = await file.stat();
+            final key = '$ownerId:$relativePath';
+            final cached = _thumbnailChecksums[key];
+            if (relativePath == record.thumbnailLocalUri &&
+                cached != null &&
+                cached.size == stat.size &&
+                cached.modified == stat.modified) {
+              checksum = cached.checksum;
+            } else {
+              final computed = await compute(checksumSnapshotFile, file.path);
+              checksum = computed;
+              if (relativePath == record.thumbnailLocalUri) {
+                if (_thumbnailChecksums.length >= 512) {
+                  _thumbnailChecksums.remove(_thumbnailChecksums.keys.first);
+                }
+                _thumbnailChecksums[key] = (
+                  size: stat.size,
+                  modified: stat.modified,
+                  checksum: computed,
+                );
+              }
+            }
           }
         }
         if (checksum == null || checksum.isEmpty) {
@@ -1295,20 +1322,15 @@ class WormWiseAccountBackupService {
       }
     }
 
-    final fingerprint = sha256
-        .convert(
-          utf8.encode(
-            jsonEncode({
-              'tables': tables,
-              'app_data': accountAppData,
-              'app_media_complete': appMediaComplete,
-              'media': media,
-              'media_complete': mediaComplete,
-              'records_complete': lastRecordError == null,
-            }),
-          ),
-        )
-        .toString();
+    final fingerprint = await compute(snapshotFingerprint, {
+      'tables': tables,
+      'app_data': accountAppData,
+      'app_media_complete': appMediaComplete,
+      'media': media,
+      'media_complete': mediaComplete,
+      'records_complete': lastRecordError == null,
+    });
+    if (!_isCurrentAccount(ownerId)) return false;
     final complete =
         mediaComplete && appMediaComplete && lastRecordError == null;
     if (_lastSnapshotChecksum == fingerprint) {
@@ -1327,9 +1349,8 @@ class WormWiseAccountBackupService {
       'media_complete': mediaComplete,
       'records_complete': lastRecordError == null,
     };
-    final compressed = Uint8List.fromList(
-      gzip.encode(utf8.encode(jsonEncode(payload))),
-    );
+    final compressed = await compute(compressSnapshot, payload);
+    if (!_isCurrentAccount(ownerId)) return false;
     await snapshotStore.publish(
       owner: ownerId,
       device: deviceId,
@@ -1484,3 +1505,13 @@ class WormWiseAccountBackupService {
     return created;
   }
 }
+
+/// Top-level functions keep database/client objects out of isolate messages.
+String snapshotFingerprint(Map<String, dynamic> data) =>
+    sha256.convert(utf8.encode(jsonEncode(data))).toString();
+
+Uint8List compressSnapshot(Map<String, dynamic> payload) =>
+    Uint8List.fromList(gzip.encode(utf8.encode(jsonEncode(payload))));
+
+Future<String> checksumSnapshotFile(String path) async =>
+    (await sha256.bind(File(path).openRead()).first).toString();

@@ -187,7 +187,7 @@ class DaMonitoringPdfExportService {
           footer: (context) => pw.Row(
             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
             children: [
-              text('WormWise - adapted DA monitoring form', size: 7),
+              text('Cropwise - adapted DA monitoring form', size: 7),
               text('${context.pageNumber} / ${context.pagesCount}', size: 7),
             ],
           ),
@@ -458,7 +458,7 @@ class DaMonitoringPdfExportService {
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    text('WormWise - DA monitoring evidence', size: 7),
+                    text('Cropwise - DA monitoring evidence', size: 7),
                     text(
                       '${context.pageNumber} / ${context.pagesCount}',
                       size: 7,

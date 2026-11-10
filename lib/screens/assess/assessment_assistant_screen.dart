@@ -340,7 +340,7 @@ class _AssessmentAssistantScreenState extends State<AssessmentAssistantScreen> {
       setState(() {
         _sending = false;
         _error =
-            'WormWise could not answer right now. Your question remains saved with this assessment.';
+            'Cropwise could not answer right now. Your question remains saved with this assessment.';
       });
     }
   }
@@ -391,7 +391,7 @@ class _AssessmentAssistantScreenState extends State<AssessmentAssistantScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const AppText(
-              'Ask WormWise',
+              'Ask Cropwise',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
             ),
             Text(
@@ -431,7 +431,7 @@ class _AssessmentAssistantScreenState extends State<AssessmentAssistantScreen> {
                   SizedBox(width: 8),
                   Expanded(
                     child: AppText(
-                      'This conversation is scoped to the current saved assessment. WormWise uses its recorded results as context and does not change the official assessment.',
+                      'This conversation is scoped to the current saved assessment. Cropwise uses its recorded results as context and does not change the official assessment.',
                       style: TextStyle(
                         color: Color(0xFF365247),
                         fontSize: 11.5,
@@ -619,7 +619,7 @@ class _AssessmentAssistantIdentity extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => const AppText(
-    'WormWise',
+    'Cropwise',
     style: TextStyle(
       color: Color(0xFF1B4D3E),
       fontSize: 12,

@@ -12,7 +12,7 @@ import 'package:wormwise/screens/scan/da_batch_import_screen.dart';
 import 'package:wormwise/services/da_batch_import_store.dart';
 
 void main() {
-  final previews = Platform.environment['WORMWISE_DA_BULK_PREVIEW'];
+  final previews = Platform.environment['CROPWISE_DA_BULK_PREVIEW'];
   const renderKey = Key('bulk_preview');
   late AppDatabase db;
   late Directory root;
@@ -36,7 +36,7 @@ void main() {
     await (FontLoader(
       'BulkRoboto',
     )..addFont(rootBundle.load('assets/fonts/Roboto-Regular.ttf'))).load();
-    final icon = Platform.environment['WORMWISE_DA_ICON_FONT'];
+    final icon = Platform.environment['CROPWISE_DA_ICON_FONT'];
     if (icon != null)
       await (FontLoader(
         'MaterialIcons',

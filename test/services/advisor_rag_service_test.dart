@@ -114,7 +114,7 @@ void main() {
       final context = service.retrieve('How should I scout the field?');
       final prompt = context.toPromptText();
 
-      expect(prompt, contains('WORMWISE CURATED REFERENCE CONTEXT'));
+      expect(prompt, contains('CROPWISE CURATED REFERENCE CONTEXT'));
       expect(prompt, contains('Actionable publication status:'));
       expect(prompt, contains('SOURCE CATALOG'));
       for (final result in context.results) {

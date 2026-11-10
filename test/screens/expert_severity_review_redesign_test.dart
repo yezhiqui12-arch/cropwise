@@ -9,7 +9,7 @@ import 'package:wormwise/services/cloud/expert_review_service.dart';
 import 'package:wormwise/theme/app_colors.dart';
 
 void main() {
-  final output = Platform.environment['WORMWISE_RESULTS_PREVIEW'];
+  final output = Platform.environment['CROPWISE_RESULTS_PREVIEW'];
   setUpAll(() async {
     if (output == null) return;
     for (final font in {

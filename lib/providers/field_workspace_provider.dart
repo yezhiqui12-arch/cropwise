@@ -226,7 +226,7 @@ class FieldWorkspaceProvider extends ChangeNotifier {
         confidenceCode: confidenceCode,
         notes:
             'Calculated perimeter: ${perimeterMeters.toStringAsFixed(2)} m. '
-            'User confirmed as a WormWise scouting boundary; not a cadastral survey.',
+            'User confirmed as a Cropwise scouting boundary; not a cadastral survey.',
       );
     } catch (error) {
       _error = error;

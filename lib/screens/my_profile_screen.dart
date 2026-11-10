@@ -277,7 +277,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const AppText('Sign out of WormWise?'),
+        title: const AppText('Sign out of Cropwise?'),
         content: const AppText(
           'Your fields, assessments, and photos will stay saved on this phone.',
         ),
@@ -312,7 +312,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     final identity = context.watch<WormWiseIdentityService>();
     final registered = identity.state == WormWiseIdentityState.registered;
     final name =
-        identity.displayName ?? (registered ? 'WormWise user' : 'Guest user');
+        identity.displayName ?? (registered ? 'Cropwise user' : 'Guest user');
     final email = registered
         ? identity.email ?? 'No email available'
         : 'No email linked';

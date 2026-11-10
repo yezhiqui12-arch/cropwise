@@ -11,7 +11,7 @@ import 'package:provider/provider.dart';
 import '../data/repositories/field_repository.dart';
 import '../providers/field_workspace_provider.dart';
 import '../services/phone_location_service.dart';
-import '../services/piat_barangay_centers.dart';
+import '../services/field_boundary_map_center.dart';
 import '../services/map_view_policy.dart';
 import '../services/polygon_calculator.dart';
 import '../services/walk_boundary_recorder.dart';
@@ -26,19 +26,16 @@ LatLng _fieldMapCenter(
   final outline = PolygonCalculator.fromGeoJson(
     workspace.boundary?.geometryGeojson ?? '',
   );
-  if (outline.isNotEmpty) return PolygonCalculator.calculateCenter(outline);
   final latitude = workspace.boundary?.centroidLatitude;
   final longitude = workspace.boundary?.centroidLongitude;
-  if (latitude != null && longitude != null) {
-    final recorded = LatLng(latitude, longitude);
-    if (PolygonCalculator.isValidCoordinate(recorded)) return recorded;
-  }
-  if (initialCenter != null &&
-      PolygonCalculator.isValidCoordinate(initialCenter)) {
-    return initialCenter;
-  }
-  return PiatBarangayCenters.forName(workspace.field.barangay) ??
-      PiatBarangayCenters.fallback;
+  return fieldBoundaryMapCenter(
+    barangay: workspace.field.barangay,
+    outline: outline,
+    initialCenter: initialCenter,
+    entrance: latitude != null && longitude != null
+        ? LatLng(latitude, longitude)
+        : null,
+  );
 }
 
 class FieldBoundarySetupScreen extends StatelessWidget {

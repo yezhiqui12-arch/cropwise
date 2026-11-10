@@ -598,7 +598,7 @@ void main() {
       expect(find.text('Recommended Next Steps'), findsOneWidget);
       expect(find.text('Send to an Expert'), findsOneWidget);
       expect(find.text('Management Guidance'), findsOneWidget);
-      expect(find.text('Ask WormWise About This Assessment'), findsOneWidget);
+      expect(find.text('Ask Cropwise About This Assessment'), findsOneWidget);
 
       await _disposeHarness(tester);
     },
@@ -947,7 +947,7 @@ void main() {
   });
 
   testWidgets(
-    'Ask WormWise card opens the assessment-specific assistant instead of AdvisorScreen',
+    'Ask Cropwise card opens the assessment-specific assistant instead of AdvisorScreen',
     (tester) async {
       _setLargeViewport(tester);
       final fixture = await historyFixture(database, status: 'completed');
@@ -969,10 +969,10 @@ void main() {
       );
 
       await tester.scrollUntilVisible(
-        find.text('Ask WormWise About This Assessment'),
+        find.text('Ask Cropwise About This Assessment'),
         300,
       );
-      await tester.tap(find.text('Ask WormWise About This Assessment'));
+      await tester.tap(find.text('Ask Cropwise About This Assessment'));
       await tester.pumpAndSettle();
 
       expect(find.byType(AssessmentAssistantScreen), findsOneWidget);
@@ -1080,7 +1080,7 @@ void main() {
   });
 
   testWidgets(
-    'Ask WormWise remains collapsed when user exits without sending a message',
+    'Ask Cropwise remains collapsed when user exits without sending a message',
     (tester) async {
       _setLargeViewport(tester);
       final fixture = await historyFixture(database, status: 'completed');
@@ -1093,10 +1093,10 @@ void main() {
       await tester.tap(find.text('Recommendations'));
       await tester.pumpAndSettle();
       await tester.scrollUntilVisible(
-        find.text('Ask WormWise About This Assessment'),
+        find.text('Ask Cropwise About This Assessment'),
         300,
       );
-      await tester.tap(find.text('Ask WormWise About This Assessment'));
+      await tester.tap(find.text('Ask Cropwise About This Assessment'));
       await tester.pumpAndSettle();
       expect(find.byType(AssessmentAssistantScreen), findsOneWidget);
 
@@ -1112,7 +1112,7 @@ void main() {
   );
 
   testWidgets(
-    'Ask WormWise card expands only when the assessment has saved conversation',
+    'Ask Cropwise card expands only when the assessment has saved conversation',
     (tester) async {
       _setLargeViewport(tester);
       final fixture = await historyFixture(database, status: 'completed');

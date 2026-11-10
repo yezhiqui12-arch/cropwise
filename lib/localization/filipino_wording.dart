@@ -237,7 +237,7 @@ const farmerFilipino = <String, String>{
       'Kailangan ng eksperto ng dagdag na impormasyon',
   'Expert advice is ready': 'Handa na ang payo ng eksperto',
   'You': 'Ikaw',
-  'WormWise expert': 'Eksperto ng WormWise',
+  'Cropwise expert': 'Eksperto ng Cropwise',
   'Saved AI advice': 'Naka-save na gabay ng AI',
   'New AI advice': 'Bagong gabay ng AI',
   'Offline guidance': 'Offline na gabay',
@@ -302,8 +302,8 @@ const farmerFilipino = <String, String>{
       'Suriin ang lokasyon ng mga naitalang uod at ang katabing halaman para sa patuloy na pinsala mula sa pagkain.',
   'Continue protocol-based monitoring':
       'Ipagpatuloy ang monitoring ayon sa protocol',
-  'Repeat scouting according to the applicable WormWise field protocol and compare the next completed assessment with this saved record.':
-      'Ulitin ang pagsusuri ayon sa WormWise protocol at ihambing ang susunod na natapos na pagsusuri sa rekord na ito.',
+  'Repeat scouting according to the applicable Cropwise field protocol and compare the next completed assessment with this saved record.':
+      'Ulitin ang pagsusuri ayon sa Cropwise protocol at ihambing ang susunod na natapos na pagsusuri sa rekord na ito.',
   'Use local agricultural support when needed':
       'Humingi ng tulong sa lokal na agriculture office kung kailangan',
   'Share the completed assessment with the appropriate local agriculture office when follow-up support or management decisions are needed.':
@@ -459,7 +459,7 @@ const farmerFilipino = <String, String>{
   'Assessor': 'Tagasuri',
   'About Model 2': 'Tungkol sa Model 2',
   'About boundary accuracy': 'Tungkol sa katumpakan ng hangganan',
-  'OPEN IN WORMWISE': 'BUKSAN SA WORMWISE',
+  'OPEN IN CROPWISE': 'BUKSAN SA CROPWISE',
   'Product used (optional)': 'Produktong ginamit (opsyonal)',
   'Re-entry period': 'Re-entry period',
   'Source of re-entry period': 'Pinagbatayan ng re-entry period',

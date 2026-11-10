@@ -22,8 +22,8 @@ const longLiteralFilipino = <String, String>{
       'PANSUBOK NA DATOS · Hiwalay sa rekord ng magsasaka',
   'TEST DATA · Skip field workload':
       'PANSUBOK NA DATOS · Laktawan ang gawain sa bukid',
-  'Targets and lines are editable approximate field guidance. They are not turn-by-turn navigation, validated station-placement geometry, proof that the protocol was followed, or a legal or survey-grade boundary. For an irregular or concave field, WormWise may omit a connecting line rather than claim it is a safe walking path.':
-      'Maaaring i-edit ang mga target at guhit bilang tinatayang gabay sa bukid. Hindi ito detalyadong nabigasyon, napatunayang puwesto ng istasyon, patunay na nasunod ang paraan, o legal at survey-grade na hangganan. Para sa di-pantay o malukong bukid, maaaring hindi gumuhit ang WormWise ng koneksiyon sa halip na ipahiwatig na ligtas itong lakaran.',
+  'Targets and lines are editable approximate field guidance. They are not turn-by-turn navigation, validated station-placement geometry, proof that the protocol was followed, or a legal or survey-grade boundary. For an irregular or concave field, Cropwise may omit a connecting line rather than claim it is a safe walking path.':
+      'Maaaring i-edit ang mga target at guhit bilang tinatayang gabay sa bukid. Hindi ito detalyadong nabigasyon, napatunayang puwesto ng istasyon, patunay na nasunod ang paraan, o legal at survey-grade na hangganan. Para sa di-pantay o malukong bukid, maaaring hindi gumuhit ang Cropwise ng koneksiyon sa halip na ipahiwatig na ligtas itong lakaran.',
   'The current walked route will be removed and the previous outline will be restored.':
       'Aalisin ang kasalukuyang nilakad na ruta at ibabalik ang naunang balangkas.',
   'These actions write clearly synthetic records only to the separate debug database. The V3–V12 full-assessment shortcut also creates stored plant photos and GPS coordinates.':
@@ -35,8 +35,8 @@ const longLiteralFilipino = <String, String>{
   'Walking will temporarily replace the points currently on the map. You can discard the walk to restore them.':
       'Pansamantalang papalitan ng paglalakad ang mga puntong nasa mapa ngayon. Maaari mong itapon ang lakad upang maibalik ang mga ito.',
   'Why can’t it be assessed?': 'Bakit hindi ito masuri?',
-  'WormWise is reviewing this assessment…':
-      'Sinusuri ng WormWise ang pagsusuring ito…',
+  'Cropwise is reviewing this assessment…':
+      'Sinusuri ng Cropwise ang pagsusuring ito…',
   'You—not the camera—confirm that the target is visible and framed usefully.':
       'Ikaw—hindi ang camera—ang magkukumpirma na nakikita at maayos ang kuha sa target.',
   '• No feeding injury, frass, or larvae detected':
@@ -62,8 +62,8 @@ const longLiteralFilipino = <String, String>{
   'Damage Severity: ': 'Tindi ng pinsala: ',
   'Expose the whorl and inspect the newest 3 or 4 leaves. Confirm only what you can observe.':
       'Buksan ang gitnang dahon at suriin ang tatlo o apat na pinakabagong dahon. Kumpirmahin lamang ang aktuwal na naobserbahan.',
-  'Field conditions have not been recorded yet. WormWise asks about recent rain and the field surface when an assessment is prepared.':
-      'Hindi pa naitatala ang kalagayan ng bukid. Itatanong ng WormWise ang kamakailang ulan at kalagayan ng lupa habang inihahanda ang pagsusuri.',
+  'Field conditions have not been recorded yet. Cropwise asks about recent rain and the field surface when an assessment is prepared.':
+      'Hindi pa naitatala ang kalagayan ng bukid. Itatanong ng Cropwise ang kamakailang ulan at kalagayan ng lupa habang inihahanda ang pagsusuri.',
   'Field details are saved on this phone and keep outlines, crop cycles, and assessments together.':
       'Naka-save sa teleponong ito ang mga detalye ng bukid at magkakasama rito ang mga balangkas, siklo ng tanim, at pagsusuri.',
   'Fill remaining test plants': 'Punan ang natitirang pansubok na halaman',
@@ -71,13 +71,13 @@ const longLiteralFilipino = <String, String>{
       'Hinahanap ang lokasyon mo... Lumabas at panatilihing bukas ang screen na ito.',
   'If that stage is not supported yet, the assessment stays safely saved as a draft.':
       'Kung hindi pa suportado ang yugtong iyon, mananatiling ligtas na naka-save bilang draft ang pagsusuri.',
-  'Keep these available when observations could have another cause or cannot be interpreted confidently. WormWise preserves them alongside all other raw observations.':
-      'Panatilihin ang mga opsiyong ito kung maaaring iba ang sanhi ng obserbasyon o hindi ito mabigyang-kahulugan nang may katiyakan. Iniingatan ito ng WormWise kasama ng lahat ng hilaw na obserbasyon.',
+  'Keep these available when observations could have another cause or cannot be interpreted confidently. Cropwise preserves them alongside all other raw observations.':
+      'Panatilihin ang mga opsiyong ito kung maaaring iba ang sanhi ng obserbasyon o hindi ito mabigyang-kahulugan nang may katiyakan. Iniingatan ito ng Cropwise kasama ng lahat ng hilaw na obserbasyon.',
   'Last assessed: 2 days ago': 'Huling sinuri: 2 araw na ang nakalipas',
   'Manual fallback documented. Continue the physical assessment and structured observations.':
       'Naitala ang manwal na alternatibong paraan. Ipagpatuloy ang pisikal na pagsusuri at nakabalangkas na mga obserbasyon.',
-  'Mixed evidence selected. Every raw answer will be kept. Confirm the primary interpretation; WormWise has not selected one.':
-      'Pinili ang halo-halong ebidensiya. Itatago ang bawat orihinal na sagot. Kumpirmahin ang pangunahing interpretasyon; wala pang pinili ang WormWise.',
+  'Mixed evidence selected. Every raw answer will be kept. Confirm the primary interpretation; Cropwise has not selected one.':
+      'Pinili ang halo-halong ebidensiya. Itatago ang bawat orihinal na sagot. Kumpirmahin ang pangunahing interpretasyon; wala pang pinili ang Cropwise.',
   'No message has been sent yet. The case status will update as the expert reviews it.':
       'Wala pang naipadalang mensahe. Mag-a-update ang katayuan ng kaso habang sinusuri ito ng eksperto.',
   'No results for': 'Walang resulta para sa',
@@ -87,8 +87,8 @@ const longLiteralFilipino = <String, String>{
       'Tinatayang balangkas lamang para sa pagmamanman ang ginagawa ng GPS ng telepono at pagguhit sa mapa; hindi ito survey-grade na hangganan ng ari-arian.',
   'Photography failure does not invalidate a careful physical assessment. Record why the required image cannot be collected.':
       'Hindi pinawawalang-bisa ng problema sa pagkuha ng larawan ang maingat na pisikal na pagsusuri. Itala kung bakit hindi makuha ang kinakailangang larawan.',
-  'Photos will be saved, but WormWise has no image model yet. No findings will be created for these seedlings.':
-      'Mase-save ang mga larawan, ngunit wala pang image model ang WormWise. Walang awtomatikong resulta para sa mga punlang ito.',
+  'Photos will be saved, but Cropwise has no image model yet. No findings will be created for these seedlings.':
+      'Mase-save ang mga larawan, ngunit wala pang image model ang Cropwise. Walang awtomatikong resulta para sa mga punlang ito.',
   'Pinch to zoom and drag to inspect the stored evidence. The evaluator confirms framing and observations.':
       'Paglapitin o paglayuin ang mga daliri upang mag-zoom, at i-drag upang suriin ang naka-save na ebidensiya. Ang tagasuri ang magkukumpirma ng kuha at obserbasyon.',
   'Pinch to zoom and drag to inspect this saved image. This viewer does not alter the evidence file.':
@@ -118,16 +118,16 @@ const longLiteralFilipino = <String, String>{
       'Inilalarawan lamang ng mga kulay ang mga nasampolang istasyon. Hindi ito mga kategorya ng tindi at hindi nito tinatantiya ang kalagayan sa pagitan ng mga istasyon.',
   'The earlier model preview was not stored. Review the saved photo and confirm the observation; the model will not run again.':
       'Hindi naimbak ang naunang preview ng modelo. Repasuhin ang naka-save na larawan at kumpirmahin ang obserbasyon; hindi na muling tatakbo ang modelo.',
-  'The image file will be deleted. WormWise keeps only an audited metadata tombstone and checksum.':
-      'Buburahin ang file ng larawan. Mananatili lamang ang sinuring tala ng pagbura at checksum sa WormWise.',
+  'The image file will be deleted. Cropwise keeps only an audited metadata tombstone and checksum.':
+      'Buburahin ang file ng larawan. Mananatili lamang ang sinuring tala ng pagbura at checksum sa Cropwise.',
   'The outline is an approximate guide for field scouting. It is not a legal or survey-grade property boundary.':
       'Tinatayang gabay lamang sa pagmamanman sa bukid ang balangkas. Hindi ito legal o survey-grade na hangganan ng ari-arian.',
   'These values describe the sampled station and do not assign a measured value to unsampled locations.':
       'Inilalarawan ng mga halagang ito ang nasampolang istasyon at hindi nagbibigay ng nasukat na halaga sa mga lugar na hindi nasampolan.',
   'This confirms sampling completeness. Completing the final block calculates and saves the assessment metrics; it does not create a diagnosis or treatment recommendation.':
       'Kinukumpirma nito ang pagkakumpleto ng sampling. Kakalkulahin at ise-save ng pagkumpleto sa huling bloke ang mga sukatan ng pagsusuri; hindi ito lumilikha ng diagnosis o mungkahi sa paggamot.',
-  'This conversation is scoped to the current saved assessment. WormWise uses its recorded results as context and does not change the official assessment.':
-      'Ang usapang ito ay tungkol sa kasalukuyang naka-save na pagsusuri. Ginagamit ng WormWise ang mga naitalang resulta bilang konteksto at hindi binabago ang opisyal na pagsusuri.',
+  'This conversation is scoped to the current saved assessment. Cropwise uses its recorded results as context and does not change the official assessment.':
+      'Ang usapang ito ay tungkol sa kasalukuyang naka-save na pagsusuri. Ginagamit ng Cropwise ang mga naitalang resulta bilang konteksto at hindi binabago ang opisyal na pagsusuri.',
   'This guide supports field screening and consistent scouting. It does not replace diagnosis, a current pesticide label, or qualified local advice.':
       'Tumutulong ang gabay na ito sa pagsusuri sa bukid at pare-parehong pagmamanman. Hindi nito pinapalitan ang diagnosis, kasalukuyang label ng pestisidyo, o payo ng kwalipikadong lokal na eksperto.',
   'This guideline supports field screening and consistent scouting. It does not replace diagnosis, a current pesticide label, or qualified local advice.':
@@ -138,7 +138,7 @@ const longLiteralFilipino = <String, String>{
       'Gamitin ang aprubadong kahulugan sa bukid para sa bagong windowpane, pagkaskas, pagputol o pagpunit, dumi ng uod, at pangkalahatang palatandaan ng pagkain sa gitnang dahon. Piliin lamang ang aktuwal na naobserbahan; hindi sapat ang mga palatandaang ito upang mapatunayan ang uri ng peste.',
   'View AI Recommendation': 'Tingnan ang mungkahi ng AI',
   'Visual Signs Detected by AI:': 'Mga nakitang palatandaan ng AI:',
-  'WormWise': 'WormWise',
-  'WormWise has no validated image model. Photographs support the record, but every plant still needs evaluator-completed observations in Station Review.':
-      'Wala pang validated na image model ang WormWise. Sinusuportahan ng mga larawan ang rekord, ngunit kailangan pa rin ng kinumpletong obserbasyon ng tagasuri para sa bawat halaman sa pagrepaso ng istasyon.',
+  'Cropwise': 'Cropwise',
+  'Cropwise has no validated image model. Photographs support the record, but every plant still needs evaluator-completed observations in Station Review.':
+      'Wala pang validated na image model ang Cropwise. Sinusuportahan ng mga larawan ang rekord, ngunit kailangan pa rin ng kinumpletong obserbasyon ng tagasuri para sa bawat halaman sa pagrepaso ng istasyon.',
 };

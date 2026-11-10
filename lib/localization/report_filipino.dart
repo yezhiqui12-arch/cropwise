@@ -1,7 +1,7 @@
 /// PDF copy is translated separately from names, notes, and scientific codes.
 const reportFilipino = <String, String>{
-  'WormWise field assessment record':
-      'WormWise na rekord ng pagsusuri sa bukid',
+  'Cropwise field assessment record':
+      'Cropwise na rekord ng pagsusuri sa bukid',
   'FIELD ASSESSMENT RECORD': 'REKORD NG PAGSUSURI SA BUKID',
   'Assessment findings for professional review':
       'Mga resulta para suriin ng eksperto',

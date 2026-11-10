@@ -961,7 +961,7 @@ class _GuidelineDetailScreenState extends State<_GuidelineDetailScreen> {
                         const _ArticleHeading('Sources / References'),
                         const SizedBox(height: AppSpacing.xs),
                         for (final id in article.sourceIds)
-                          if (id != 'WORMWISE-PROTOCOL')
+                          if (id != 'CROPWISE-PROTOCOL')
                             if (AdvisorRagService.sources[id]
                                 case final source?)
                               _SourceRow(source: source),

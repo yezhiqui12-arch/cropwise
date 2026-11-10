@@ -85,7 +85,7 @@ void main() {
       );
       expect(String.fromCharCodes(bytes.take(5)), '%PDF-');
       expect(bytes.length, greaterThan(10000));
-      final output = Platform.environment['WORMWISE_DA_EVIDENCE_PREVIEW'];
+      final output = Platform.environment['CROPWISE_DA_EVIDENCE_PREVIEW'];
       if (output != null) await File(output).writeAsBytes(bytes);
     },
   );
@@ -205,7 +205,7 @@ void main() {
       );
       expect(bytes.length, greaterThan(3000));
       expect(String.fromCharCodes(bytes.take(5)), '%PDF-');
-      final path = Platform.environment['WORMWISE_DA_PDF_PREVIEW'];
+      final path = Platform.environment['CROPWISE_DA_PDF_PREVIEW'];
       if (path != null) {
         await File(path).parent.create(recursive: true);
         await File(path).writeAsBytes(bytes);

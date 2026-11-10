@@ -200,7 +200,7 @@ void main() {
       );
       final bytes = await const ExpertFindingsPdfExportService().build(report);
       expect(bytes.take(4), [37, 80, 68, 70]);
-      final path = Platform.environment['WORMWISE_EXPERT_PDF_PREVIEW'];
+      final path = Platform.environment['CROPWISE_EXPERT_PDF_PREVIEW'];
       if (path != null) {
         await File(path).parent.create(recursive: true);
         await File(path).writeAsBytes(bytes);

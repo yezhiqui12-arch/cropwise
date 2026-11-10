@@ -185,7 +185,7 @@ void main() {
 
       expect(
         find.text(
-          'Confirm the primary interpretation. WormWise will not select it automatically.',
+          'Confirm the primary interpretation. Cropwise will not select it automatically.',
         ),
         findsOneWidget,
       );
